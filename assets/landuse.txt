@@ -1,0 +1,29 @@
+case 
+  when "class" = '田（水田）' then 1
+  when "class" = '畑（畑、樹園地、採草地、養鶏（牛・豚）場）' THEN 2
+  when "class" = '山林（樹林地）' then 3
+  when "class" = '水面（河川水面、湖沼、ため池、用水路、濠、運河水面）' then 4
+  when "class" = 'その他自然地（原野・牧野、荒れ地（耕作放棄地等自然的状況のもの）、低湿地、河川敷・河原、海浜、湖岸）' then 5
+  when "class" = '住宅用地（住宅、共同住宅、店舗等併用住宅、店舗等併用共同住宅、作業所併用住宅）' then 6
+  when "class" = '商業用地（業務施設、商業施設、宿泊施設、商業系複合施設）' then 7
+  when "class" = '工業用地（工場）' then 8
+  when "class" = '農林漁業施設用地（農林漁業用施設）' then 9
+  when "class" = '公益施設用地（官公庁施設、文教厚生施設、供給処理施設）' then 10
+  when "class" = '道路用地（道路、駅前広場、私有地内に存在する沿道用途の「私道」または、私有地の一部分であるものの公共の通行に供されている土地の部分）' then 11
+  when "class" = '交通施設用地（運輸倉庫施設）' then 12
+  when "class" = '公共空地（公園・緑地、広場、運動場、墓園）' then 13
+  when "class" = 'その他公的施設用地（防衛施設用地）' then 14
+  when "class" = 'その他①（ゴルフ場）' then 15
+  when "class" = 'その他②（太陽光発電のシステムを直接整備している土地）' then 16
+  when "class" = 'その他③（平⾯駐車場）' then 17
+  when "class" = 'その他④（その他①～③以外の用途に供されている都市的土地利用（建物跡地、資材置場、改変工事中の土地）、法⾯（道路、造成地等の主利用に含まれない法⾯））' then 18
+  when "class" = '低未利用土地（用途に供されていない空地、空家・空き店舗・空施設の存する土地等）' then 19
+  when "class" = '不明' then 20
+  when "class" = '可住地'  then 21
+  when "class" = '非可住地' then 22
+  when "class" = '農地（田、畑の区分がない）' then 23
+  when "class" = '宅地（住宅用地、商業用地等の区分が無い）' then 24
+  when "class" = '道路・鉄軌道敷（道路と交通施設用地が混在）' then 25
+  when "class" = '空地（その他①～④の区分が無い）' then 26
+  else 0
+end

@@ -1,0 +1,1666 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SynapseAI - 神经网络训练平台</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="./css/style.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-draw/dist/leaflet.draw.css" />
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet-draw/dist/leaflet.draw.js"></script>
+    <style>
+        /* 新增现代感优化样式（不破坏原有风格） */
+        :root {
+            --cyan: #00ffff;
+            --magenta: #ff00ff;
+            --dark-bg: rgba(10, 10, 20, 0.85);
+            --border-light: rgba(0, 255, 255, 0.15);
+            --shadow-cyan: 0 0 12px rgba(0, 255, 255, 0.4);
+            --transition-base: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* 基础布局优化 */
+        body {
+            font-family: 'Inter', sans-serif;
+            line-height: 1.5;
+        }
+
+        .ai-card {
+            border-radius: 16px;
+            border: 1px solid var(--border-light);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), var(--shadow-cyan);
+            padding: 2.5rem;
+            margin: 1rem auto;
+            max-width: 1500px;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            letter-spacing: 3px;
+            font-weight: 700;
+        }
+
+        .subtitle {
+            font-size: 1rem;
+            opacity: 0.9;
+            margin-bottom: 2rem;
+            line-height: 1.6;
+        }
+
+        /* 表单网格优化 */
+        .form-grid {
+            gap: 1.25rem;
+            margin-bottom: 2rem;
+        }
+
+        @media (min-width: 1300px) {
+            .form-grid {
+                grid-template-columns: repeat(4, 1fr);
+                gap: 1.5rem;
+            }
+        }
+
+        .form-group label {
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+            color: var(--cyan);
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* 输入框现代感优化 */
+        input[type="number"], select, textarea {
+            border-radius: 8px;
+            border: 1px solid var(--border-light);
+            background: rgba(0, 20, 30, 0.6);
+            height: 48px;
+            padding: 0 1rem;
+            font-size: 0.95rem;
+            transition: var(--transition-base);
+        }
+
+        input[type="number"]:focus, select:focus, textarea:focus {
+            border-color: var(--magenta);
+            box-shadow: 0 0 0 2px rgba(255, 0, 255, 0.2);
+            background: rgba(0, 20, 30, 0.7);
+        }
+
+        textarea {
+            min-height: 120px;
+            padding: 1rem;
+            line-height: 1.5;
+        }
+
+        /* 标签栏优化 */
+        .tabs-nav {
+            gap: 0.75rem;
+            margin-bottom: 2rem;
+        }
+
+        .nav-btn {
+            border-radius: 8px;
+            padding: 0.875rem 1.5rem;
+            font-size: 0.95rem;
+            font-weight: 500;
+            letter-spacing: 0.5px;
+            border: 1px solid var(--border-light);
+            background: rgba(0, 25, 35, 0.5);
+            transition: var(--transition-base);
+        }
+
+        .nav-btn:hover {
+            background: rgba(0, 35, 45, 0.7);
+            transform: translateY(-2px);
+        }
+
+        #tab-predict:checked ~ .main-container .tabs-nav label[for="tab-predict"],
+        #tab-generate:checked ~ .main-container .tabs-nav label[for="tab-generate"],
+        #tab-feature:checked ~ .main-container .tabs-content .pane-feature {
+            box-shadow: 0 4px 16px rgba(0, 255, 255, 0.5);
+            transform: translateY(-2px);
+        }
+
+        /* 按钮组优化 */
+        .button-group {
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+
+        button {
+            border-radius: 8px;
+            padding: 0.875rem 2rem;
+            font-size: 0.95rem;
+            font-weight: 600;
+            letter-spacing: 1px;
+            transition: var(--transition-base);
+        }
+
+        button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 0, 255, 0.4);
+        }
+
+        /* 进度环优化 */
+        #progress-container {
+            margin: 2rem 0;
+        }
+
+        .progress-ring-wrapper {
+            margin-bottom: 1rem;
+        }
+
+        /* 结果容器优化 */
+        #result-container {
+            border-radius: 16px;
+            overflow: hidden;
+        }
+
+        #map-legend {
+            border-radius: 8px;
+            padding: 1rem;
+            border: 1px solid var(--border-light);
+        }
+
+        /* 响应式优化 */
+        @media (max-width: 768px) {
+            .ai-card {
+                padding: 1.5rem;
+                margin: 0.5rem;
+            }
+
+            h1 {
+                font-size: 2rem;
+            }
+
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .button-group {
+                flex-direction: column;
+                gap: 0.75rem;
+            }
+
+            button {
+                width: 100%;
+            }
+        }
+
+        /* Canvas 背景优化 */
+        #neuralNetworkCanvas {
+            filter: brightness(0.8) contrast(1.1);
+        }
+
+        /* 弹窗背后的遮罩层样式 */
+        #help-modal::backdrop {
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(4px);
+        }
+
+        /* 针对帮助按钮的微调 */
+        .help-btn-glow {
+            transition: var(--transition-base);
+        }
+        .help-btn-glow:hover {
+            box-shadow: 0 0 10px var(--cyan);
+            background: rgba(0, 255, 255, 0.1);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 神经网络背景 -->
+    <canvas id="neuralNetworkCanvas"></canvas>
+
+    <!-- 内容 -->
+    <div class="content-wrapper">
+        <div class="ai-card">
+            <h1>RSS Prediction Model</h1>
+            <p class="subtitle">転移学習に基づく次世代RSS予測モデル<br>A next-generation RSS prediction model based on Transfer Learning</p>
+            
+            <!-- Tab 切换控件 -->
+            <input type="radio" name="main-tabs" id="tab-predict" checked>
+            <input type="radio" name="main-tabs" id="tab-generate">
+            <input type="radio" name="main-tabs" id="tab-feature" disabled>
+            
+            <div class="main-container">
+                <!-- 标签导航 -->
+                <div class="tabs-nav">
+                    <label for="tab-predict" class="nav-btn">RSS予測</label>
+                    <label for="tab-generate" class="nav-btn">モデル作成</label>
+                    <label for="tab-feature" class="nav-btn">データ処理</label>
+                </div>
+                
+                <!-- 标签内容区 -->
+                <div class="tabs-content">
+                    <!-- 预测标签页 -->
+                    <div class="tab-pane pane-predict">
+                        <form id="predict-form">
+                            <div class="form-grid">
+                                <!-- 模型选择 -->
+                                <div class="form-group">
+                                    <label for="p-model">基本モデル選択</label>
+                                    <select id="p-model" name="model" onchange="handleModelChange()" required>
+                                        <option value="">Choose Model</option>
+                                        <option value="NICT_latest_model">汎用モデルM0（NICT信州大202604）</option>
+                                        <option value="customized_model">カスタムモデル</option>
+                                    </select>
+                                </div>
+                                
+                                <!-- 数据库选择 -->
+                                <div class="form-group">
+                                    <label for="p-database">データベース選択</label>
+                                    <select id="p-database" name="database" onchange="handleDatabaseChange()" disabled>
+                                        <option value="">Choose Database</option>
+                                        <option value="DB_matumotoCity">長野県松本市</option>
+                                        <option value="DB_kouchi_kamishi">高知県香美市</option>
+                                        <option value="DB_kouchi_shimanntoucyou">高知県四万十町</option>
+                                        <option value="DB_kanagawa_yokosukashi">神奈川県横須賀市</option>
+                                    </select>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="p-predictDataSelect">予測データ</label>
+                                    <select id="p-predictDataSelect" name="predictDataSelect" onchange="handlePredictDataChange()" disabled>
+                                        <option value="">Choose Predict Data</option>
+                                        <option value="predictData_map">地図から選択</option>
+                                        <option value="predictData_file">CSVファイルから選択</option>
+                                    </select>
+                                </div>
+                                
+                                <!-- 地图选择按钮 -->
+                                <div class="form-group" style="display: flex; align-items: flex-end;">
+                                    <button type="button" id="map-btn" onclick="handleMapClick()" disabled>地図から予測エリア作成</button>
+                                </div>
+                                
+                                <!-- 经度网格 -->
+                                <div class="form-group">
+                                    <label for="p-mesh-lng">メッシュ化（経度方向）</label>
+                                    <input type="number" id="p-mesh-lng" name="mesh_lng" 
+                                        min="1" step="1" value="30" 
+                                        onblur="if(this.value < 1 || this.value === '') this.value = 1;"
+                                        placeholder="正整数を入力してください" disabled>
+                                </div>
+                                
+                                <!-- 纬度网格 -->
+                                <div class="form-group">
+                                    <label for="p-mesh-lat">メッシュ化（緯度方向）</label>
+                                    <input type="number" id="p-mesh-lat" name="mesh_lat" 
+                                        min="1" step="1" value="30" 
+                                        onblur="if(this.value < 1 || this.value === '') this.value = 1;"
+                                        placeholder="正整数を入力してください" disabled>
+                                </div>
+                                
+                                <!-- 频率 -->
+                                <div class="form-group">
+                                    <label for="p-frequency">周波数（MH<span style="text-transform: lowercase;">z</span>）</label>
+                                    <input type="number" id="p-frequency" name="frequency" 
+                                        min="200" step="100" value="920" 
+                                        onblur="if(this.value < 200 || this.value === '') this.value = 200;"
+                                        placeholder="正整数を入力してください" disabled>
+                                </div>
+                                
+                                <!-- SF选择 -->
+                                <div class="form-group">
+                                    <label for="p-SF">SF</label>
+                                    <select id="p-SF" name="SF" disabled>
+                                        <option value="0">None</option>
+                                        <option value="5">5</option>
+                                        <option value="6">6</option>
+                                        <option value="7">7</option>
+                                        <option value="8">8</option>
+                                        <option value="9">9</option>
+                                        <option value="10">10</option>
+                                        <option value="11">11</option>
+                                        <option value="12">12</option>
+                                    </select>
+                                </div>
+                                
+                                <!-- EIRP -->
+                                <div class="form-group">
+                                    <label for="p-EIRP">EIRP（<span style="text-transform: lowercase;">d</span>B<span style="text-transform: lowercase;">m</span>）</label>
+                                    <input type="number" id="p-EIRP" name="EIRP" 
+                                        step="1" value="20" 
+                                        onblur="if(this.value === '') this.value = 20;"
+                                        placeholder="値を入力してください" disabled>
+                                </div>
+                                
+                                <!-- 固定天线经度 -->
+                                <div class="form-group">
+                                    <label for="p-fixAntenna_lng">固定アンテナの経度（°）</label>
+                                    <input type="number" id="p-fixAntenna_lng" name="fixAntenna_lng" 
+                                        step="0.01" value="137.9775489"
+                                        onblur="if(this.value === '') this.value = 137.9775489;"
+                                        placeholder="値を入力してください" disabled>
+                                </div>
+                                
+                                <!-- 固定天线纬度 -->
+                                <div class="form-group">
+                                    <label for="p-fixAntenna_lat">固定アンテナの緯度（°）</label>
+                                    <input type="number" id="p-fixAntenna_lat" name="fixAntenna_lat" 
+                                        step="0.01" value="36.2508738"
+                                        onblur="if(this.value === '') this.value = 36.2508738;"
+                                        placeholder="値を入力してください" disabled>
+                                </div>
+                                
+                                <!-- 固定天线高度 -->
+                                <div class="form-group">
+                                    <label for="p-fixAntenna_alt">固定アンテナの標高（建物含む、m）</label>
+                                    <input type="number" id="p-fixAntenna_alt" name="fixAntenna_alt" 
+                                        step="1" value="640.7"
+                                        onblur="if(this.value === '') this.value = 640.7;"
+                                        placeholder="値を入力してください" disabled>
+                                </div>
+                                
+                                <!-- 固定天线高度（屋顶） -->
+                                <div class="form-group">
+                                    <label for="p-fixAntenna_height">固定アンテナの高さ（屋上まで、m）</label>
+                                    <input type="number" id="p-fixAntenna_height" name="fixAntenna_height" 
+                                        step="0.1" value="1.5"
+                                        onblur="if(this.value === '') this.value = 1.5;"
+                                        placeholder="値を入力してください" disabled>
+                                </div>
+                                
+                                <!-- 移动天线高度 -->
+                                <div class="form-group">
+                                    <label for="p-moveAntenna_height">移動アンテナの高さ（地面まで、m）</label>
+                                    <input type="number" id="p-moveAntenna_height" name="moveAntenna_height" 
+                                        step="0.1" value="1.8"
+                                        onblur="if(this.value === '') this.value = 1.8;"
+                                        placeholder="値を入力してください" disabled>
+                                </div>
+                            </div>
+
+                            <!-- 按钮组 -->
+                            <div class="button-group">
+                                <button type="reset" id="reset-btn" onclick="resetUI()">Reset</button>
+                                <div>
+                                    <input type="hidden" id="min-lng" name="min_lng">
+                                    <input type="hidden" id="min-lat" name="min_lat">
+                                    <input type="hidden" id="max-lng" name="max_lng">
+                                    <input type="hidden" id="max-lat" name="max_lat">
+                                    <button type="button" id="predict-btn" onclick="execute_rssPredict()" disabled>Predict</button>
+                                </div>
+                                <button type="button" id="result-btn" onclick="showResult()" disabled>Result</button>
+                            </div>
+                        </form>
+                    </div>
+
+
+
+
+                    <!-- 模型创建标签页 -->
+                    <div class="tab-pane pane-generate">
+                        <form id="model-form">
+                            <div class="form-grid">
+                                <div class="form-group">
+                                    <label for="m-isGenFV">特徴ベクトル作成</label>
+                                    <select id="m-isGenFV" name="isGenFV" onchange="m_checkIsNeedGenFV()">
+                                        <option value="yes">Yes</option>
+                                        <option value="no">No</option>
+                                    </select>
+                                </div>
+
+                                <div class="form-group">
+                                    <label>既存特徴ベクトル選択</label>
+                                    <div style="display: flex; gap: 10px; align-items: center;">
+                                        <button type="button" id="select-fv-btn" class="btn-modern" onclick="handleNativeSelect('fv')" disabled>
+                                            ファイルを選択
+                                        </button>
+                                    </div>
+                                    <small id="upload-status-fv" style="display: block; margin-top: 5px; color: cyan;">未選択</small>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="m-scheduler">Scheduler IP</label>
+                                    <input type="text" id="m-scheduler" name="scheduler" 
+                                        value=""
+                                        placeholder="Scheduler IP and port"
+                                    >
+                                </div>
+                            </div>
+                            
+                            <div class="form-grid">
+                                <!-- 超参数 -->
+                                <div class="form-group">
+                                    <label>訓練用データ</label>
+                                    <div style="display: flex; gap: 10px; align-items: center;">
+                                        <button type="button" id="select-csv-btn" class="btn-modern" onclick="handleNativeSelect('csv')">
+                                            ファイルを選択
+                                        </button>
+                                    </div>
+                                    <small id="upload-status" style="display: block; margin-top: 5px; color: cyan;">未選択</small>
+                                </div>
+
+                                <div class="form-group">
+                                    <label>標高データ (*.tif)</label>
+                                    <div style="display: flex; gap: 10px; align-items: center;">
+                                        <button type="button" id="select-altitude-btn" class="btn-modern" onclick="handleNativeSelect('altitude')">
+                                            ファイルを選択
+                                        </button>
+                                    </div>
+                                    <small id="upload-status-altitude" style="display: block; margin-top: 5px; color: cyan;">未選択</small>
+                                </div>
+
+                                <div class="form-group">
+                                    <label>建物データ (*.gpkg)</label>
+                                    <div style="display: flex; gap: 10px; align-items: center;">
+                                        <button type="button" id="select-building-btn" class="btn-modern" onclick="handleNativeSelect('building')">
+                                            ファイルを選択
+                                        </button>
+                                    </div>
+                                    <small id="upload-status-building" style="display: block; margin-top: 5px; color: cyan;">未選択</small>
+                                </div>
+
+                                <div class="form-group">
+                                    <label>土地利用データ (*.gpkg)</label>
+                                    <div style="display: flex; gap: 10px; align-items: center;">
+                                        <button type="button" id="select-landuse-btn" class="btn-modern" onclick="handleNativeSelect('landuse')">
+                                            ファイルを選択
+                                        </button>
+                                    </div>
+                                    <small id="upload-status-landuse" style="display: block; margin-top: 5px; color: cyan;">未選択</small>
+                                </div>
+                            </div>
+
+                            <div class="form-grid">
+                                <!-- 频率 -->
+                                <div class="form-group">
+                                    <label for="m-frequency">周波数（MH<span style="text-transform: lowercase;">z</span>）</label>
+                                    <input type="number" id="m-frequency" name="frequency" 
+                                        min="200" step="100" value="920" 
+                                        onblur="if(this.value < 200 || this.value === '') this.value = 200;"
+                                        placeholder="正整数を入力してください"
+                                        onchange="m_checkInputs()">
+                                </div>
+
+                                <!-- SF选择 -->
+                                <div class="form-group">
+                                    <label for="m-SF">SF</label>
+                                    <select id="m-SF" name="SF" onchange="m_checkInputs()">
+                                        <option value="0">None</option>
+                                        <option value="5">5</option>
+                                        <option value="6">6</option>
+                                        <option value="7">7</option>
+                                        <option value="8">8</option>
+                                        <option value="9">9</option>
+                                        <option value="10">10</option>
+                                        <option value="11">11</option>
+                                        <option value="12">12</option>
+                                    </select>
+                                </div>
+                                
+                                <!-- EIRP -->
+                                <div class="form-group">
+                                    <label for="m-EIRP">EIRP（<span style="text-transform: lowercase;">d</span>B<span style="text-transform: lowercase;">m</span>）</label>
+                                    <input type="number" id="m-EIRP" name="EIRP" 
+                                        step="1" value="20" 
+                                        onblur="if(this.value === '') this.value = 20;"
+                                        placeholder="値を入力してください"
+                                        onchange="m_checkInputs()">
+                                </div>
+
+                                <!-- 固定天线经度 -->
+                                <div class="form-group">
+                                    <label for="m-fixAntenna_lng">固定アンテナの経度（°）</label>
+                                    <input type="number" id="m-fixAntenna_lng" name="fixAntenna_lng" 
+                                        step="0.01" value="137.9775489"
+                                        onblur="if(this.value === '') this.value = 137.9775489;"
+                                        placeholder="値を入力してください"
+                                        onchange="m_checkInputs()">
+                                </div>
+                                
+                                <!-- 固定天线纬度 -->
+                                <div class="form-group">
+                                    <label for="m-fixAntenna_lat">固定アンテナの緯度（°）</label>
+                                    <input type="number" id="m-fixAntenna_lat" name="fixAntenna_lat" 
+                                        step="0.01" value="36.2508738"
+                                        onblur="if(this.value === '') this.value = 36.2508738;"
+                                        placeholder="値を入力してください"
+                                        onchange="m_checkInputs()">
+                                </div>
+                                
+                                <!-- 固定天线高度 -->
+                                <div class="form-group">
+                                    <label for="m-fixAntenna_alt">固定アンテナの高度（建物含む、m）</label>
+                                    <input type="number" id="m-fixAntenna_alt" name="fixAntenna_alt" 
+                                        step="1" value="640.7"
+                                        onblur="if(this.value === '') this.value = 640.7;"
+                                        placeholder="値を入力してください"
+                                        onchange="m_checkInputs()">
+                                </div>
+                                
+                                <!-- 固定天线高度（屋顶） -->
+                                <div class="form-group">
+                                    <label for="m-fixAntenna_height">固定アンテナの高さ（屋上まで、m）</label>
+                                    <input type="number" id="m-fixAntenna_height" name="fixAntenna_height" 
+                                        step="0.1" value="1.5"
+                                        onblur="if(this.value === '') this.value = 1.5;"
+                                        placeholder="値を入力してください"
+                                        onchange="m_checkInputs()">
+                                </div>
+                                
+                                <!-- 移动天线高度 -->
+                                <div class="form-group">
+                                    <label for="m-moveAntenna_height">移動アンテナの高さ（地面まで、m）</label>
+                                    <input type="number" id="m-moveAntenna_height" name="moveAntenna_height" 
+                                        step="0.1" value="1.8"
+                                        onblur="if(this.value === '') this.value = 1.8;"
+                                        placeholder="値を入力してください"
+                                        onchange="m_checkInputs()">
+                                </div>
+                            </div>
+
+                            <div class="form-grid">
+                                <!-- 模型选择 -->
+                                <div class="form-group">
+                                    <label for="m-model">基本モデル選択</label>
+                                    <select id="m-model" name="m-model" onchange="m_handleModelChange()" required disabled>
+                                        <option value="noModel">新規モデル</option>
+                                        <option value="NICT_latest_model">汎用モデルM0（NICT信州大202604）</option>
+                                    </select>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="m-numCore1">畳み込みカーネル数</label>
+                                    <select id="m-numCore1" name="numCore1" disabled>
+                                        <option value="2">2</option>
+                                        <option value="4">4</option>
+                                        <option value="8">8</option>
+                                        <option value="16">16</option>
+                                        <option value="32">32</option>
+                                        <option value="64">64</option>
+                                        <option value="128">128</option>
+                                        <option value="256">256</option>
+                                    </select>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="m-learningType">学習タイプ</label>
+                                    <select id="m-learningType" name="learningType" disabled>
+                                        <option value="type_None">None</option>
+                                        <option value="type_TL">Transfer Learning</option>
+                                        <option value="type_IT">Incremental Training</option>
+                                    </select>
+                                </div>
+
+                            </div>
+
+                            <div style="margin: 10px 0; text-align: right;">
+                                <button type="button" onclick="loadAndShowPdf()" style="background: transparent; color: var(--cyan); border: 1px solid var(--cyan); padding: 5px 15px; font-size: 0.8rem; cursor: pointer; border-radius: 4px;">
+                                    <i class="fas fa-book"></i> Fine-Tuningの説明
+                                </button>
+                            </div>
+
+
+                            <dialog id="pdf-dialog" style="width:80%; height:80vh; border:none; border-radius:10px; padding:0;">
+                                <div style="display:flex; flex-direction:column; height:100%;">
+                                    <div style="padding:10px; background:#333; color:white; display:flex; justify-content:space-between;">
+                                        <span>Fine-Tuningの説明</span>
+                                        <button onclick="document.getElementById('pdf-dialog').close()">Close</button>
+                                    </div>
+                                    <iframe id="pdf-viewer" width="100%" height="100%" frameborder="0"></iframe>
+                                </div>
+                            </dialog>
+                            
+
+                            <!-- 按钮组 -->
+                            <div class="button-group">
+                                <button type="reset" id="m-reset-btn" onclick="m_resetUI()">Reset</button>
+                                <button type="button" id="upload-confirm-btn" onclick="uploadTransferData()" disabled>アップロード</button>
+                                <button type="button" id="generate-btn" onclick="execute_modelGeneration()" disabled>Generate</button>
+                            </div>
+                        </form>
+                    </div>
+
+
+
+
+
+                    <!-- 数据处理标签页 -->
+                    <div class="tab-pane pane-feature">
+                        <div class="placeholder-content">
+                            <h3 style="color: var(--cyan); margin-bottom: 1rem;">データ処理機能</h3>
+                            <p style="opacity: 0.8;">この機能は現在開発中です。Coming soon...</p>
+                        </div>
+                    </div>
+                </div>
+
+
+                <div class="status-wrapper" style="
+                    display: flex; 
+                    align-items: stretch; /* 关键：让左侧进度和右侧终端高度一致 */
+                    gap: 20px; 
+                    margin: 30px auto; 
+                    width: 95%; /* 撑开宽度 */
+                    max-width: none; /* 设置一个较大的上限防止超宽屏幕变形 */
+                    justify-content: center;
+                ">
+                    <div id="progress-container" style="
+                        flex: 0 0 160px; /* 固定宽度 160px，不收缩 */
+                        text-align: center; 
+                        background: rgba(0, 255, 255, 0.05); 
+                        border: 1px solid rgba(0, 255, 255, 0.1);
+                        border-radius: 8px;
+                        padding: 15px 10px;
+                        display: flex;
+                        flex-direction: column;
+                        justify-content: center;
+                        align-items: center;
+                    ">
+                        <div class="progress-ring-wrapper" style="position: relative; display: inline-block;">
+                            <svg width="100" height="100"> <circle cx="50" cy="50" r="45" stroke="#1a1a1a" stroke-width="6" fill="transparent" />
+                                <circle id="progress-bar" cx="50" cy="50" r="45" stroke="cyan" stroke-width="6" 
+                                        fill="transparent" stroke-dasharray="283" stroke-dashoffset="283"
+                                        style="transition: stroke-dashoffset 0.5s ease; stroke-linecap: round; transform: rotate(-90deg); transform-origin: 50% 50%;" />
+                            </svg>
+                            <div id="progress-percent" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: cyan; font-family: 'Orbitron'; font-size: 14px;">0%</div>
+                        </div>
+                        <div id="progress-status" style="color: #00ffff; font-size: 10px; margin-top: 10px; font-family: 'Orbitron'; text-transform: uppercase; letter-spacing: 1px; opacity: 0.8;">Ready to start</div>
+                    </div>
+
+                    <div id="terminal-box" style="
+                        flex: 1; /* 自动撑开占据剩余空间 */
+                        min-width: 400px; /* 保证最小宽度 */
+                        height: 250px; /* 固定高度 */
+                        max-height: 250px; /* 设置最大高度，超出时显示滚动条 */
+                        background: rgba(0, 0, 0, 0.1); /* 稍微加深背景，提升对比度 */
+                        border: 1px solid rgba(0, 255, 255, 0.3); 
+                        border-radius: 8px; 
+                        padding: 12px; 
+                        overflow-x: hidden;
+                        overflow-y: scroll;
+                        font-family: 'Menlo', 'Monaco', 'Courier New', monospace; /* macOS 优化字体 */
+                        font-size: 12px; 
+                        line-height: 1.5;
+                        color: #00ffcc; 
+                        text-align: left;
+                        box-shadow: inset 0 0 15px rgba(0,0,0,0.7);
+                        scrollbar-width: thin; /* Firefox 滚动条 */
+                    ">
+                        <div id="terminal-content" style="white-space: pre-wrap; word-break: break-all;"></div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- 结果容器 -->
+    <div id="result-container" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; z-index:9999; background:white; flex-direction:column;">
+        <div style="background:#1a1a1a; color:#00ffcc; padding:10px 20px; display:flex; justify-content:space-between; align-items:center; font-family:'Orbitron';">
+            <span>電波マップの予測値</span>
+            <div style="display: flex; flex-direction: row; align-items: center;">
+                <button onclick="handleDownload()" style="background:#0088ff; color:white; border:none; padding:5px 15px; cursor:pointer; margin-right:10px;">SAVE CSV</button>
+                <button onclick="closeResult()" style="background:#ff4444; color:white; border:none; padding:5px 15px; cursor:pointer;">CLOSE</button>
+            </div>
+        </div>
+        <div id="result-map" style="flex:1;"></div>
+        <div id="map-legend" style="position:absolute; bottom:30px; right:20px; background:rgba(0,0,0,0.8); color:white; padding:15px; border:1px solid #00ffcc; z-index:10000; font-family:'Orbitron'; border-radius:5px;">
+            <div style="margin-bottom:10px; font-size:12px; text-align:center;">RSS (dBm)</div>
+            <div style="display:flex; align-items:stretch; height:150px;">
+                <div style="height:100%; width:20px; background: linear-gradient(to top, #0000ff, #00ffff, #00ff00, #ffff00, #ff0000);"></div>
+                <div style="display:flex; flex-direction:column; justify-content:space-between; margin-left:10px; font-size:11px;">
+                    <span id="legend-max">--</span>
+                    <span id="legend-mid">--</span>
+                    <span id="legend-min">--</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 原有脚本保持不变 -->
+    <script>
+        // 選択されたパスを保持するグローバル変数
+        let selectedPaths = {
+            csv: [],
+            altitude: [],
+            building: [],
+            landuse: [],
+            fv: []
+        };
+
+        // ファイル選択用の関数
+        async function handleNativeSelect(type) {
+            try {
+                const paths = await window.pywebview.api.select_files_native(type);
+                if (paths && paths.length > 0) {
+                    selectedPaths[type] = paths;
+                    
+                    // UI 更新逻辑...
+                    let statusId = type === 'csv' ? 'upload-status' : `upload-status-${type}`;
+                    const label = document.getElementById(statusId);
+                    if (label) {
+                        label.innerText = `已选择 ${paths.length} 个文件`;
+                        label.style.color = "#00ffcc";
+                    }
+
+                    // 【关键】选完路径后，手动调用一次检查函数
+                    m_checkInputs(); 
+                }
+            } catch (err) {
+                console.error("文件选择失败:", err);
+            }
+        }
+
+        // --- 神经网络可视化逻辑 ---
+        const canvas = document.getElementById('neuralNetworkCanvas');
+        const ctx = canvas.getContext('2d');
+        let nodes = [];
+        let connections = [];
+        const NODE_COUNT = 150;
+        const MAX_CONNECTION_DISTANCE = 120;
+
+        class Node {
+            constructor() {
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * canvas.height;
+                this.vx = (Math.random() - 0.5) * 0.5;
+                this.vy = (Math.random() - 0.5) * 0.5;
+                this.radius = Math.random() * 2 + 1;
+                this.brightness = Math.random(); // 用于闪烁效果
+            }
+
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+
+                if (this.x < 0 || this.x > canvas.width) this.vx *= -1;
+                if (this.y < 0 || this.y > canvas.height) this.vy *= -1;
+
+                // 更新亮度以产生微弱的脉动效果
+                this.brightness += (Math.random() - 0.5) * 0.02;
+                this.brightness = Math.max(0.2, Math.min(1, this.brightness));
+            }
+
+            draw(ctx) {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                const gradient = ctx.createRadialGradient(
+                    this.x, this.y, 0,
+                    this.x, this.y, this.radius * 3
+                );
+                // 渐变从中心的亮青色/洋红到外圈的透明
+                gradient.addColorStop(0, `hsla(${Math.sin(Date.now()/1000) * 60 + 180}, 100%, 80%, ${this.brightness})`);
+                gradient.addColorStop(1, 'transparent');
+                ctx.fillStyle = gradient;
+                ctx.fill();
+            }
+        }
+
+        function init() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+
+            nodes = [];
+            for (let i = 0; i < NODE_COUNT; i++) {
+                nodes.push(new Node());
+            }
+        }
+
+        function connectNodes() {
+            connections = [];
+            for (let i = 0; i < nodes.length; i++) {
+                for (let j = i + 1; j < nodes.length; j++) {
+                    const dx = nodes[i].x - nodes[j].x;
+                    const dy = nodes[i].y - nodes[j].y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+
+                    if (distance < MAX_CONNECTION_DISTANCE) {
+                        connections.push({
+                            source: nodes[i],
+                            target: nodes[j],
+                            strength: 1 - distance / MAX_CONNECTION_DISTANCE
+                        });
+                    }
+                }
+            }
+        }
+
+        function render() {
+            // 半透明覆盖层实现运动模糊效果
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // 更新并绘制连接线
+            ctx.strokeStyle = 'rgba(0, 255, 255, 0.05)';
+            ctx.lineWidth = 0.5;
+            for (const conn of connections) {
+                ctx.beginPath();
+                ctx.moveTo(conn.source.x, conn.source.y);
+                ctx.lineTo(conn.target.x, conn.target.y);
+                ctx.stroke();
+            }
+
+            // 更新并绘制节点
+            for (const node of nodes) {
+                node.update();
+                node.draw(ctx);
+            }
+        }
+
+        function animate() {
+            connectNodes(); // 每帧都重新计算连接，以适应节点移动
+            render();
+            requestAnimationFrame(animate);
+        }
+
+        window.addEventListener('resize', init);
+        init();
+        animate();
+        document.querySelectorAll('#predict-form input, #predict-form select').forEach(element => {
+            element.addEventListener('input', checkInputs);
+            element.addEventListener('change', checkInputs);
+            element.addEventListener('input', m_checkInputs);
+            element.addEventListener('change', m_checkInputs);
+        });
+
+        // --- 表单提交 ---
+        document.getElementById('nnForm')?.addEventListener('submit', function(e) {
+            e.preventDefault();
+            alert('神经网络启动指令已发出！请监控后台日志。');
+        });
+    </script>
+
+    <script>
+        // 按钮点击触发的函数
+        async function execute_rssPredict() {
+            setFormDisabledforPredictionPanal(true);
+
+            // 1. 从隐藏域获取坐标
+            const coords = {
+                model: document.getElementById('p-model').value,
+                min_lng: document.getElementById('min-lng').value,
+                min_lat: document.getElementById('min-lat').value,
+                max_lng: document.getElementById('max-lng').value,
+                max_lat: document.getElementById('max-lat').value,
+                predictDataSelectValue: document.getElementById('p-predictDataSelect').value,
+                mesh_lng: document.getElementById('p-mesh-lng').value,
+                mesh_lat: document.getElementById('p-mesh-lat').value,
+                frequency: document.getElementById('p-frequency').value,
+                SF: document.getElementById('p-SF').value,
+                EIRP: document.getElementById('p-EIRP').value,
+                fixAntenna_lng: document.getElementById('p-fixAntenna_lng').value,
+                fixAntenna_lat: document.getElementById('p-fixAntenna_lat').value,
+                fixAntenna_alt: document.getElementById('p-fixAntenna_alt').value,
+                fixAntenna_height: document.getElementById('p-fixAntenna_height').value,
+                moveAntenna_height: document.getElementById('p-moveAntenna_height').value,
+                database: document.getElementById('p-database').value
+            };
+
+            // 2. 检查用户是否已经选择了区域
+            if (coords.predictDataSelectValue === "predictData_map" && !coords.min_lng) {
+                alert("请先通过『选择预测区域』在地图上划定范围！");
+                return;
+            }
+
+            // 3. 调用你的后端接口 (假设后端接收这些参数)
+            try {
+                document.getElementById('predict-btn').disabled = true;
+                document.getElementById('reset-btn').disabled = true;
+                document.getElementById('tab-generate').disabled = true;
+                await window.pywebview.api.executeRssPrediction(coords);
+            } catch (error) {
+                console.error("预测执行失败:", error);
+                document.getElementById('predict-btn').disabled = false;
+                document.getElementById('reset-btn').disabled = false;
+                document.getElementById('tab-generate').disabled = false;
+            }
+        }
+
+        async function execute_modelGeneration() {
+            document.getElementById('m-isGenFV').disabled = true;
+            document.getElementById('select-fv-btn').disabled = true;
+            document.getElementById('m-model').disabled = true;
+            document.getElementById('m-numCore1').disabled = true;
+            document.getElementById('m-learningType').disabled = true;
+            document.getElementById('tab-predict').disabled = true;
+            document.getElementById('m-scheduler').disabled = true;
+
+            const coords = {
+                model: document.getElementById('m-model').value,
+                numCore1: document.getElementById('m-numCore1').value,
+                learningType: document.getElementById('m-learningType').value,
+                selectedPaths: selectedPaths.fv,
+                scheduler: document.getElementById('m-scheduler').value
+            }
+
+            try {
+                document.getElementById('generate-btn').disabled = true;
+                document.getElementById('m-reset-btn').disabled = true;
+                await window.pywebview.api.executeModelGeneration(coords);
+            } catch (error) {
+                console.error("模型生成失败:", error);
+                document.getElementById('generate-btn').disabled = false;
+                document.getElementById('m-reset-btn').disabled = false;
+            }
+        }
+
+        // 监控 Model 选择框
+        function handleModelChange() {
+            const modelSelect = document.getElementById('p-model');
+            const databaseSelect = document.getElementById('p-database');
+            
+            // 如果选择了任何值（非空），则开放按钮
+            if (modelSelect.value !== "") {
+                databaseSelect.disabled = false;
+                modelSelect.disabled = true; // 一旦选择了模型，就锁定模型选择，强制用户先选择数据库
+            } else {
+                databaseSelect.disabled = true;
+            }
+        }
+
+        function m_handleModelChange() {
+            const modelSelect = document.getElementById('m-model');
+            
+            if (modelSelect.value === "noModel") {
+                document.getElementById('m-numCore1').disabled = false;
+                document.getElementById('m-learningType').disabled = true;
+                document.getElementById('m-learningType').value = "type_None";
+            } else {
+                document.getElementById('m-numCore1').disabled = true;
+                document.getElementById('m-learningType').disabled = false;
+                document.getElementById('m-learningType').value = "type_TL";
+                document.querySelector('option[value="type_None"]').disabled = true;
+            }
+        }
+
+        function handleDatabaseChange() {
+            const databaseSelect = document.getElementById('p-database');
+            const predictDataSelect = document.getElementById('p-predictDataSelect');
+            
+            // 如果选择了任何值（非空），则开放按钮
+            if (databaseSelect.value !== "") {
+                predictDataSelect.disabled = false;
+                databaseSelect.disabled = true; // 一旦选择了数据库，就锁定数据库选择，强制用户先点击地图选择区域
+            } else {
+                predictDataSelect.disabled = true;
+            }
+        }
+
+
+        function handlePredictDataChange() {
+            const mapBtn = document.getElementById('map-btn');
+            const predictDataSelect = document.getElementById('p-predictDataSelect');
+            
+            // 如果选择了任何值（非空），则开放按钮
+            if (predictDataSelect.value === "predictData_map") {
+                mapBtn.disabled = false;
+                predictDataSelect.disabled = true;
+            } else if (predictDataSelect.value === "predictData_file") {
+                predictDataSelect.disabled = true;
+                document.getElementById('p-mesh-lng').disabled = false;
+                document.getElementById('p-mesh-lat').disabled = false;
+                document.getElementById('p-frequency').disabled = false;
+                document.getElementById('p-SF').disabled = false;
+                document.getElementById('p-EIRP').disabled = false;
+                document.getElementById('p-fixAntenna_lng').disabled = false;
+                document.getElementById('p-fixAntenna_lat').disabled = false;
+                document.getElementById('p-fixAntenna_alt').disabled = false;
+                document.getElementById('p-fixAntenna_height').disabled = false;
+                document.getElementById('p-moveAntenna_height').disabled = false;
+                checkInputs("predictData_file");
+            } else {
+                predictDataSelect.disabled = true;
+            }
+        }
+        
+
+        // 处理点击逻辑
+        function handleMapClick() {
+            const databaseValue = document.getElementById('p-database').value;
+            if (databaseValue === "DB_matumotoCity") {
+                openMap([36.23221720534104, 137.9647388988934], 12, true);
+            } else if (databaseValue === "DB_kouchi_kamishi") {
+                openMap([33.620977998673425, 133.72012289376949], 12, true);
+            } else if (databaseValue === "DB_kouchi_shimanntoucyou") {
+                openMap([33.18537516997172, 133.04670429251874], 12, true);
+            } else if (databaseValue === "DB_kanagawa_yokosukashi") {
+                openMap([35.22331491024992, 139.67415715571389], 14, true);
+            } else {
+                openMap([35.6895, 139.6917], 12, false);
+            }
+        }
+
+        // 重置界面状态
+        async function resetUI() {
+            document.getElementById('p-model').disabled = false;
+            document.getElementById('map-btn').disabled = true;
+            document.getElementById('p-database').disabled = true;
+            document.getElementById('p-predictDataSelect').disabled = true;
+            document.getElementById('p-mesh-lng').disabled = true;
+            document.getElementById('p-mesh-lat').disabled = true;
+            document.getElementById('p-frequency').disabled = true;
+            document.getElementById('p-SF').disabled = true;
+            document.getElementById('p-EIRP').disabled = true;
+            document.getElementById('p-fixAntenna_lng').disabled = true;
+            document.getElementById('p-fixAntenna_lat').disabled = true;
+            document.getElementById('p-fixAntenna_alt').disabled = true;
+            document.getElementById('p-fixAntenna_height').disabled = true;
+            document.getElementById('p-moveAntenna_height').disabled = true;
+            document.getElementById('min-lng').value = "";
+            document.getElementById('min-lat').value = "";
+            document.getElementById('max-lng').value = "";
+            document.getElementById('max-lat').value = "";
+            document.getElementById('predict-btn').disabled = true;
+            document.getElementById('result-btn').disabled = true;
+            document.getElementById('progress-status').innerText = "Ready to start";
+            document.getElementById('progress-percent').innerText = "0%";
+            document.getElementById('terminal-content').innerText = "";
+            document.getElementById('tab-generate').disabled = false;
+
+            try {
+                await window.pywebview.api.reset_temp_data();
+                console.log("Backend temp folder cleaned.");
+            } catch (error) {
+                console.error("Failed to clean backend folder:", error);
+            }
+
+        }
+
+
+        async function m_resetUI(keepMLfiles = false) {
+            // --- 1. 【新增】重置内存中的路径变量 ---
+            selectedPaths = {
+                csv: [],
+                altitude: [],
+                building: [],
+                landuse: [],
+                fv: []
+            };
+
+            setFormDisabledforMpanal(false, true);
+            setTimeout(() => {
+                m_checkIsNeedGenFV();
+            }, 0);
+
+            // --- 2. 恢复 UI 文字显示 ---
+            document.getElementById('upload-status').innerText = "未選択";
+            document.getElementById('upload-status-altitude').innerText = "未選択";
+            document.getElementById('upload-status-building').innerText = "未選択";
+            document.getElementById('upload-status-landuse').innerText = "未選択";
+
+            // 恢复文字颜色（如果是之前改成了绿色/青色，这里改回灰色）
+            document.getElementById('upload-status').style.color = "#666";
+            document.getElementById('upload-status-altitude').style.color = "#666";
+            document.getElementById('upload-status-building').style.color = "#666";
+            document.getElementById('upload-status-landuse').style.color = "#666";
+
+            // --- 3. 恢复按钮和输入框状态 ---
+            document.getElementById('tab-predict').disabled = false;
+            document.getElementById('m-isGenFV').disabled = false;
+            document.getElementById('m-model').disabled = true;
+            document.getElementById('m-numCore1').disabled = true;
+            document.getElementById('m-learningType').disabled = true;
+            document.getElementById('upload-confirm-btn').disabled = true;
+            document.getElementById('generate-btn').disabled = true;
+            document.getElementById('m-scheduler').disabled = false;
+
+            // 确保你的选择按钮是可点击的
+            document.getElementById('select-csv-btn').disabled = false;
+            document.getElementById('select-altitude-btn').disabled = false;
+            document.getElementById('select-building-btn').disabled = false;
+            document.getElementById('select-landuse-btn').disabled = false;
+
+            // 清除进度和终端
+            document.getElementById('progress-status').innerText = "Ready to start";
+            document.getElementById('progress-percent').innerText = "0%";
+            const terminalContent = document.getElementById('terminal-content');
+            if (terminalContent) terminalContent.innerText = "";
+
+            // --- 4. 【关键】重新运行一次检查逻辑 ---
+            // 此时 selectedPaths 已空，upload-confirm-btn 会被正确禁用
+            m_checkInputs();
+
+            try {
+                if (!keepMLfiles) {
+                    await window.pywebview.api.reset_temp_data();
+                }
+                console.log("Backend temp folder cleaned.");
+            } catch (error) {
+                console.error("Failed to clean backend folder:", error);
+            }
+        }
+
+
+        // 修改你原有的 openMap 函数，支持传入中心点坐标
+        function openMap(centerCoords, zoomLevel, limitArea) {
+            if (event) event.preventDefault();
+
+            const modal = document.createElement('div');
+            modal.id = 'map-modal';
+            Object.assign(modal.style, {
+                position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
+                backgroundColor: 'white', zIndex: '10000', display: 'flex', flexDirection: 'column'
+            });
+
+            modal.innerHTML = `
+                <div style="padding: 15px 25px; background: #222; color: white; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid cyan;">
+                    <div style="display: flex; flex-direction: column;">
+                        <span style="font-family: 'Orbitron', sans-serif; font-size: 16px; color: #00ffcc;">予測エリア選択</span>
+                        <div id="coord-display" style="font-size: 12px; color: #aaa; margin-top: 4px;">Waiting for area selection...</div>
+                    </div>
+                    <button type="button" id="close-map-btn" style="background: #00ffcc; color: #222; border: none; padding: 5px 15px; cursor: pointer; font-weight: bold;">完成</button>
+                </div>
+                <div id="map-canvas" style="flex: 1; width: 100%; height: 100%;"></div>
+            `;
+            document.body.appendChild(modal);
+
+            const map = L.map('map-canvas', {
+                center: centerCoords,
+                zoom: zoomLevel,
+                minZoom: limitArea ? zoomLevel : 1,
+            });
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+
+            if (limitArea) {
+                setTimeout(() => {
+                    map.invalidateSize();
+                    const initialBounds = map.getBounds();
+                    map.setMaxBounds(initialBounds);
+                }, 100);
+            } else {
+                setTimeout(() => { map.invalidateSize(); }, 100);
+            }
+
+            const drawnItems = new L.FeatureGroup();
+            map.addLayer(drawnItems);
+
+            const drawControl = new L.Control.Draw({
+                draw: { rectangle: true, polyline: false, circle: false, marker: false, polygon: false, circlemarker: false },
+                edit: { featureGroup: drawnItems } // 允许编辑已画好的图形
+            });
+            map.addControl(drawControl);
+
+            // --- 提取坐标的公共函数 ---
+            function updateCoordinates() {
+                if (drawnItems.getLayers().length === 0) return;
+                
+                const layer = drawnItems.getLayers()[0];
+                const bounds = layer.getBounds();
+                const sw = bounds.getSouthWest();
+                const ne = bounds.getNorthEast();
+
+                // 格式化数据
+                const coords = {
+                    minLng: sw.lng.toFixed(6),
+                    minLat: sw.lat.toFixed(6),
+                    maxLng: ne.lng.toFixed(6),
+                    maxLat: ne.lat.toFixed(6)
+                };
+
+                document.getElementById('coord-display').innerText = 
+                    `Min: ${coords.minLng}, ${coords.minLat} | Max: ${coords.maxLng}, ${coords.maxLat}`;
+
+                // 将值传递给隐藏的 input 标签
+                document.getElementById('min-lng').value = coords.minLng;
+                document.getElementById('min-lat').value = coords.minLat;
+                document.getElementById('max-lng').value = coords.maxLng;
+                document.getElementById('max-lat').value = coords.maxLat;
+                
+                return coords;
+            }
+
+            // A. 监听创建事件
+            map.on(L.Draw.Event.CREATED, function (e) {
+                drawnItems.clearLayers();
+                drawnItems.addLayer(e.layer);
+                updateCoordinates();
+            });
+
+            // B. 监听编辑事件 (实时刷新核心)
+            map.on(L.Draw.Event.EDITED, function (e) {
+                updateCoordinates();
+            });
+
+            // C. 监听删除事件
+            map.on(L.Draw.Event.DELETED, function (e) {
+                document.getElementById('min-lng').value = "";
+                document.getElementById('min-lat').value = "";
+                document.getElementById('max-lng').value = "";
+                document.getElementById('max-lat').value = "";
+                document.getElementById('coord-display').innerText = "選択エリアがクリアされました。再度選択してください。";
+            });
+
+            document.getElementById('close-map-btn').onclick = () => {
+                const finalCoords = updateCoordinates();
+                console.log("最终确定的坐标:", finalCoords);
+                document.body.removeChild(modal);
+                document.getElementById('map-btn').disabled = true;
+                document.getElementById('p-mesh-lng').disabled = false;
+                document.getElementById('p-mesh-lat').disabled = false;
+                document.getElementById('p-frequency').disabled = false;
+                document.getElementById('p-SF').disabled = false;
+                document.getElementById('p-EIRP').disabled = false;
+                document.getElementById('p-fixAntenna_lng').disabled = false;
+                document.getElementById('p-fixAntenna_lat').disabled = false;
+                document.getElementById('p-fixAntenna_alt').disabled = false;
+                document.getElementById('p-fixAntenna_height').disabled = false;
+                document.getElementById('p-moveAntenna_height').disabled = false;
+                checkInputs();
+            };
+        }
+
+        function checkInputs(predictDataSelectValue = null) {
+            const predictBtn = document.getElementById('predict-btn');
+            
+            // 定义所有必须检查的字段 ID
+            console.log("Checking inputs for predictDataSelectValue:", predictDataSelectValue);
+            let requiredIds = [];
+            if (predictDataSelectValue === "predictData_file") {
+                requiredIds = [
+                    'p-model', 'p-database',  
+                    'p-mesh-lng', 'p-mesh-lat', 
+                    'p-frequency', 'p-SF', 'p-EIRP', 'p-fixAntenna_lng', 
+                    'p-fixAntenna_lat', 'p-fixAntenna_alt', 'p-fixAntenna_height', 
+                    'p-moveAntenna_height'
+                ];
+            } else {
+                requiredIds = [
+                    'p-model', 'p-database', 'min-lng', 'min-lat', 
+                    'max-lng', 'max-lat', 'p-mesh-lng', 'p-mesh-lat', 
+                    'p-frequency', 'p-SF', 'p-EIRP', 'p-fixAntenna_lng', 
+                    'p-fixAntenna_lat', 'p-fixAntenna_alt', 'p-fixAntenna_height', 
+                    'p-moveAntenna_height'
+                ];
+            }
+
+            // 检查是否所有字段都有值且不为空字符串
+            const allFilled = requiredIds.every(id => {
+                const el = document.getElementById(id);
+                return el && el.value.trim() !== ""
+            });
+
+            if (allFilled) {
+                predictBtn.disabled = false;
+                predictBtn.style.boxShadow = "0 0 15px cyan"; // 可选：激活时加个发光效果
+            } else {
+                predictBtn.disabled = true;
+                predictBtn.style.boxShadow = "none";
+            }
+        }
+
+        function m_checkInputs() {
+            const uploadBtn = document.getElementById('upload-confirm-btn');
+            
+            // 1. ファイル選択状況のチェック (selectedPaths を確認)
+            // 必須：CSV（訓練データ）と Altitude（標高データ）
+            const filesSelected = selectedPaths.csv && selectedPaths.csv.length > 0 && 
+                                selectedPaths.altitude && selectedPaths.altitude.length > 0;
+
+            // 2. 数値入力項目のチェック
+            const requiredInputIds = [
+                'm-frequency', 'm-SF', 'm-EIRP',
+                'm-fixAntenna_lng', 'm-fixAntenna_lat', 
+                'm-fixAntenna_alt', 'm-fixAntenna_height', 'm-moveAntenna_height'
+            ];
+
+            const inputsFilled = requiredInputIds.every(id => {
+                const el = document.getElementById(id);
+                return el && el.value.trim() !== "";
+            });
+
+            // 3. 両方の条件を満たした場合のみボタンを有効化
+            if (filesSelected && inputsFilled) {
+                uploadBtn.disabled = false;
+                uploadBtn.style.boxShadow = "0 0 15px cyan";
+                uploadBtn.style.opacity = "1";
+            } else {
+                uploadBtn.disabled = true;
+                uploadBtn.style.boxShadow = "none";
+                uploadBtn.style.opacity = "0.5";
+            }
+        }
+
+        function updateProgress(percent, status) {
+            const container = document.getElementById('progress-container');
+            const progressBar = document.getElementById('progress-bar');
+            const progressPercent = document.getElementById('progress-percent');
+            const progressStatus = document.getElementById('progress-status');
+
+            // 1. 显示容器
+            container.style.display = 'block';
+            
+            // 2. 计算偏移量 (假设 r=50, 周长 C = 2 * π * 50 ≈ 314)
+            const circumference = 314; 
+            const offset = circumference - (percent / 100 * circumference);
+            
+            // 3. 应用样式
+            progressBar.style.strokeDashoffset = offset;
+            
+            // 4. 更新文字
+            progressPercent.innerText = `${percent}%`;
+            progressStatus.innerText = status;
+
+            // 5. 100% 时的特殊处理
+            const resultBtn = document.getElementById('result-btn');
+            if (percent >= 100) {
+                progressBar.style.stroke = "#00ffcc"; // 变绿表示完成
+                progressStatus.innerText = "完了";
+                resultBtn.disabled = false;
+                resultBtn.style.backgroundColor = "#00ffcc";
+                resultBtn.style.boxShadow = "0 0 15px #00ffcc";
+                document.getElementById('reset-btn').disabled = false;
+                document.getElementById('m-reset-btn').disabled = false;
+            } else if (percent === -1) {
+                progressBar.style.stroke = "#ff4444"; // 错误时显示红色
+                progressStatus.innerText = "エラー";
+                resultBtn.disabled = false;
+                resultBtn.style.backgroundColor = "#00ffcc";
+                resultBtn.style.boxShadow = "0 0 15px #00ffcc";
+                document.getElementById('reset-btn').disabled = false;
+                document.getElementById('m-reset-btn').disabled = false;
+            } else {
+                progressBar.style.stroke = "cyan";    // 进行中保持青色
+            }
+        }
+
+        let resultMap = null;
+
+        async function showResult() {
+            const rawData = await window.pywebview.api.get_prediction_data();
+            if (!rawData || rawData.length === 0) return;
+
+            // 1. 动态获取极值
+            const values = rawData.map(p => p.Predicted_Value);
+            const dataMin = Math.min(...values);
+            const dataMax = Math.max(...values);
+            const dataMid = (dataMin + dataMax) / 2;
+
+            // 2. 更新图例上的文字
+            document.getElementById('legend-max').innerText = dataMax.toFixed(1);
+            document.getElementById('legend-mid').innerText = dataMid.toFixed(1);
+            document.getElementById('legend-min').innerText = dataMin.toFixed(1);
+
+            // 3. 动态获取网格规模
+            const sizeLng = parseInt(document.getElementById('p-mesh-lng').value) || 30;
+            const sizeLat = parseInt(document.getElementById('p-mesh-lat').value) || 30;
+
+            // 4. 地图初始化...
+            document.getElementById('result-container').style.display = 'flex';
+            if (resultMap) resultMap.remove();
+            resultMap = L.map('result-map', { preferCanvas: true }).setView([rawData[0].Latitude, rawData[0].Longitude], 15);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(resultMap);
+
+            const predictMode = document.getElementById('p-predictDataSelect').value;
+            if (predictMode === "predictData_file") {
+                // 仅画点：遍历所有原始数据并在地图上打点
+                rawData.forEach(p => {
+                    const color = getMatlabColormap(p.Predicted_Value, dataMin, dataMax);
+                    L.circleMarker([p.Latitude, p.Longitude], {
+                        radius: 5,           // 点的大小
+                        fillColor: color,    // 根据 RSS 值着色
+                        color: "#000",       // 轮廓颜色
+                        weight: 0.5,         // 轮廓粗细
+                        opacity: 1,
+                        fillOpacity: 0.8
+                    })
+                    .bindPopup(`RSS: ${p.Predicted_Value.toFixed(2)} dBm<br>Lat: ${p.Latitude}<br>Lon: ${p.Longitude}`)
+                    .addTo(resultMap);
+                });
+                // 如果是纯画点模式，直接结束函数，不执行后面的网格排序和绘图逻辑
+                return; 
+            }
+
+            // 5. 排序数据...
+            const sortedData = [...rawData].sort((a, b) => {
+                if (Math.abs(a.Latitude - b.Latitude) > 0.0000001) return a.Latitude - b.Latitude;
+                return a.Longitude - b.Longitude;
+            });
+
+            // 6. 绘图循环...
+            for (let i = 0; i < sizeLat - 1; i++) {
+                for (let j = 0; j < sizeLng - 1; j++) {
+                    const idx_bl = i * sizeLng + j;
+                    const idx_br = i * sizeLng + (j + 1);
+                    const idx_tr = (i + 1) * sizeLng + (j + 1);
+                    const idx_tl = (i + 1) * sizeLng + j;
+
+                    const p1 = sortedData[idx_bl];
+                    const p2 = sortedData[idx_br];
+                    const p3 = sortedData[idx_tr];
+                    const p4 = sortedData[idx_tl];
+
+                    if (!p1 || !p2 || !p3 || !p4) continue;
+
+                    const avgVal = (p1.Predicted_Value + p2.Predicted_Value + p3.Predicted_Value + p4.Predicted_Value) / 4;
+                    
+                    // 使用动态范围着色
+                    const color = getMatlabColormap(avgVal, dataMin, dataMax);
+
+                    L.polygon([
+                        [p1.Latitude, p1.Longitude], [p2.Latitude, p2.Longitude],
+                        [p3.Latitude, p3.Longitude], [p4.Latitude, p4.Longitude]
+                    ], {
+                        stroke: false,
+                        fillColor: color,
+                        fillOpacity: 0.7,
+                        smoothFactor: 0
+                    }).bindPopup(`Avg RSS: ${avgVal.toFixed(2)} dBm`).addTo(resultMap);
+                }
+            }
+        }
+
+        // 模拟 MATLAB 的 Jet/Turbo Colormap
+        function getMatlabColormap(rss, dynamicMin, dynamicMax) {
+            // 归一化：将当前值映射到 0 (蓝) - 1 (红)
+            let v = (rss - dynamicMin) / (dynamicMax - dynamicMin);
+            v = Math.max(0, Math.min(1, v));
+
+            if (v < 0.25) return `rgb(0, ${Math.floor(v*4*255)}, 255)`;
+            if (v < 0.5)  return `rgb(0, 255, ${Math.floor((0.5-v)*4*255)})`;
+            if (v < 0.75) return `rgb(${Math.floor((v-0.5)*4*255)}, 255, 0)`;
+            return `rgb(255, ${Math.floor((1-v)*4*255)}, 0)`;
+        }
+
+        async function handleDownload() {
+            const success = await window.pywebview.api.download_csv();
+            if (success) alert("File saved successfully!");
+        }
+
+        function closeResult() {
+            document.getElementById('result-container').style.display = 'none';
+        }
+
+        function setFormDisabledforMpanal(disabled, shouldClear = false) {
+            const elementIds = [
+                'select-csv-btn', 'select-altitude-btn', 'select-building-btn', 'select-landuse-btn',
+                'm-frequency', 'm-SF', 'm-EIRP', 'm-fixAntenna_lng',
+                'm-fixAntenna_lat', 'm-fixAntenna_alt', 'm-fixAntenna_height', 'm-moveAntenna_height'
+            ];
+
+            elementIds.forEach(id => {
+                const el = document.getElementById(id);
+                if (!el) return;
+
+                // 1. 设置禁用状态
+                el.disabled = disabled;
+
+                // 2. 如果需要清空，则执行清空逻辑
+                if (shouldClear) {
+                    if (el.type === 'file') {
+                        el.value = '';
+                    } else {
+                        el.value = '';
+                    }
+                    document.getElementById('upload-status').innerText = "";
+                    document.getElementById('upload-status-altitude').innerText = "";
+                    document.getElementById('upload-status-building').innerText = "";
+                    document.getElementById('upload-status-landuse').innerText = "";
+                }
+            });
+        }
+
+        function setFormDisabledforPredictionPanal(disabled, shouldClear = false) {
+            const elementIds = [
+                'p-mesh-lng', 'p-mesh-lat', 'p-frequency', 'p-SF', 'p-EIRP', 'p-fixAntenna_lng',
+                'p-fixAntenna_lat', 'p-fixAntenna_alt', 'p-fixAntenna_height', 'p-moveAntenna_height'
+            ];
+
+            elementIds.forEach(id => {
+                const el = document.getElementById(id);
+                if (!el) return;
+
+                // 1. 设置禁用状态
+                el.disabled = disabled;
+
+                // 2. 如果需要清空，则执行清空逻辑
+                if (shouldClear) {
+                    if (el.type === 'file') {
+                        el.value = '';
+                    } else {
+                        el.value = '';
+                    }
+                }
+            });
+        }
+
+
+
+        async function uploadTransferData() {
+            // 基础 UI 禁用
+            document.getElementById('tab-predict').disabled = true;
+            document.getElementById('m-reset-btn').disabled = true;
+            document.getElementById('m-isGenFV').disabled = true;
+            const uploadBtn = document.getElementById('upload-confirm-btn');
+            uploadBtn.disabled = true;
+            setFormDisabledforMpanal(true);
+
+            // 获取坐标
+            const coords = {
+                frequency: document.getElementById('m-frequency').value,
+                SF: document.getElementById('m-SF').value,
+                EIRP: document.getElementById('m-EIRP').value,
+                fixAntenna_lng: document.getElementById('m-fixAntenna_lng').value,
+                fixAntenna_lat: document.getElementById('m-fixAntenna_lat').value,
+                fixAntenna_alt: document.getElementById('m-fixAntenna_alt').value,
+                fixAntenna_height: document.getElementById('m-fixAntenna_height').value,
+                moveAntenna_height: document.getElementById('m-moveAntenna_height').value,
+            };
+
+            // 检查路径变量 (selectedPaths 必须在全局定义)
+            if (selectedPaths.csv.length === 0 || selectedPaths.altitude.length === 0) {
+                alert("文件未选择！");
+                uploadBtn.disabled = false;
+                document.getElementById('m-reset-btn').disabled = false;
+                return;
+            }
+
+            try {
+                // 调用 Python 接口
+                const result = await window.pywebview.api.upload_csv_files(
+                    selectedPaths.csv,
+                    selectedPaths.altitude,
+                    selectedPaths.building,
+                    selectedPaths.landuse
+                );
+
+                if (result.status === "success") {
+                    // 继续后续处理
+                    let result_DP = await window.pywebview.api.executeDataProcessing(coords);
+                    if (result_DP.user_choice) {
+                        setFormDisabledforMpanal(false, true);
+                    } else if (result_DP.user_choice === false) {
+                        document.getElementById('generate-btn').disabled = false;
+                        document.getElementById('m-model').disabled = false;
+                    } else {
+                        alert("データ処理中にエラーが発生しました。");
+                    }
+                    document.getElementById('m-reset-btn').disabled = false;
+                } else {
+                    alert("错误: " + result.message);
+                }
+            } catch (error) {
+                console.error(error);
+            } finally {
+                document.getElementById('m-reset-btn').disabled = false;
+            }
+        }
+
+
+        function updateTerminal(message) {
+            const terminal = document.getElementById('terminal-box');
+            const content = document.getElementById('terminal-content');
+            if (!terminal || !content) return;
+
+            // 1. 创建行容器
+            const newLine = document.createElement('div');
+            newLine.style.marginBottom = '2px';
+            newLine.style.whiteSpace = 'pre-wrap'; // 保持插件输出的空格
+            newLine.style.wordBreak = 'break-all'; // 强制换行防止横向滚动
+
+            // 2. 时间戳部分
+            const now = new Date();
+            const timeStr = `[${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}] `;
+            
+            const timeSpan = document.createElement('span');
+            timeSpan.style.color = '#888';
+            timeSpan.innerText = timeStr;
+
+            // 3. 消息内容部分 (安全处理)
+            const msgSpan = document.createElement('span');
+            msgSpan.style.color = '#00ffcc'; // 使用你 UI 中的青色
+            msgSpan.innerText = message;
+
+            // 4. 组装并添加
+            newLine.appendChild(timeSpan);
+            newLine.appendChild(msgSpan);
+            content.appendChild(newLine);
+
+            // 5. 性能管理：保留 300 行
+            if (content.children.length > 300) {
+                content.removeChild(content.firstChild);
+            }
+
+            // 6. 自动滚动
+            terminal.scrollTop = terminal.scrollHeight;
+        }
+
+        function validateRssInput(input) {
+            // 简单的正则检查，只允许数字、逗号、负号和空格
+            const regex = /^[0-9, \-\.]+$/;
+            if (input.value && !regex.test(input.value)) {
+                alert("微調整には数字とカンマ（,）のみ入力してください。");
+                input.value = "";
+            }
+        }
+
+        async function loadAndShowPdf() {
+            // 调用 Python 暴露的 get_help_pdf 函数
+            // 注意：pywebview 会把所有暴露的函数放在 pywebview.api 下
+            const response = await pywebview.api.get_help_pdf();
+            
+            if (response.status === "success") {
+                const iframe = document.getElementById('pdf-viewer');
+                const dialog = document.getElementById('pdf-dialog');
+                
+                // 使用 Base64 数据流填充 iframe
+                iframe.src = `data:application/pdf;base64,${response.data}`;
+                dialog.showModal();
+            } else {
+                alert("无法加载 PDF: " + response.message);
+            }
+        }
+
+        function m_checkIsNeedGenFV() {
+            const modelSelect = document.getElementById('m-isGenFV');
+
+            if (modelSelect.value === "yes") {
+                document.getElementById('select-fv-btn').disabled = true;
+                setFormDisabledforMpanal(false, false);
+            } else {
+                setFormDisabledforMpanal(true, true);
+                document.getElementById('select-fv-btn').disabled = false;
+                document.getElementById('generate-btn').disabled = false;
+                document.getElementById('m-model').disabled = false;
+                m_handleModelChange();
+            }
+        }
+    </script>
+
+</body>
+</html>
