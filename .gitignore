@@ -1,0 +1,12 @@
+build/
+dist/
+__pycache__/
+database/
+*.spec
+models/
+*.log
+*.csv
+*.DS_Store
+tempData/
+*.pkl.xz
+*.pkl
