@@ -9,16 +9,16 @@ ARCH=$(uname -m)
 
 if [[ "$OS" == "Darwin" ]]; then
     if [[ "$ARCH" == "x86_64" ]]; then
-        BASE_NAME="D2D_Map_App_Intel"
+        BASE_NAME="RSS_Predictor_Intel"
     elif [[ "$ARCH" == "arm64" ]]; then
-        BASE_NAME="D2D_Map_App_ARM"
+        BASE_NAME="RSS_Predictor_ARM"
     fi
 elif [[ "$OS" == "Linux" ]]; then
-    BASE_NAME="D2D_Map_App_Linux"
+    BASE_NAME="RSS_Predictor_Linux"
 elif [[ "$OS" == MINGW* || "$OS" == CYGWIN* || "$OS" == MSYS* ]]; then
-    BASE_NAME="D2D_Map_App_Windows"
+    BASE_NAME="RSS_Predictor_Windows"
 else
-    BASE_NAME="D2D_Map_App_Unknown"
+    BASE_NAME="RSS_Predictor_Unknown"
 fi
 
 # --- 核心修改：处理版本号后缀 ---
