@@ -9,6 +9,7 @@ from tensorflow.keras.layers import Lambda
 from keras.saving import register_keras_serializable
 from tensorflow.keras.utils import plot_model
 from tensorflow.python.ops.distributions.util import same_dynamic_shape
+from tensorflow.keras.callbacks import ReduceLROnPlateau
 import multiprocessing
 import threading
 import json
@@ -309,26 +310,35 @@ def finalize_finetune_config(model):
     25: global_average_pooling2d
     26: dense
     """
+    
     # 1. 基础防护：锁定前 14 层（包含 InputPreprocessor 和前两组卷积）
-    for i in range(15):
+    for i in range(9):
         model.layers[i].trainable = False
     
     # 2. 深度微调：开启 15 层及以后
     # 包含卷积、BN 和最后的 Dense 层
-    for i in range(15, len(model.layers)):
+    for i in range(9, len(model.layers)):
         model.layers[i].trainable = True
-        
+    
+    # 强制锁定所有 BN 层（包括 15 层以后的）
+    for layer in model.layers:
+        if isinstance(layer, tf.keras.layers.BatchNormalization):
+            layer.trainable = False
+
     # 3. 检查 InputPreprocessor (第 1 层)
     # 特别注意：为了应对新 Landuse，即便它在前 14 层，也要单独开启
-    for layer in model.layers:
-        if "InputPreprocessor" in layer.name:
-            layer.trainable = True
-            print("✅ 已特赦开启：InputPreprocessor (用于学习新 Landuse Embedding)")
+    #for layer in model.layers:
+    #    if "InputPreprocessor" in layer.name:
+    #        layer.trainable = True
+    #        print("✅ 已特赦开启：InputPreprocessor (用于学习新 Landuse Embedding)")
 
     # 4. 重新编译：必须使用微小的学习率
     # 针对 35km 这种长距离、大尺度模型，高学习率会瞬间毁掉模型
-    optimizer = tf.keras.optimizers.Adam(learning_rate=1e-5)
-    model.compile(optimizer=optimizer, loss='mse', metrics=['mae'])
+    model.compile(
+        optimizer=tf.keras.optimizers.Adam(learning_rate=1e-4), 
+        loss='mse', 
+        metrics=['mae']
+    )
     
     return model
 
@@ -349,12 +359,59 @@ def evaDeepLearningPredict(trainData, trainRulData, valData, valRulData, input_m
     input_shape = (N, M, K)
 
     if input_model is None:
+        epochsValue = 1000
+        mini_batch_size = 64
+        early_stopping = tf.keras.callbacks.EarlyStopping(
+            monitor = 'val_loss',
+            patience = 10,
+            min_delta = 0.0, #默认值：设置为 0.0，表示任何降低验证损失的行为都会被视为改善。
+            restore_best_weights = True
+        )
+        # 它的作用是：当 val_loss 停滞时，尝试减小学习率来寻找更优解
+        reduce_lr = tf.keras.callbacks.ReduceLROnPlateau(
+            monitor = 'val_loss', 
+            factor = 0.2,          # 学习率缩小为原来的 1/5 (例如 1e-6 -> 2e-7)
+            patience = 5,         # 5个epoch不改善就降息。注意：这个值要小于 EarlyStopping 的 patience
+            min_lr = 1e-7,         # 学习率的底线
+            verbose = 1
+        )
         # 创建CNN模型
         model = create_cnn_model(input_shape, numCore1, numCore2, numCore3)
     else:
         if learning_type == "type_TL":
+            epochsValue = 5000
+            mini_batch_size = 8
+            early_stopping = tf.keras.callbacks.EarlyStopping(
+                monitor = 'val_loss',
+                patience = 100,
+                min_delta = 0.0, #默认值：设置为 0.0，表示任何降低验证损失的行为都会被视为改善。
+                restore_best_weights = True
+            )
+            # 它的作用是：当 val_loss 停滞时，尝试减小学习率来寻找更优解
+            reduce_lr = tf.keras.callbacks.ReduceLROnPlateau(
+                monitor = 'val_loss', 
+                factor = 0.2,          # 学习率缩小为原来的 1/5 (例如 1e-6 -> 2e-7)
+                patience = 50,         # 15个epoch不改善就降息。注意：这个值要小于 EarlyStopping 的 patience
+                min_lr = 1e-8,         # 学习率的底线
+                verbose = 1
+            )
             model = finalize_finetune_config(input_model)
         elif learning_type == "type_IT":
+            epochsValue = 5000
+            mini_batch_size = 32
+            early_stopping = tf.keras.callbacks.EarlyStopping(
+                monitor = 'val_loss',
+                patience = 100,
+                min_delta = 0.0, #默认值：设置为 0.0，表示任何降低验证损失的行为都会被视为改善。
+                restore_best_weights = True
+            )
+            reduce_lr = tf.keras.callbacks.ReduceLROnPlateau(
+                monitor = 'val_loss', 
+                factor = 0.2,          # 学习率缩小为原来的 1/5 (例如 1e-6 -> 2e-7)
+                patience = 50,         # 15个epoch不改善就降息。注意：这个值要小于 EarlyStopping 的 patience
+                min_lr = 1e-8,         # 学习率的底线
+                verbose = 1
+            )
             model = incremental_training_config(input_model)
         # 检查 preModel 的输入形状是否与新数据匹配
         if input_model.input_shape[1:] != input_shape:
@@ -362,31 +419,24 @@ def evaDeepLearningPredict(trainData, trainRulData, valData, valRulData, input_m
 
     # 设置训练参数
     # validation_freq (default = 1): Only relevant if validation data is provided. Specifies how many training epochs to run before a new validation run is performed, e.g. validation_freq=2 runs validation every 2 epochs.
-    mini_batch_size = 100
     validation_frequency = 1
-
-    # 创建回调以监控验证损失
-    early_stopping = tf.keras.callbacks.EarlyStopping(
-        monitor='val_loss',
-        patience=10,
-        min_delta = 0.0, #默认值：设置为 0.0，表示任何降低验证损失的行为都会被视为改善。
-        restore_best_weights=True
-    )
 
     # 使用自定义的进度条回调
     progress_bar = ProgressBarWithPID()
+
+    model.summary()
 
     # 训练模型
     model.fit(
         trainData,
         trainRulData,
         batch_size = mini_batch_size,
-        epochs = 500,
+        epochs = epochsValue,
         validation_data = (valData, valRulData),
         validation_freq = validation_frequency, #default = 1
         shuffle = True,
-        callbacks=[early_stopping, progress_bar],
-        verbose= 2   # 设置 verbose = 0，不显示训练信息。= 1 显示进度条。= 2 显示每个 epoch 的日志。
+        callbacks = [early_stopping, reduce_lr, progress_bar],
+        verbose = 2   # 设置 verbose = 0，不显示训练信息。= 1 显示进度条。= 2 显示每个 epoch 的日志。
     )
 
     return model
