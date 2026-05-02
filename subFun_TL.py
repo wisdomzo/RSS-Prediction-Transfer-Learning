@@ -274,8 +274,11 @@ def create_cnn_model(input_shape, numCore1, numCore2, numCore3):
     model.add(layers.GlobalAveragePooling2D())  # 替代Flatten
     model.add(layers.Dense(1, kernel_regularizer='l2'))  # L2正则
 
-    #model.compile(optimizer='Adam', loss='mean_squared_error', metrics=['mae'])
-    model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=0.0005), loss='mean_squared_error', metrics=['mae'])
+    model.compile(
+        optimizer=tf.keras.optimizers.Adam(learning_rate=5e-4), 
+        loss='mse', 
+        metrics=['mae']
+    )
 
     return model
 
@@ -327,10 +330,12 @@ def finalize_finetune_config(model):
 
     # 3. 检查 InputPreprocessor (第 1 层)
     # 特别注意：为了应对新 Landuse，即便它在前 14 层，也要单独开启
-    #for layer in model.layers:
-    #    if "InputPreprocessor" in layer.name:
-    #        layer.trainable = True
-    #        print("✅ 已特赦开启：InputPreprocessor (用于学习新 Landuse Embedding)")
+    """
+    for layer in model.layers:
+        if "InputPreprocessor" in layer.name:
+            layer.trainable = True
+            print("已特赦开启：InputPreprocessor (用于学习新 Landuse Embedding)")
+    """
 
     # 4. 重新编译：必须使用微小的学习率
     # 针对 35km 这种长距离、大尺度模型，高学习率会瞬间毁掉模型
@@ -347,8 +352,11 @@ def incremental_training_config(model):
     for layer in model.layers:
         layer.trainable = True
     
-    optimizer = tf.keras.optimizers.Adam(learning_rate=1e-5)
-    model.compile(optimizer=optimizer, loss='mse', metrics=['mae'])
+    model.compile(
+        optimizer=tf.keras.optimizers.Adam(learning_rate=1e-4), 
+        loss='mse', 
+        metrics=['mae']
+    )
 
     return model
 
