@@ -142,7 +142,7 @@ def run_in_parallel_linear(predictRSSI_linear, numNetworks, rxData_Altitude_forT
     return predictRSSI_linear
 
 
-def run_in_parallel_TL(predictRSSI_TL, numNetworks, machineLearningData, historyModels, numCore1, numCore2, numCore3, learning_type=None, api_instance=None):
+def run_in_parallel_TL(predictRSSI_TL, numNetworks, machineLearningData, historyModels, numCore1, numCore2, numCore3, learning_type=None, api_instance=None, freeze_layer=None, learning_rate=None):
     # 创建共享队列
     with concurrent.futures.ProcessPoolExecutor() as executor:
         if historyModels is not None:
@@ -158,7 +158,11 @@ def run_in_parallel_TL(predictRSSI_TL, numNetworks, machineLearningData, history
                                 numCore1,
                                 numCore2,
                                 numCore3,
-                                learning_type
+                                learning_type,
+                                None,
+                                None,
+                                freeze_layer, 
+                                learning_rate
                                 ): nw for nw in range(numNetworks)
             }
         else:
@@ -173,6 +177,10 @@ def run_in_parallel_TL(predictRSSI_TL, numNetworks, machineLearningData, history
                                 numCore1,
                                 numCore2,
                                 numCore3,
+                                None,
+                                None,
+                                None,
+                                None,
                                 None
                                 ): nw for nw in range(numNetworks)
             }
@@ -283,7 +291,7 @@ def create_cnn_model(input_shape, numCore1, numCore2, numCore3):
     return model
 
 
-def finalize_finetune_config(model):
+def finalize_finetune_config(model, freeze_layer, learning_rate):
     """
     0: input_preprocessor
     1: conv2d
@@ -315,12 +323,12 @@ def finalize_finetune_config(model):
     """
     
     # 1. 基础防护：锁定前 14 层（包含 InputPreprocessor 和前两组卷积）
-    for i in range(9):
+    for i in range(freeze_layer):
         model.layers[i].trainable = False
     
     # 2. 深度微调：开启 15 层及以后
     # 包含卷积、BN 和最后的 Dense 层
-    for i in range(9, len(model.layers)):
+    for i in range(freeze_layer, len(model.layers)):
         model.layers[i].trainable = True
     
     # 强制锁定所有 BN 层（包括 15 层以后的）
@@ -340,7 +348,7 @@ def finalize_finetune_config(model):
     # 4. 重新编译：必须使用微小的学习率
     # 针对 35km 这种长距离、大尺度模型，高学习率会瞬间毁掉模型
     model.compile(
-        optimizer=tf.keras.optimizers.Adam(learning_rate=1e-4), 
+        optimizer=tf.keras.optimizers.Adam(learning_rate=learning_rate), 
         loss='mse', 
         metrics=['mae']
     )
@@ -361,7 +369,7 @@ def incremental_training_config(model):
     return model
 
 
-def evaDeepLearningPredict(trainData, trainRulData, valData, valRulData, input_model, numCore1, numCore2, numCore3, learning_type=None, log_queue=None):
+def evaDeepLearningPredict(trainData, trainRulData, valData, valRulData, input_model, numCore1, numCore2, numCore3, learning_type=None, log_queue=None, api_instance=None, freeze_layer=None, learning_rate=None):
 
     N, M, K = trainData.shape[1:]
     input_shape = (N, M, K)
@@ -403,7 +411,7 @@ def evaDeepLearningPredict(trainData, trainRulData, valData, valRulData, input_m
                 min_lr = 1e-8,         # 学习率的底线
                 verbose = 1
             )
-            model = finalize_finetune_config(input_model)
+            model = finalize_finetune_config(input_model, freeze_layer, learning_rate)
         elif learning_type == "type_IT":
             epochsValue = 5000
             mini_batch_size = 32
@@ -620,7 +628,7 @@ def get_real_ip():
 
 
 def remote_train_wrapper(trainData, trainRulData, valData, valRulData, 
-                        history_weights, c1, c2, c3, l_type, input_shape):
+                        history_weights, c1, c2, c3, l_type, input_shape, freeze_layer, learning_rate):
     """
     此函数仅在远程机器运行。它接收数据，调用你原来的训练函数，并返回权重。
     """
@@ -677,7 +685,10 @@ def remote_train_wrapper(trainData, trainRulData, valData, valRulData,
         numCore2=c2, 
         numCore3=c3, 
         learning_type=l_type, 
-        log_queue=None
+        log_queue=None,
+        api_instance=None,
+        freeze_layer=freeze_layer,
+        learning_rate=learning_rate
     )
     
     # 5. 只返回权重数组（跨机器传输模型对象的唯一安全方式）
@@ -685,82 +696,9 @@ def remote_train_wrapper(trainData, trainRulData, valData, valRulData,
 
 
 
-def backup_run_in_parallel_TL_adaptive(predictRSSI_TL, numNetworks, machineLearningData, 
-                               historyModels, numCore1, numCore2, numCore3, 
-                               learning_type, api_instance):
-    import subFun_TL
-    from dask.distributed import get_client
-
-    # 1. 探测 Dask 集群状态
-    is_distributed = False
-    client = None
-    try:
-        # 尝试获取全局注册的 client
-        client = get_client()
-        # 检查是否有远程 Worker (除了本机之外是否有其他节点)
-        # scheduler_info 包含所有已连接的 worker 信息
-        workers = client.scheduler_info()['workers']
-        if len(workers) > 0:
-            is_distributed = True
-    except (ValueError, Exception):
-        # 如果 get_client 报错，说明当前环境没有任何 Dask 连接
-        is_distributed = False
-
-    if is_distributed:
-        print(f">>> [分布式模式] 正在分摊 {numNetworks} 个任务至集群...")
-        
-        futures = []
-        if historyModels and historyModels[nw] and historyModels[nw].get('model'):
-            repNum = int(np.ceil( 200 / (machineLearningData[0]['trainRulData'].shape[0] + machineLearningData[0]['valRulData'].shape[0]) ))
-        for nw in range(numNetworks):
-            # 准备数据：确保形状正确 (Samples, Height, Width, Channels)
-            weights = None
-            if historyModels and historyModels[nw] and historyModels[nw].get('model'):
-                trainD = np.tile(machineLearningData[nw]['trainData'], (1,1,1,repNum))
-                valD = np.tile(machineLearningData[nw]['valData'], (1,1,1,repNum))
-                weights = historyModels[nw]['model'].get_weights()
-            else:
-                trainD = machineLearningData[nw]['trainData']
-                valD = machineLearningData[nw]['valData']
-            
-            # 异步提交给远程机器
-            f = client.submit(
-                subFun_TL.remote_train_wrapper,
-                trainD, machineLearningData[nw]['trainRulData'],
-                valD, machineLearningData[nw]['valRulData'],
-                weights, numCore1, numCore2, numCore3, 
-                learning_type, trainD.shape[:-1],
-                pure=False,
-                retries=10
-            )
-            futures.append(f)
-        
-        # 等待所有 Intel Mac 算完并取回结果
-        print(">>> 任务已分发，等待计算返回...")
-        all_weights = client.gather(futures)
-        
-        # 在 M3 上重建模型结果
-        for i, weights in enumerate(all_weights):
-            input_shape = machineLearningData[i]['trainData'].shape[:-1]
-            model = subFun_TL.create_cnn_model(input_shape, numCore1, numCore2, numCore3)
-            model.set_weights(weights)
-            predictRSSI_TL[i]['model'] = model
-            
-    else:
-        # --- 保险丝：如果没连上，走你最稳的原生并行逻辑 ---
-        print(">>> [单机模式] 远程机未就绪，使用本机 ProcessPoolExecutor...")
-        predictRSSI_TL = subFun_TL.run_in_parallel_TL(
-            predictRSSI_TL, numNetworks, machineLearningData, 
-            historyModels, numCore1, numCore2, numCore3, 
-            learning_type, api_instance if api_instance else None
-        )
-    
-    return predictRSSI_TL
-
-
 def run_in_parallel_TL_adaptive(predictRSSI_TL, numNetworks, machineLearningData, 
                                historyModels, numCore1, numCore2, numCore3, 
-                               learning_type, api_instance):
+                               learning_type, api_instance, freeze_layer=None, learning_rate=None):
     import subFun_TL
     import numpy as np
     from dask.distributed import get_client, as_completed
@@ -799,7 +737,7 @@ def run_in_parallel_TL_adaptive(predictRSSI_TL, numNetworks, machineLearningData
                 trainD, machineLearningData[nw]['trainRulData'],
                 valD, machineLearningData[nw]['valRulData'],
                 weights, numCore1, numCore2, numCore3, 
-                learning_type, trainD.shape[:-1],
+                learning_type, trainD.shape[:-1], freeze_layer, learning_rate,
                 pure=False,
                 retries=3  # 基础重试
             )
@@ -849,7 +787,8 @@ def run_in_parallel_TL_adaptive(predictRSSI_TL, numNetworks, machineLearningData
         predictRSSI_TL = subFun_TL.run_in_parallel_TL(
             predictRSSI_TL, numNetworks, machineLearningData, 
             historyModels, numCore1, numCore2, numCore3, 
-            learning_type, api_instance if api_instance else None
+            learning_type, api_instance if api_instance else None,
+            freeze_layer, learning_rate
         )
     
     return predictRSSI_TL

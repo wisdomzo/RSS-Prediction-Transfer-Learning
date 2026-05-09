@@ -25,7 +25,7 @@ if APP_ROOT not in sys.path:
 
 
 
-def run_transfer_learning(selected_folder_csv, num_test_per, user_input, model_path, data_index, content_data_index, learning_type=None, api_instance=None):
+def run_transfer_learning(selected_folder_csv, num_test_per, user_input, model_path, data_index, content_data_index, learning_type=None, api_instance=None, freeze_layer=9, learning_rate=1e-4):
     #读取数据
     # region
     numTestPer_TL = float(num_test_per)
@@ -117,7 +117,7 @@ def run_transfer_learning(selected_folder_csv, num_test_per, user_input, model_p
         print("\n深度网络预测...Start.")
         # predictRSSI_TL is model
         predictRSSI_TL = [{} for _ in range(numNetworks)]
-        predictRSSI_TL = subFun_TL.run_in_parallel_TL_adaptive(predictRSSI_TL, numNetworks, machineLearningData_TL, historyModels, numCore1, numCore2, numCore3, learning_type=learning_type, api_instance=api_instance)        
+        predictRSSI_TL = subFun_TL.run_in_parallel_TL_adaptive(predictRSSI_TL, numNetworks, machineLearningData_TL, historyModels, numCore1, numCore2, numCore3, learning_type=learning_type, api_instance=api_instance, freeze_layer=freeze_layer, learning_rate=learning_rate)        
         print("深度网络预测...Done.")
 
         print("\n保存模型...Start.")

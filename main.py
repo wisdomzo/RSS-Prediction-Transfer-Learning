@@ -347,7 +347,9 @@ def worker_thread_modelGen(api_instance, coords):
                 data_index = list(range(1,len(contentReadDataIndex)+1)),
                 content_data_index = contentReadDataIndex,
                 learning_type = coords['learningType'],
-                api_instance = api_instance
+                api_instance = api_instance,
+                freeze_layer = int(coords['freezeLayer']),
+                learning_rate = float(coords['learningRate'])
             )
             print("迁移学习任务已完成")
             subFun.clean_folder_except(selected_folder_csv, "TL_model_")
