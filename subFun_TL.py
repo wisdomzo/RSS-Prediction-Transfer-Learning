@@ -19,6 +19,8 @@ import os
 from tqdm import tqdm
 import subFun
 import socket
+from sklearn.ensemble import RandomForestRegressor
+import joblib
 
 
 class ProgressBarWithPID(tf.keras.callbacks.Callback):
@@ -555,6 +557,7 @@ def show_Predict_model(dataPath):
     Pt = dataStrick['Pt']
     testDistance_TL = dataStrick['testDistance_TL']
     predictRSSI_TL = dataStrick['predictRSSI_TL']
+    judge_model = dataStrick['judge_model']
     testData_TL = dataStrick['testData_TL']
     rxData_Altitude_TL = dataStrick['rxData_Altitude_TL']
     testRulData_TL = dataStrick['testRulData_TL']
@@ -565,17 +568,34 @@ def show_Predict_model(dataPath):
     yPredTestMatrix_DL = np.zeros((testData_TL.shape[-1], numNetworks), dtype=float)
     for nw in range(numNetworks):
         yPredTestMatrix_DL[:, nw] = Pr_free + predictRSSI_TL[nw]['model'].predict(np.transpose(testData_TL, (3, 0, 1, 2)), verbose=2)[:, 0]
+        rxData_Altitude_TL['model_'+str(nw)] = np.array(yPredTestMatrix_DL[:, nw])
 
     sorted_data_DL, cdf_DL = my_plot_figure.compute_cdf(
         np.abs(realRSSI - np.median(yPredTestMatrix_DL, axis=1)))
 
     rxData_Altitude_TL['Predicted_Value'] = np.median(yPredTestMatrix_DL, axis=1)
+    rxData_Altitude_TL['Predicted_Value_Judge'] = get_top_k_prediction_judge_model(judge_model, testData_TL, yPredTestMatrix_DL)
     rxData_Altitude_TL['Uncertainty'] = np.std(yPredTestMatrix_DL, axis=1)
     rxData_Altitude_TL['pathLoss_eta_2'] = Pr_free
     Pr_free_eta_3 = subFun.cal_Pr_free_show(Pt, testData_TL[0,0,3,:], testDistance_TL, 3)
     rxData_Altitude_TL['pathLoss_eta_3'] = Pr_free_eta_3
 
     return rxData_Altitude_TL, sorted_data_DL, cdf_DL
+
+
+def get_top_k_prediction_judge_model(judge_model, FV, yPredTestMatrix_DL):
+
+    print("正在使用 judge_model 进行预测修正...")
+    X_input = np.transpose(FV, (3, 0, 1, 2)) 
+    N_samples = X_input.shape[0]
+    X_flat = X_input.reshape(N_samples, -1) # 展平特征，供随机森林使用
+
+    correction = judge_model.predict(X_flat)
+    current_median = np.median(yPredTestMatrix_DL, axis=1)
+    final_rssi = current_median + correction
+
+    print("预测修正完成。")
+    return np.array(final_rssi)
 
 
 def prediction_area_RSSI(selected_predict_model, contentReadDataIndex):
@@ -792,3 +812,98 @@ def run_in_parallel_TL_adaptive(predictRSSI_TL, numNetworks, machineLearningData
         )
     
     return predictRSSI_TL
+
+
+def trainJudgeModel(numNetworks, AIcommittee, FV, TV):
+    """
+    FV: 特征向量 (W, L, C, N_samples)
+    TV: 真实RSSI (1, N_samples) 或 (N_samples,)
+    """
+
+    def get_adaptive_params(n_samples):
+        # 基础配置
+        params = {
+            'n_jobs': -1,
+            'random_state': 42
+        }
+        
+        if n_samples < 200:
+            # 极小样本：非常保守
+            params['n_estimators'] = 200
+            params['max_depth'] = 4
+            params['min_samples_leaf'] = 5
+        elif n_samples < 1000:
+            # 中等样本：平衡
+            params['n_estimators'] = 100
+            params['max_depth'] = 10
+            params['min_samples_leaf'] = 2
+        else:
+            # 较多样本：允许复杂
+            params['n_estimators'] = 100
+            params['max_depth'] = None # 允许自由生长
+            params['min_samples_leaf'] = 1
+            
+        return params
+
+
+    # 1. 准备数据：将 FV 转置为 (N_samples, W, L, C) 并展平为 (N_samples, Features)
+    # 裁判需要看环境特征来做决定
+    X_input = np.transpose(FV, (3, 0, 1, 2)) 
+    N_samples = X_input.shape[0]
+    X_flat = X_input.reshape(N_samples, -1) # 展平特征，供随机森林使用
+
+    # 确保 TV 是一维的
+    y_true = np.squeeze(TV)
+
+    # 2. 获取 30 个专家在这些微调数据上的预测结果
+    predictedMatrix = np.zeros((N_samples, numNetworks), dtype=float)
+    print("正在收集专家预测结果...")
+    for nw in range(numNetworks):
+        # 预测并填入矩阵
+        preds = AIcommittee[nw]['model'].predict(X_input, verbose=0)
+        predictedMatrix[:, nw] = preds.flatten()
+
+    median_predictions = np.median(predictedMatrix, axis=1)
+
+    # 3. 【核心修改】构造残差标签
+    # 残差 = 真实值 - 中位数预测值
+    # 如果残差是 +5，说明中位数估低了；如果是 -5，说明中位数估高了
+    residuals = y_true - median_predictions
+
+    # 4. 训练随机森林回归器 (Regressor)
+    print("正在训练残差修正模型 (Random Forest Regressor)...")
+
+    # 这里的参数可以沿用之前的 get_adaptive_params 逻辑，但模型换成 Regressor
+    # 对于回归，max_depth 可以稍微设深一点点，或者不设
+    adaptive_params = get_adaptive_params(N_samples)
+    judge_model = RandomForestRegressor(**adaptive_params)
+
+    # 学习：环境特征 -> 应该修正多少分贝
+    judge_model.fit(X_flat, residuals)
+
+    # 5. 评估微调集上的效果
+    # 最终预测 = 中位数 + 修正值
+    train_corrections = judge_model.predict(X_flat)
+    final_train_preds = median_predictions + train_corrections
+    
+    new_mae = np.mean(np.abs(final_train_preds - y_true))
+    old_mae = np.mean(np.abs(median_predictions - y_true))
+    
+    print(f"修正模型训练完成。")
+    print(f"微调集原始中位数 MAE: {old_mae:.4f}")
+    print(f"微调集修正后 MAE: {new_mae:.4f}")
+
+
+    '''
+    # 临时文件，查看输出csv
+    import pandas as pd
+    actual_predict_matrix = np.stack(predictedMatrix)
+    model_cols = [f'Model_{i}' for i in range(actual_predict_matrix.shape[1])]
+    df_models = pd.DataFrame(actual_predict_matrix, columns=model_cols)
+    df_models.to_csv('predict_results.csv', index=False)
+
+    actual_RSSI = np.stack(TV).squeeze()
+    df_rssi = pd.DataFrame(actual_RSSI, columns=['RSSI']) 
+    df_rssi.to_csv('actual_RSSI.csv', index=False)
+    '''
+    return judge_model

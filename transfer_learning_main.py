@@ -43,6 +43,7 @@ def run_transfer_learning(selected_folder_csv, num_test_per, user_input, model_p
     markVector = dataStrick['markVector']
     K = dataStrick['K']
     historyModels = dataStrick['predictRSSI_TL']
+    judge_model = dataStrick.get('judge_model')
     numCore1 = dataStrick['numCore1']
     numCore2 = dataStrick['numCore2']
     numCore3 = dataStrick['numCore3']
@@ -120,6 +121,10 @@ def run_transfer_learning(selected_folder_csv, num_test_per, user_input, model_p
         predictRSSI_TL = subFun_TL.run_in_parallel_TL_adaptive(predictRSSI_TL, numNetworks, machineLearningData_TL, historyModels, numCore1, numCore2, numCore3, learning_type=learning_type, api_instance=api_instance, freeze_layer=freeze_layer, learning_rate=learning_rate)        
         print("深度网络预测...Done.")
 
+        print("训练裁判...Start.")
+        judge_model = subFun_TL.trainJudgeModel(numNetworks, predictRSSI_TL, FV_forTraining_TL, TV_forTraining_TL)
+        print("训练裁判...Done.")
+
         print("\n保存模型...Start.")
         save_file_path = os.path.join(selected_folder_csv, f'TL_model_for_{data_index_for_TL}.pkl.xz')
         #########
@@ -147,6 +152,7 @@ def run_transfer_learning(selected_folder_csv, num_test_per, user_input, model_p
     elif numTestPer_TL == 1:
         #TBD追缴n系列空间渐衰预测
         predictRSSI_TL = historyModels
+        judge_model = judge_model
         print("\n保存模型...Start.")
         save_file_path = os.path.join(selected_folder_csv, f'Predict_model_for_{data_index_for_TL}.pkl.xz')
         #########
@@ -158,7 +164,8 @@ def run_transfer_learning(selected_folder_csv, num_test_per, user_input, model_p
             'predictRSSI_TL', 
             'testData_TL', 
             'rxData_Altitude_TL', 
-            'testRulData_TL'
+            'testRulData_TL',
+            'judge_model'
         )
         to_save.update({
             k: v for k, v in locals().items() 
