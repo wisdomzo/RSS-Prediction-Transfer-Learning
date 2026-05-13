@@ -19,6 +19,10 @@ import main_collect_data
 import transfer_learning_main
 import shapely
 from rasterio import features
+import gc
+import time
+import tensorflow as tf
+from dask.distributed import get_client, wait
 
 
 def integrateExpData(exp_data_path):
@@ -986,3 +990,66 @@ def augment_centrosymmetric(origFV, origTV, origAlt):
     augAlt = pd.concat([origAlt, origAlt], axis=0).reset_index(drop=True)
     
     return augFV, augTV, augAlt
+
+
+
+def barrier_and_cleanup(futures_to_wait=None, timeout=120):
+    """
+    资源隔离墙函数：
+    即使调用时没有传入 client，也会尝试自动获取。
+    """
+    # --- 自动获取活跃的 Dask Client ---
+    try:
+        client = get_client()
+    except ValueError:
+        print(">>> 错误：未检测到活跃的 Dask Client，无法执行清理。")
+        return
+
+    print("\n" + "="*50)
+    print(">>> [中场休息] 启动资源隔离程序...")
+
+    # --- 步骤 1: 强制同步 ---
+    if futures_to_wait is not None:
+        print(">>> 正在等待所有异步任务物理完成...")
+        # 如果是字典或列表，确保 wait 能处理
+        if isinstance(futures_to_wait, dict):
+            futures_to_wait = list(futures_to_wait.values())
+        elif not isinstance(futures_to_wait, list):
+            futures_to_wait = [futures_to_wait]
+        
+        # 这一步非常重要，防止“正在工作时强制重启”
+        wait(futures_to_wait)
+    
+    # --- 步骤 2: 主机端清理 ---
+    print(">>> 清理主进程内存与会话...")
+    tf.keras.backend.clear_session()
+    gc.collect()
+
+    # --- 步骤 3: 尝试物理重启 (Hard Reset) ---
+    try:
+        print(f">>> 尝试物理重启 Worker (限时 {timeout}s)...")
+        client.restart(timeout=timeout)
+        print(">>> 物理重启成功，Worker 资源已重置。")
+    except Exception as e:
+        print(f">>> 物理重启失败或超时: {e}")
+        print(">>> 正在降级执行【软清理】方案...")
+        
+        def worker_soft_cleanup():
+            import tensorflow as tf
+            import gc
+            import os
+            tf.keras.backend.clear_session()
+            gc.collect()
+            return f"Worker PID {os.getpid()} cleaned."
+
+        try:
+            results = client.run(worker_soft_cleanup)
+            print(f">>> 软清理完成，响应节点数: {len(results)}")
+        except Exception as soft_e:
+            print(f">>> 软清理也遇到异常: {soft_e}")
+
+    # --- 步骤 4: 静默冷却 ---
+    print(">>> 执行 5 秒静默冷却以释放 TCP 端口...")
+    time.sleep(5)
+    print(">>> 资源隔离完成，准备进入下一阶段。")
+    print("="*50 + "\n")
