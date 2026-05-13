@@ -21,6 +21,12 @@ import subFun
 import socket
 from sklearn.ensemble import RandomForestRegressor
 import joblib
+import numpy as np
+from tensorflow.keras import layers, models, callbacks, regularizers, optimizers
+from sklearn.model_selection import KFold
+from dask.distributed import get_client, as_completed
+import dill
+import training_judge_model
 
 
 class ProgressBarWithPID(tf.keras.callbacks.Callback):
@@ -816,6 +822,7 @@ def run_in_parallel_TL_adaptive(predictRSSI_TL, numNetworks, machineLearningData
 
 def trainJudgeModel(numNetworks, AIcommittee, FV, TV):
     """
+    随机森林裁判训练函数：
     FV: 特征向量 (W, L, C, N_samples)
     TV: 真实RSSI (1, N_samples) 或 (N_samples,)
     """
@@ -907,3 +914,182 @@ def trainJudgeModel(numNetworks, AIcommittee, FV, TV):
     df_rssi.to_csv('actual_RSSI.csv', index=False)
     '''
     return judge_model
+
+
+def trainJudgeModel_cnn(numNetworks, historyModels, FV, TV, 
+                    numCore1, numCore2, numCore3, learning_type, 
+                    freeze_layer, learning_rate):
+    """
+    裁判训练主函数：
+    - 外层：5折交叉验证（顺序执行）
+    - 内层：30个专家模型（Dask分布式并行）
+    - 目标：训练一个 CNN 选人裁判，逼近 0.85dB 的上帝模式
+    """
+    client = None
+    is_distributed = False
+    try:
+        from dask.distributed import get_client, as_completed
+        client = get_client()
+        is_distributed = True
+        print(">>> [分布式模式] 已连接到 Dask 集群，开始分发并行任务...")
+    except (ImportError, ValueError, Exception):
+        print(">>> [单机模式] 未检测到 Dask 集群，将按顺序执行微调...")
+
+    # 1. 数据准备
+    # X_all: (N, 31, 36, 5), y_all: (N,)
+    X_all = np.transpose(FV, (3, 0, 1, 2))
+    y_all = np.squeeze(TV)
+    n_samples = X_all.shape[0]
+    input_shape = X_all.shape[1:]
+    
+    # 建立 5 折交叉验证
+    kf = KFold(n_splits=5, shuffle=True, random_state=42)
+    
+    # 全样本 OOF (Out-of-Fold) 预测矩阵，用来存专家在生题上的表现
+    oof_predict_matrix = np.zeros((n_samples, numNetworks))
+
+    # 2. 外层循环：顺序处理每一折 (Fold)
+    for fold_idx, (train_idx, val_idx) in enumerate(kf.split(X_all)):
+        print(f"\n>>> 正在处理第 {fold_idx+1}/5 折交叉验证...")
+        
+        X_train_fold = X_all[train_idx]
+        y_train_fold = y_all[train_idx]
+        X_exam_fold = X_all[val_idx] # 本折的专家“生题”考试卷
+        
+        # 内层：分布式并行训练 30 个临时专家
+        if is_distributed:
+            # --- 路径 A：分布式并行 ---
+            future_to_nw = {}
+            for nw in range(numNetworks):
+                # 获取专家初始权重
+                weights = None
+                if historyModels and historyModels[nw] and historyModels[nw].get('model'):
+                    weights = historyModels[nw]['model'].get_weights()
+                
+                # 提交 Dask 任务
+                f = client.submit(
+                    remote_fold_train_predict,
+                    X_train_fold, y_train_fold, X_exam_fold,
+                    weights, numCore1, numCore2, numCore3,
+                    learning_type, input_shape, freeze_layer, learning_rate,
+                    pure=False
+                )
+                future_to_nw[f] = nw
+            
+            # 回收本折的 30 个专家预测结果
+            completed_fold_count = 0
+            for future in as_completed(future_to_nw.keys()):
+                nw_index = future_to_nw[future]
+                try:
+                    preds = future.result()
+                    oof_predict_matrix[val_idx, nw_index] = preds.flatten()
+                    completed_fold_count += 1
+                    if completed_fold_count % 10 == 0:
+                        print(f"    Fold {fold_idx+1}: 专家 {completed_fold_count}/{numNetworks} 已交卷")
+                except Exception as e:
+                    print(f"    !!! Fold {fold_idx+1} 专家 {nw_index} 任务失败: {e}")
+        else:
+            # --- 路径 B：单机顺序执行 ---
+            for nw in range(numNetworks):
+                weights = historyModels[nw]['model'].get_weights() if historyModels and historyModels[nw] else None
+                # 直接调用本地函数
+                preds = remote_fold_train_predict(
+                    X_train_fold, y_train_fold, X_exam_fold,
+                    weights, numCore1, numCore2, numCore3,
+                    learning_type, input_shape, freeze_layer, learning_rate
+                )
+                oof_predict_matrix[val_idx, nw] = preds.flatten()
+                if (nw + 1) % 5 == 0:
+                    print(f"    单机进度: Fold {fold_idx+1}, 专家 {nw+1}/{numNetworks} 已完成")
+
+    # 4. 训练 CNN 裁判 (识别地形 -> 选出最强专家)
+    print("\n>>> [教材整理完毕] 正在训练 CNN 裁判模型...")
+
+    """
+    debug_data = {
+        "FV": FV,
+        "TV": TV,
+        "X_all": X_all,
+        "y_all": y_all,
+        "OOF": oof_predict_matrix,
+    }
+    with open("debug.pkl", "wb") as f:
+        dill.dump(debug_data, f)
+    """
+
+    """
+    # 读档
+    with open("debug.pkl", "rb") as f:
+        debug_data = dill.load(f)
+    globals().update(debug_data)
+    FV = debug_data['FV']
+    TV = debug_data['TV']
+    X_all = debug_data['X_all']
+    y_all = debug_data['y_all']
+    oof_predict_matrix = debug_data['OOF']
+    errors = debug_data['errors']
+    best_expert_labels = debug_data['best_expert_labels']
+    """
+
+    judge_cnn = training_judge_model.train_judge_cnn(X_all, oof_predict_matrix, y_all, input_shape)
+
+    return judge_cnn
+
+
+def remote_fold_train_predict(X_train, y_train, X_exam, weights, 
+                               numCore1, numCore2, numCore3, l_type, 
+                               shape, freeze_layer, learning_rate):
+    """
+    Dask 远程执行：使用与正式微调完全一致的参数训练“临时专家”并参加考试
+    """
+    
+    # 1. 建立基础模型
+    # 注意：远程节点必须能调用 create_cnn_model
+    model = create_cnn_model(shape, numCore1, numCore2, numCore3)
+    if weights is not None:
+        model.set_weights(weights)
+    
+    # 2. 按照 type_TL 逻辑配置微调环境
+    if l_type == "type_TL":
+        # 2.1 应用你的 finalize_finetune_config 逻辑
+        # 锁定/开启层，锁定所有 BN 层，并重新编译
+        model = finalize_finetune_config(model, freeze_layer, learning_rate)
+        
+        # 2.2 配置完全一致的 Callback 体系
+        # 注意：因为只有 400 样本左右，所以必须靠 EarlyStopping 找到最佳状态点
+        early_stopping = tf.keras.callbacks.EarlyStopping(
+            monitor='val_loss',
+            patience=100,
+            min_delta=0.0,
+            restore_best_weights=True,
+            verbose=0
+        )
+        
+        reduce_lr = tf.keras.callbacks.ReduceLROnPlateau(
+            monitor='val_loss', 
+            factor=0.2,
+            patience=50,
+            min_lr=1e-8,
+            verbose=0
+        )
+        
+        # 2.3 执行深度微调
+        # 这里使用 X_train 自身的一部分作为验证集，以触发 EarlyStopping
+        # 这里的 5000 epoch 和 batch_size=8 与你正式微调一致
+        model.fit(
+            X_train, y_train,
+            validation_split=0.15, # 从 Fold 训练集里再切一点做验证
+            epochs=5000,
+            batch_size=8,
+            callbacks=[early_stopping, reduce_lr],
+            verbose=1 # 远程执行建议关闭日志，避免阻塞 Dask 通讯
+        )
+        
+    else:
+        # 非 type_TL 模式的基础微调 (作为备选逻辑)
+        model.compile(optimizer='adam', loss='mse')
+        model.fit(X_train, y_train, epochs=20, batch_size=32, verbose=0)
+    
+    # 3. 考试：预测没见过的数据 (这就是裁判学习的真实依据)
+    # 此时的 model 已经达到了与最终 M1 专家同级别的“实战水平”
+    return model.predict(X_exam, verbose=0)
