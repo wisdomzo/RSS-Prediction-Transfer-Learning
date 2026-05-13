@@ -27,7 +27,7 @@ from sklearn.model_selection import KFold
 from dask.distributed import get_client, as_completed
 import dill
 import training_judge_model
-
+import gc
 
 class ProgressBarWithPID(tf.keras.callbacks.Callback):
     def on_train_begin(self, logs=None):
@@ -1036,9 +1036,7 @@ def trainJudgeModel_cnn(numNetworks, historyModels, FV, TV,
     return judge_cnn
 
 
-def remote_fold_train_predict(X_train, y_train, X_exam, weights, 
-                               numCore1, numCore2, numCore3, l_type, 
-                               shape, freeze_layer, learning_rate):
+def remote_fold_train_predict(X_train, y_train, X_exam, weights, numCore1, numCore2, numCore3, l_type, shape, freeze_layer, learning_rate):
     """
     Dask 远程执行：使用与正式微调完全一致的参数训练“临时专家”并参加考试
     """
@@ -1092,4 +1090,18 @@ def remote_fold_train_predict(X_train, y_train, X_exam, weights,
     
     # 3. 考试：预测没见过的数据 (这就是裁判学习的真实依据)
     # 此时的 model 已经达到了与最终 M1 专家同级别的“实战水平”
-    return model.predict(X_exam, verbose=0)
+    # --- 2. 考试：先拿到结果 ---
+    preds = model.predict(X_exam, verbose=0)
+
+    # --- 3. 【关键：在这里关门】 ---
+    # 第一步：删除模型引用
+    del model
+
+    # 第二步：清理 Keras 后端占用的显存和文件句柄
+    # 这会释放 TensorFlow 在这一轮训练中打开的所有底层 H5 临时文件和 C++ 句柄
+    tf.keras.backend.clear_session()
+
+    # 第三步：强制 Python 立即回收内存
+    gc.collect()
+
+    return preds

@@ -8,6 +8,10 @@ import pandas as pd
 import pickle
 import lzma
 import ast
+import gc
+import time
+import tensorflow as tf
+from dask.distributed import get_client, wait
 
 def get_app_root_directory():
     if hasattr(sys, '_MEIPASS'):
@@ -115,12 +119,25 @@ def run_transfer_learning(selected_folder_csv, num_test_per, user_input, model_p
         )
         print("线性预测...Done.")
 
+        # --- 第一阶段：训练 numNetworks 个专家 ---
         print("\n深度网络预测...Start.")
         # predictRSSI_TL is model
         predictRSSI_TL = [{} for _ in range(numNetworks)]
         predictRSSI_TL = subFun_TL.run_in_parallel_TL_adaptive(predictRSSI_TL, numNetworks, machineLearningData_TL, historyModels, numCore1, numCore2, numCore3, learning_type=learning_type, api_instance=api_instance, freeze_layer=freeze_layer, learning_rate=learning_rate)        
         print("深度网络预测...Done.")
 
+        # --- 物理清理：彻底关闭第一阶段的资源占用 ---
+        print(">>> 正在强制回收系统资源与文件句柄...")
+        # 1. 清理主机端 Keras 状态
+        tf.keras.backend.clear_session()
+        gc.collect()
+        # 2. 【核心】重启 Dask 集群。这会杀掉所有 Worker 进程并重启
+        # 这一步会彻底释放远程机器上训练 30 个模型时打开的所有 H5 文件、日志文件和句柄
+        client.restart() 
+        time.sleep(5)
+        print(">>> Dask 集群已重启，Worker 资源已归零。")
+
+        # --- 第二阶段：训练裁判 ---
         print("训练裁判...Start.")
         judge_model = subFun_TL.trainJudgeModel_cnn(numNetworks, historyModels, FV_forTraining_TL, TV_forTraining_TL, numCore1, numCore2, numCore3, learning_type, freeze_layer, learning_rate)
         #judge_model = subFun_TL.trainJudgeModel(numNetworks, predictRSSI_TL, FV_forTraining_TL, TV_forTraining_TL)#随机森林
