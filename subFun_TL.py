@@ -564,8 +564,7 @@ def show_Predict_model(dataPath):
     Pt = dataStrick['Pt']
     testDistance_TL = dataStrick['testDistance_TL']
     predictRSSI_TL = dataStrick['predictRSSI_TL']
-    judge_model = dataStrick['judge_model']
-    expert_group_map = dataStrick['expert_group_map']
+    judge_model = dataStrick.get('judge_model', None)
     testData_TL = dataStrick['testData_TL']
     rxData_Altitude_TL = dataStrick['rxData_Altitude_TL']
     testRulData_TL = dataStrick['testRulData_TL']
@@ -576,14 +575,15 @@ def show_Predict_model(dataPath):
     yPredTestMatrix_DL = np.zeros((testData_TL.shape[-1], numNetworks), dtype=float)
     for nw in range(numNetworks):
         yPredTestMatrix_DL[:, nw] = Pr_free + predictRSSI_TL[nw]['model'].predict(np.transpose(testData_TL, (3, 0, 1, 2)), verbose=2)[:, 0]
-        rxData_Altitude_TL['model_'+str(nw)] = np.array(yPredTestMatrix_DL[:, nw])
+        rxData_Altitude_TL['Model_'+str(nw)] = np.array(yPredTestMatrix_DL[:, nw])
 
     sorted_data_DL, cdf_DL = my_plot_figure.compute_cdf(
         np.abs(realRSSI - np.median(yPredTestMatrix_DL, axis=1)))
 
     rxData_Altitude_TL['Predicted_Value'] = np.median(yPredTestMatrix_DL, axis=1)
     # rxData_Altitude_TL['Predicted_Value_Judge'] = get_top_k_prediction_judge_model(judge_model, testData_TL, yPredTestMatrix_DL)
-    rxData_Altitude_TL['Predicted_Value_Judge'] = get_final_rssi_prediction(Pr_free, judge_model, expert_group_map, predictRSSI_TL, testData_TL)
+    # rxData_Altitude_TL['Predicted_Value_Judge'] = get_final_rssi_prediction(Pr_free, judge_model, expert_group_map, predictRSSI_TL, testData_TL)
+    rxData_Altitude_TL['Predicted_Value_Judge'] = training_judge_model.get_correlation_distance_approach(judge_model, rxData_Altitude_TL, yPredTestMatrix_DL, 20, 3)
     rxData_Altitude_TL['Uncertainty'] = np.std(yPredTestMatrix_DL, axis=1)
     rxData_Altitude_TL['pathLoss_eta_2'] = Pr_free
     Pr_free_eta_3 = subFun.cal_Pr_free_show(Pt, testData_TL[0,0,3,:], testDistance_TL, 3)
@@ -1089,9 +1089,9 @@ def trainJudgeModel_cnn(numNetworks, historyModels, FV, TV, optionalParams,
     # 构成一个裁判报告单
     model_cols = [f'Model_{i}' for i in range(numNetworks)]
     df_oof = pd.DataFrame(oof_predict_matrix, columns=model_cols)
-    df_oof['RSSI'] = y_all.flatten()
+    df_oof['RSSI_TV'] = y_all.flatten()
     df_oof['Median_Prediction'] = np.median(oof_predict_matrix, axis=1)
-    df_oof['Median_Abs_Error'] = np.abs(df_oof['Median_Prediction'] - df_oof['RSSI'])
+    df_oof['Median_Abs_Error'] = np.abs(df_oof['Median_Prediction'] - df_oof['RSSI_TV'])
     errors_matrix = np.abs(oof_predict_matrix - y_all.reshape(-1, 1))
     df_oof['Best_Model_Idx'] = np.argmin(errors_matrix, axis=1)
     df_oof['Best_Model_Error'] = np.min(errors_matrix, axis=1)

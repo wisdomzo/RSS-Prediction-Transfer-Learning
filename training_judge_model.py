@@ -17,26 +17,11 @@ import pandas as pd
 from sklearn.cluster import KMeans
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from sklearn.model_selection import train_test_split
-
+from scipy.spatial import KDTree
+from collections import Counter
 
 
 def run_main_judge_cnn():
-    # 读档
-    with open("debug.pkl", "rb") as f:
-        debug_data = dill.load(f)
-    globals().update(debug_data)
-    FV = debug_data['FV']
-    TV = debug_data['TV']
-    X_all = debug_data['X_all']
-    y_all = debug_data['y_all']
-    oof_predict_matrix = debug_data['OOF']
-    input_shape = X_all.shape[1:]
-
-    # save_oof_to_csv(oof_predict_matrix, y_all, filename="oof_analysis.csv")
-
-    # judge_cnn, expert_group_map = train_judge_cnn(X_all, oof_predict_matrix, y_all, input_shape)
-    judge_cnn = train_residual_regressor_cnn(X_all, oof_predict_matrix, y_all, input_shape)
-    # predict_with_judge(X_test, m1_experts, judge_cnn)
 
     return
 
@@ -327,6 +312,69 @@ def train_residual_regressor_cnn(X_all, oof_predict_matrix, y_all, input_shape):
     return model
 
 
+
+def get_correlation_distance_approach(judgeReport, testData, multiModelPredictRSSI, dcor=50, k_neighbors=1):
+    """
+    升级版：基于局部共识投票的空间相关性策略
+    
+    k_neighbors: 最多考虑周围多少个邻居进行投票
+    """
+    # 1. 坐标投影
+    lat_ref = judgeReport['Latitude'].mean()
+    def project_to_meters(df):
+        x = df['Longitude'].values * 111320 * np.cos(np.radians(lat_ref))
+        y = df['Latitude'].values * 111000
+        return np.column_stack((x, y))
+
+    train_coords_m = project_to_meters(judgeReport)
+    test_coords_m = project_to_meters(testData)
+    
+    # 2. 获取参考点的最佳专家 ID
+    b_best_experts = judgeReport['Best_Model_Idx'].values.astype(int)
+    tree = KDTree(train_coords_m)
+    
+    # 3. 初始预测值（中位数）
+    final_predictions = testData['Predicted_Value'].values.copy()
+    
+    # 4. 执行多邻居查询
+    # k=k_neighbors 查找最近的多个点
+    distances, indices = tree.query(test_coords_m, k=k_neighbors, distance_upper_bound=dcor)
+    
+    # 5. 投票逻辑
+    for i in range(len(testData)):
+        # 提取当前点的有效邻居索引（排除距离超出 dcor 的点，tree.query 会返回 inf 或 len(train)）
+        valid_mask = ~np.isinf(distances[i])
+        valid_indices = indices[i][valid_mask]
+        
+        if len(valid_indices) > 0:
+            # 拿到这些邻居推荐的专家 ID
+            neighbor_expert_choices = b_best_experts[valid_indices]
+            
+            # --- 方案 A: 简单多数投票 ---
+            # vote_result = Counter(neighbor_expert_choices).most_common(1)[0][0]
+            
+            # --- 方案 B: 距离加权投票 (更推荐) ---
+            # 距离越近权重越大，权重 = 1 / (距离 + 1e-5)
+            valid_dists = distances[i][valid_mask]
+            weights = 1.0 / (valid_dists + 1e-5)
+            
+            # 计算每个专家的加权得分
+            unique_experts = np.unique(neighbor_expert_choices)
+            expert_scores = {exp: 0.0 for exp in unique_experts}
+            for exp, w in zip(neighbor_expert_choices, weights):
+                expert_scores[exp] += w
+            
+            # 选出得分最高的专家
+            best_voted_expert = max(expert_scores, key=expert_scores.get)
+            
+            # 检查置信度：如果最高分占比太低，可以选择 fallback
+            # total_weight = sum(expert_scores.values())
+            # if expert_scores[best_voted_expert] / total_weight > 0.4: ...
+            
+            final_predictions[i] = multiModelPredictRSSI[i, best_voted_expert]
+            print(f"样本 {i}: 使用邻居投票选择专家 {best_voted_expert}，距离 {valid_dists}, 权重 {weights}")
+            
+    return final_predictions
 
 
 if __name__ == "__main__":
