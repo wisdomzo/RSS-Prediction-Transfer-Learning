@@ -1091,7 +1091,7 @@ def trainJudgeModel_cnn(numNetworks, historyModels, FV, TV, optionalParams,
     df_oof = pd.DataFrame(oof_predict_matrix, columns=model_cols)
     df_oof['RSSI'] = y_all.flatten()
     df_oof['Median_Prediction'] = np.median(oof_predict_matrix, axis=1)
-    df_oof['Median_Abs_Error'] = np.abs(df_oof['Median_Prediction'] - df_oof['True_RSSI'])
+    df_oof['Median_Abs_Error'] = np.abs(df_oof['Median_Prediction'] - df_oof['RSSI'])
     errors_matrix = np.abs(oof_predict_matrix - y_all.reshape(-1, 1))
     df_oof['Best_Model_Idx'] = np.argmin(errors_matrix, axis=1)
     df_oof['Best_Model_Error'] = np.min(errors_matrix, axis=1)
