@@ -9,7 +9,7 @@ from tensorflow.python.ops.distributions.util import same_dynamic_shape
 from tensorflow.keras.callbacks import ReduceLROnPlateau
 from tqdm import tqdm
 from sklearn.ensemble import RandomForestRegressor
-from tensorflow.keras import layers, models, callbacks, regularizers, optimizers
+from tensorflow.keras import layers, models, callbacks, regularizers, optimizers, regularizers
 from sklearn.model_selection import KFold
 from dask.distributed import get_client, as_completed
 import dill
@@ -17,7 +17,7 @@ import pandas as pd
 from sklearn.cluster import KMeans
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from sklearn.model_selection import train_test_split
-from sklearn.cluster import KMeans
+
 
 
 def run_main_judge_cnn():
@@ -34,10 +34,11 @@ def run_main_judge_cnn():
 
     # save_oof_to_csv(oof_predict_matrix, y_all, filename="oof_analysis.csv")
 
-    judge_cnn, expert_group_map = train_judge_cnn(X_all, oof_predict_matrix, y_all, input_shape)
+    # judge_cnn, expert_group_map = train_judge_cnn(X_all, oof_predict_matrix, y_all, input_shape)
+    judge_cnn = train_residual_regressor_cnn(X_all, oof_predict_matrix, y_all, input_shape)
     # predict_with_judge(X_test, m1_experts, judge_cnn)
 
-    return judge_cnn, expert_group_map
+    return
 
 
 def save_oof_to_csv(oof_predict_matrix, y_all, filename="oof_analysis.csv"):
@@ -236,6 +237,96 @@ def predict_with_judge(X_test, m1_experts, judge_cnn):
         final_predictions.append(sample_res)
         
     return np.array(final_predictions)
+
+
+
+def train_residual_regressor_cnn(X_all, oof_predict_matrix, y_all, input_shape):
+    """
+    X_all: (N, 31, 36, 5) 地图特征
+    oof_predict_matrix: (N, 30) 专家预测值
+    y_all: (N,) 真实RSSI值
+    """
+    
+    # 1. 【目标重塑】计算残差 (Residual)
+    # 中位数是目前最稳的基准，我们让 CNN 学习中位数漏掉的“局部特征损耗”
+    median_predictions = np.median(oof_predict_matrix, axis=1)
+    residuals = y_all - median_predictions  # 目标：真实值 - 中值
+    
+    print(f">>> 残差分析: 均值={np.mean(residuals):.4f}, 标准差={np.std(residuals):.4f}")
+    
+    # 2. 【构建回归架构】
+    # 与分类器不同，回归器需要更敏感的激活函数和线性输出
+    model = models.Sequential([
+        # 第一层：大卷积核捕捉地形轮廓
+        layers.Conv2D(32, (5, 5), padding='same', input_shape=input_shape),
+        layers.BatchNormalization(),
+        layers.Activation('elu'), # 使用 ELU 替代 ReLU，对负值残差更友好
+        layers.MaxPooling2D((2, 2)),
+
+        # 第二层
+        layers.Conv2D(64, (3, 3), padding='same'),
+        layers.BatchNormalization(),
+        layers.Activation('elu'),
+        layers.MaxPooling2D((2, 2)),
+
+        # 第三层：提取深层环境特征
+        layers.Conv2D(64, (3, 3), padding='same'),
+        layers.BatchNormalization(),
+        layers.Activation('elu'),
+
+        # 全局平均池化
+        layers.GlobalAveragePooling2D(),
+        
+        # 全连接层：增加神经元数量，用于拟合复杂的残差波动
+        layers.Dense(128, activation='elu', kernel_regularizer=regularizers.l2(0.01)),
+        layers.Dropout(0.4), 
+        
+        # 输出层：单个神经元，线性激活 (Linear)，直接输出残差 dB 值
+        layers.Dense(1, activation='linear') 
+    ])
+
+    # 3. 【编译】使用 MSE 损失函数
+    # 回归任务对学习率较敏感，初始值设为 0.0005
+    model.compile(
+        optimizer=optimizers.Adam(learning_rate=0.0005),
+        loss='mse',      # 均方误差
+        metrics=['mae']  # 监控平均绝对误差
+    )
+
+    # 4. 【训练配置】
+    # 增加 patience，因为残差学习需要更精细的收敛过程
+    early_stop = callbacks.EarlyStopping(
+        monitor='val_loss', 
+        patience=60, 
+        restore_best_weights=True
+    )
+    reduce_lr = callbacks.ReduceLROnPlateau(
+        monitor='val_loss', 
+        factor=0.5, 
+        patience=25, 
+        min_lr=1e-7
+    )
+
+    # 5. 【拆分与训练】
+    X_train, X_val, y_train, y_val = train_test_split(
+        X_all, residuals, test_size=0.2, random_state=42
+    )
+
+    print(">>> 启动 CNN 残差回归器训练 (正在拟合环境偏差)...")
+    
+    # 注意：回归任务通常不需要过强的位移增强，防止破坏地形与残差的对应关系
+    model.fit(
+        X_train, y_train,
+        validation_data=(X_val, y_val),
+        epochs=1500, 
+        batch_size=32,
+        callbacks=[early_stop, reduce_lr], 
+        verbose=1
+    )
+    
+    return model
+
+
 
 
 if __name__ == "__main__":

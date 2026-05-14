@@ -28,6 +28,7 @@ from dask.distributed import get_client, as_completed
 import dill
 import training_judge_model
 import gc
+import pandas as pd
 
 class ProgressBarWithPID(tf.keras.callbacks.Callback):
     def on_train_begin(self, logs=None):
@@ -634,22 +635,34 @@ def get_final_rssi_prediction(Pr_free, judge_model, expert_group_map, experts_li
     all_expert_preds = np.array(all_expert_preds)
 
     # 3. 计算最终加权 RSSI
-    # 原理：Final_RSSI = sum( P(Group_g) * Median(Group_g_Experts) )
+    G = 1  # 设定你想取的前 G 个组，比如取前 2 名或前 3 名
     final_rssi = np.zeros(num_samples)
     
-    print(">>> 正在执行跨组概率融合...")
+    print(f">>> 正在执行 Top-{G} 概率融合...")
     for i in range(num_samples):
+        # 1. 获取当前样本各组的概率
+        current_probs = group_probs[i]
+
+        # 2. 找到概率最大的前 G 个组的索引
+        # np.argsort 会从小到大排，用 [-G:] 截取最大的 G 个，再用 [::-1] 倒序
+        top_g_indices = np.argsort(current_probs)[-G:][::-1]
+
+        # 3. 提取这 G 个组的概率并进行归一化（使 Top-G 的概率之和重新变为 1）
+        # 这一步很关键，否则如果删掉了部分组，总概率不足 1，预测值会整体偏低
+        top_g_probs = current_probs[top_g_indices]
+        top_g_probs_norm = top_g_probs / np.sum(top_g_probs)
+
         weighted_sample_res = 0
-        for g in range(num_groups):
-            # 找到属于该组 g 的所有专家索引
-            members = np.where(expert_group_map == g)[0]
+        for idx, g_idx in enumerate(top_g_indices):
+            # 找到属于该组 g_idx 的所有专家索引
+            members = np.where(expert_group_map == g_idx)[0]
             
-            # 获取这些专家对当前样本 i 的预测值并取中位数（增加鲁棒性）
+            # 获取该组专家的意见
             group_experts_opinions = all_expert_preds[members, i]
             group_median = np.median(group_experts_opinions)
             
-            # 根据裁判给出的组概率进行加权
-            weighted_sample_res += group_probs[i, g] * group_median
+            # 使用重新归一化后的概率进行加权
+            weighted_sample_res += top_g_probs_norm[idx] * group_median
             
         final_rssi[i] = weighted_sample_res
 
@@ -969,7 +982,7 @@ def trainJudgeModel(numNetworks, AIcommittee, FV, TV):
     return judge_model
 
 
-def trainJudgeModel_cnn(numNetworks, historyModels, FV, TV, 
+def trainJudgeModel_cnn(numNetworks, historyModels, FV, TV, optionalParams,
                     numCore1, numCore2, numCore3, learning_type, 
                     freeze_layer, learning_rate):
     """
@@ -1062,6 +1075,7 @@ def trainJudgeModel_cnn(numNetworks, historyModels, FV, TV,
     debug_data = {
         "FV": FV,
         "TV": TV,
+        "optionalParams": optionalParams,
         "X_all": X_all,
         "y_all": y_all,
         "OOF": oof_predict_matrix,
@@ -1070,9 +1084,21 @@ def trainJudgeModel_cnn(numNetworks, historyModels, FV, TV,
         dill.dump(debug_data, f)
     #"""
 
-    judge_cnn, expert_group_map = training_judge_model.train_judge_cnn(X_all, oof_predict_matrix, y_all, input_shape)
+    # judge_cnn, expert_group_map = training_judge_model.train_judge_cnn(X_all, oof_predict_matrix, y_all, input_shape)
 
-    return judge_cnn, expert_group_map
+    # 构成一个裁判报告单
+    model_cols = [f'Model_{i}' for i in range(numNetworks)]
+    df_oof = pd.DataFrame(oof_predict_matrix, columns=model_cols)
+    df_oof['RSSI'] = y_all.flatten()
+    df_oof['Median_Prediction'] = np.median(oof_predict_matrix, axis=1)
+    df_oof['Median_Abs_Error'] = np.abs(df_oof['Median_Prediction'] - df_oof['True_RSSI'])
+    errors_matrix = np.abs(oof_predict_matrix - y_all.reshape(-1, 1))
+    df_oof['Best_Model_Idx'] = np.argmin(errors_matrix, axis=1)
+    df_oof['Best_Model_Error'] = np.min(errors_matrix, axis=1)
+    param_cols = optionalParams.columns.tolist()
+    df_oof[param_cols] = optionalParams.values
+
+    return df_oof
 
 
 def remote_fold_train_predict(X_train, y_train, X_exam, weights, numCore1, numCore2, numCore3, l_type, shape, freeze_layer, learning_rate):
