@@ -17,6 +17,7 @@ import pandas as pd
 from sklearn.cluster import KMeans
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from sklearn.model_selection import train_test_split
+from sklearn.cluster import KMeans
 
 
 def run_main_judge_cnn():
@@ -33,10 +34,10 @@ def run_main_judge_cnn():
 
     # save_oof_to_csv(oof_predict_matrix, y_all, filename="oof_analysis.csv")
 
-    judge_cnn = train_judge_cnn(X_all, oof_predict_matrix, y_all, input_shape)
+    judge_cnn, expert_group_map = train_judge_cnn(X_all, oof_predict_matrix, y_all, input_shape)
     # predict_with_judge(X_test, m1_experts, judge_cnn)
 
-    return judge_cnn
+    return judge_cnn, expert_group_map
 
 
 def save_oof_to_csv(oof_predict_matrix, y_all, filename="oof_analysis.csv"):
@@ -70,6 +71,39 @@ def save_oof_to_csv(oof_predict_matrix, y_all, filename="oof_analysis.csv"):
     return df_oof
 
 
+def find_most_balanced_groups(expert_errors, Amin=4, Amax=10):
+    results = []
+    
+    for k in range(Amin, Amax + 1):
+        km = KMeans(n_clusters=k, random_state=42, n_init=10)
+        labels = km.fit_predict(expert_errors)
+        counts = np.bincount(labels)
+        
+        # 指标1：计算人数的标准差（越小越平衡）
+        std_val = np.std(counts)
+        # 指标2：最小组的人数
+        min_size = np.min(counts)
+        
+        results.append({
+            'k': k,
+            'std': std_val,
+            'min_size': min_size,
+            'labels': labels,
+            'counts': counts
+        })
+
+    # 决策逻辑：
+    # 1. 优先筛选出最小组人数 > 1 的方案（拒绝孤儿专家）
+    valid_options = [r for r in results if r['min_size'] > 1]
+    
+    # 2. 如果都有孤儿组，就用全部方案；否则只从有效方案里选
+    pool = valid_options if valid_options else results
+    
+    # 3. 从候选池中选择标准差最小（最平均）的方案
+    best_res = min(pool, key=lambda x: x['std'])
+    
+    return best_res['labels'], best_res['k']
+
 
 def train_judge_cnn(X_all, oof_predict_matrix, y_all, input_shape):
     """
@@ -80,12 +114,13 @@ def train_judge_cnn(X_all, oof_predict_matrix, y_all, input_shape):
     
     # 1. 【专家聚类】将30个专家划分为7个特长小组
     # 特征：专家在1000个点上的误差分布
-    num_groups = 7
     expert_errors = oof_predict_matrix.T - y_all.reshape(1, -1)
-    
-    kmeans = KMeans(n_clusters=num_groups, random_state=42, n_init=10)
-    expert_group_map = kmeans.fit_predict(expert_errors) 
-    print(f">>> 专家聚类完成，各组分布: {np.bincount(expert_group_map)}")
+
+    # 自动在 4-10 组之间找最平衡的方案
+    expert_group_map, num_groups = find_most_balanced_groups(expert_errors, Amin=4, Amax=10)
+
+    print(f">>> 动态确定的最佳分组数: {num_groups}")
+    print(f">>> 最终专家分布: {np.bincount(expert_group_map)}")
 
     # 2. 【标签转换】为每个样本点找到“最佳专家组”
     # 计算每个小组在每个样本点上的平均绝对误差
@@ -172,11 +207,8 @@ def train_judge_cnn(X_all, oof_predict_matrix, y_all, input_shape):
         callbacks=[early_stop, reduce_lr], 
         verbose=1
     )
-
-    # 附加属性：保存映射表，方便预测时还原专家
-    model.expert_group_map = expert_group_map
     
-    return model
+    return model, expert_group_map
 
 
 def predict_with_judge(X_test, m1_experts, judge_cnn):

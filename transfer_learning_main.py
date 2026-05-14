@@ -48,6 +48,7 @@ def run_transfer_learning(selected_folder_csv, num_test_per, user_input, model_p
     K = dataStrick['K']
     historyModels = dataStrick['predictRSSI_TL']
     judge_model = dataStrick.get('judge_model')
+    expert_group_map = dataStrick.get('expert_group_map')
     numCore1 = dataStrick['numCore1']
     numCore2 = dataStrick['numCore2']
     numCore3 = dataStrick['numCore3']
@@ -126,11 +127,12 @@ def run_transfer_learning(selected_folder_csv, num_test_per, user_input, model_p
         predictRSSI_TL = subFun_TL.run_in_parallel_TL_adaptive(predictRSSI_TL, numNetworks, machineLearningData_TL, historyModels, numCore1, numCore2, numCore3, learning_type=learning_type, api_instance=api_instance, freeze_layer=freeze_layer, learning_rate=learning_rate)
         print("深度网络预测...Done.")
 
+        # 中场休息，等待所有专家训练完成并清理资源
         subFun.barrier_and_cleanup(futures_to_wait=predictRSSI_TL)
 
         # --- 第二阶段：训练裁判 ---
         print("训练裁判...Start.")
-        judge_model = subFun_TL.trainJudgeModel_cnn(numNetworks, historyModels, FV_forTraining_TL, TV_forTraining_TL, numCore1, numCore2, numCore3, learning_type, freeze_layer, learning_rate)
+        judge_model, expert_group_map = subFun_TL.trainJudgeModel_cnn(numNetworks, historyModels, FV_forTraining_TL, TV_forTraining_TL, numCore1, numCore2, numCore3, learning_type, freeze_layer, learning_rate)
         #judge_model = subFun_TL.trainJudgeModel(numNetworks, predictRSSI_TL, FV_forTraining_TL, TV_forTraining_TL)#随机森林
         print("训练裁判...Done.")
 
@@ -162,6 +164,7 @@ def run_transfer_learning(selected_folder_csv, num_test_per, user_input, model_p
         #TBD追缴n系列空间渐衰预测
         predictRSSI_TL = historyModels
         judge_model = judge_model
+        expert_group_map = expert_group_map
         print("\n保存模型...Start.")
         save_file_path = os.path.join(selected_folder_csv, f'Predict_model_for_{data_index_for_TL}.pkl.xz')
         #########
@@ -174,7 +177,8 @@ def run_transfer_learning(selected_folder_csv, num_test_per, user_input, model_p
             'testData_TL', 
             'rxData_Altitude_TL', 
             'testRulData_TL',
-            'judge_model'
+            'judge_model',
+            'expert_group_map'
         )
         to_save.update({
             k: v for k, v in locals().items() 

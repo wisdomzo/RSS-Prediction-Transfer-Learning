@@ -564,6 +564,7 @@ def show_Predict_model(dataPath):
     testDistance_TL = dataStrick['testDistance_TL']
     predictRSSI_TL = dataStrick['predictRSSI_TL']
     judge_model = dataStrick['judge_model']
+    expert_group_map = dataStrick['expert_group_map']
     testData_TL = dataStrick['testData_TL']
     rxData_Altitude_TL = dataStrick['rxData_Altitude_TL']
     testRulData_TL = dataStrick['testRulData_TL']
@@ -580,7 +581,8 @@ def show_Predict_model(dataPath):
         np.abs(realRSSI - np.median(yPredTestMatrix_DL, axis=1)))
 
     rxData_Altitude_TL['Predicted_Value'] = np.median(yPredTestMatrix_DL, axis=1)
-    rxData_Altitude_TL['Predicted_Value_Judge'] = get_top_k_prediction_judge_model(judge_model, testData_TL, yPredTestMatrix_DL)
+    # rxData_Altitude_TL['Predicted_Value_Judge'] = get_top_k_prediction_judge_model(judge_model, testData_TL, yPredTestMatrix_DL)
+    rxData_Altitude_TL['Predicted_Value_Judge'] = get_final_rssi_prediction(Pr_free, judge_model, expert_group_map, predictRSSI_TL, testData_TL)
     rxData_Altitude_TL['Uncertainty'] = np.std(yPredTestMatrix_DL, axis=1)
     rxData_Altitude_TL['pathLoss_eta_2'] = Pr_free
     Pr_free_eta_3 = subFun.cal_Pr_free_show(Pt, testData_TL[0,0,3,:], testDistance_TL, 3)
@@ -602,6 +604,57 @@ def get_top_k_prediction_judge_model(judge_model, FV, yPredTestMatrix_DL):
 
     print("预测修正完成。")
     return np.array(final_rssi)
+
+
+def get_final_rssi_prediction(Pr_free, judge_model, expert_group_map, experts_list, test_data_tl):
+    """
+    judge_model: 训练好的裁判模型 (CNN)
+    expert_group_map: 专家分组映射表
+    experts_list: 包含30个微调后的专家模型 predictRSSI_TL
+    test_data_tl: 测试集地图特征 (N, 31, 36, 5)
+    """
+    print(">>> 启动裁判引导的混合专家推理 (MoE Inference)...")
+    
+    # 1. 裁判给出每个样本点属于各个专家组的概率 P(g)
+    # 输入形状调整为 (N, 31, 36, 5)
+    test_input = np.transpose(test_data_tl, (3, 0, 1, 2))
+    group_probs = judge_model.predict(test_input, verbose=1) # 返回 (N, num_groups)
+    
+    num_samples = test_input.shape[0]
+    num_groups = group_probs.shape[1]
+
+    # 2. 预先获取所有 30 个专家的原始预测值
+    # 形状为 (30, N)
+    print(">>> 正在汇总 30 位专家的原始意见...")
+    all_expert_preds = []
+    for nw in range(len(experts_list)):
+        # 执行你给出的预测循环
+        pred = experts_list[nw]['model'].predict(test_input, verbose=0)[:, 0]
+        all_expert_preds.append(pred)
+    all_expert_preds = np.array(all_expert_preds)
+
+    # 3. 计算最终加权 RSSI
+    # 原理：Final_RSSI = sum( P(Group_g) * Median(Group_g_Experts) )
+    final_rssi = np.zeros(num_samples)
+    
+    print(">>> 正在执行跨组概率融合...")
+    for i in range(num_samples):
+        weighted_sample_res = 0
+        for g in range(num_groups):
+            # 找到属于该组 g 的所有专家索引
+            members = np.where(expert_group_map == g)[0]
+            
+            # 获取这些专家对当前样本 i 的预测值并取中位数（增加鲁棒性）
+            group_experts_opinions = all_expert_preds[members, i]
+            group_median = np.median(group_experts_opinions)
+            
+            # 根据裁判给出的组概率进行加权
+            weighted_sample_res += group_probs[i, g] * group_median
+            
+        final_rssi[i] = weighted_sample_res
+
+    print(">>> 预测完成。")
+    return final_rssi + Pr_free
 
 
 def prediction_area_RSSI(selected_predict_model, contentReadDataIndex):
@@ -1005,7 +1058,7 @@ def trainJudgeModel_cnn(numNetworks, historyModels, FV, TV,
     # 4. 训练 CNN 裁判 (识别地形 -> 选出最强专家)
     print("\n>>> [教材整理完毕] 正在训练 CNN 裁判模型...")
 
-    """
+    #"""
     debug_data = {
         "FV": FV,
         "TV": TV,
@@ -1015,25 +1068,11 @@ def trainJudgeModel_cnn(numNetworks, historyModels, FV, TV,
     }
     with open("debug.pkl", "wb") as f:
         dill.dump(debug_data, f)
-    """
+    #"""
 
-    """
-    # 读档
-    with open("debug.pkl", "rb") as f:
-        debug_data = dill.load(f)
-    globals().update(debug_data)
-    FV = debug_data['FV']
-    TV = debug_data['TV']
-    X_all = debug_data['X_all']
-    y_all = debug_data['y_all']
-    oof_predict_matrix = debug_data['OOF']
-    errors = debug_data['errors']
-    best_expert_labels = debug_data['best_expert_labels']
-    """
+    judge_cnn, expert_group_map = training_judge_model.train_judge_cnn(X_all, oof_predict_matrix, y_all, input_shape)
 
-    judge_cnn = training_judge_model.train_judge_cnn(X_all, oof_predict_matrix, y_all, input_shape)
-
-    return judge_cnn
+    return judge_cnn, expert_group_map
 
 
 def remote_fold_train_predict(X_train, y_train, X_exam, weights, numCore1, numCore2, numCore3, l_type, shape, freeze_layer, learning_rate):
