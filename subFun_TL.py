@@ -565,6 +565,7 @@ def show_Predict_model(dataPath):
     testDistance_TL = dataStrick['testDistance_TL']
     predictRSSI_TL = dataStrick['predictRSSI_TL']
     judge_model = dataStrick.get('judge_model', None)
+    # judge_model.to_csv("/Users/zhaoou/Desktop/課題1_TL拡張/TL検証/220MHz/judgeModel.csv", index=False)
     testData_TL = dataStrick['testData_TL']
     rxData_Altitude_TL = dataStrick['rxData_Altitude_TL']
     testRulData_TL = dataStrick['testRulData_TL']
@@ -583,7 +584,8 @@ def show_Predict_model(dataPath):
     rxData_Altitude_TL['Predicted_Value'] = np.median(yPredTestMatrix_DL, axis=1)
     # rxData_Altitude_TL['Predicted_Value_Judge'] = get_top_k_prediction_judge_model(judge_model, testData_TL, yPredTestMatrix_DL)
     # rxData_Altitude_TL['Predicted_Value_Judge'] = get_final_rssi_prediction(Pr_free, judge_model, expert_group_map, predictRSSI_TL, testData_TL)
-    rxData_Altitude_TL['Predicted_Value_Judge'] = training_judge_model.get_correlation_distance_approach(judge_model, rxData_Altitude_TL, yPredTestMatrix_DL, 20, 3)
+    # rxData_Altitude_TL['Predicted_Value_Judge'] = training_judge_model.get_correlation_distance_approach(judge_model, rxData_Altitude_TL, yPredTestMatrix_DL, 20, 3)
+    rxData_Altitude_TL['Predicted_Value_Judge'] = training_judge_model.train_judge_model_DN_Dis(judge_model, rxData_Altitude_TL, yPredTestMatrix_DL)
     rxData_Altitude_TL['Uncertainty'] = np.std(yPredTestMatrix_DL, axis=1)
     rxData_Altitude_TL['pathLoss_eta_2'] = Pr_free
     Pr_free_eta_3 = subFun.cal_Pr_free_show(Pt, testData_TL[0,0,3,:], testDistance_TL, 3)
@@ -1071,18 +1073,16 @@ def trainJudgeModel_cnn(numNetworks, historyModels, FV, TV, optionalParams,
     # 4. 训练 CNN 裁判 (识别地形 -> 选出最强专家)
     print("\n>>> [教材整理完毕] 正在训练 CNN 裁判模型...")
 
-    #"""
     debug_data = {
         "FV": FV,
         "TV": TV,
         "optionalParams": optionalParams,
-        "X_all": X_all,
-        "y_all": y_all,
         "OOF": oof_predict_matrix,
     }
+    """
     with open("debug.pkl", "wb") as f:
         dill.dump(debug_data, f)
-    #"""
+    """
 
     # judge_cnn, expert_group_map = training_judge_model.train_judge_cnn(X_all, oof_predict_matrix, y_all, input_shape)
 
@@ -1098,7 +1098,11 @@ def trainJudgeModel_cnn(numNetworks, historyModels, FV, TV, optionalParams,
     param_cols = optionalParams.columns.tolist()
     df_oof[param_cols] = optionalParams.values
 
-    return df_oof
+    judgeModelInfo = {
+        "df_oof": df_oof,#dataframe
+        "debug_data": debug_data, #字典
+    }
+    return judgeModelInfo
 
 
 def remote_fold_train_predict(X_train, y_train, X_exam, weights, numCore1, numCore2, numCore3, l_type, shape, freeze_layer, learning_rate):

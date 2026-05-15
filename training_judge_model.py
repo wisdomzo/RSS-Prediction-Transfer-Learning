@@ -19,6 +19,7 @@ from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from sklearn.model_selection import train_test_split
 from scipy.spatial import KDTree
 from collections import Counter
+from sklearn.ensemble import RandomForestClassifier
 
 
 def run_main_judge_cnn():
@@ -374,6 +375,48 @@ def get_correlation_distance_approach(judgeReport, testData, multiModelPredictRS
             final_predictions[i] = multiModelPredictRSSI[i, best_voted_expert]
             print(f"样本 {i}: 使用邻居投票选择专家 {best_voted_expert}，距离 {valid_dists}, 权重 {weights}")
             
+    return final_predictions
+
+
+
+def train_judge_model_DN_Dis(judge_model, rxData_Altitude_TL, yPredTestMatrix_DL, threshold=0.25):
+    """
+    置信度门控专家系统
+    threshold: 触发专家的信心阈值（因为有30个模型，平均概率是0.033，设置0.2-0.3通常就很强了）
+    """
+    # 1. 训练模型
+    train_features = ['DN', 'disBtwTxRx']
+    X_train = judge_model[train_features].values
+    y_train = judge_model['Best_Model_Idx'].values.astype(int)
+    
+    clf = RandomForestClassifier(n_estimators=100, max_depth=10, random_state=42, verbose=2)
+    clf.fit(X_train, y_train)
+    
+    # 2. 获取测试集的概率分布 (N_test, 30)
+    X_test = rxData_Altitude_TL[train_features].values
+    probs = clf.predict_proba(X_test)
+    
+    # 3. 准备基础预测（先全部填充为中位数预测值）
+    # 假设 rxData_Altitude_TL 里已经算好了中位数列 'Median_Prediction'
+    final_predictions = np.median(yPredTestMatrix_DL, axis=1)
+    
+    # 4. 门控决策
+    num_test = len(rxData_Altitude_TL)
+    expert_triggered_count = 0
+    
+    for i in range(num_test):
+        # 找到概率最高的专家及其概率值
+        best_expert_id = np.argmax(probs[i])
+        max_prob = probs[i][best_expert_id]
+        
+        # 门控检查：只有信心超过阈值，才切换专家
+        if max_prob >= threshold:
+            final_predictions[i] = yPredTestMatrix_DL[i, best_expert_id]
+            expert_triggered_count += 1
+            
+    print(f">>> 门控开启！在 {num_test} 个样本中，有 {expert_triggered_count} 个样本切换到了专家方案。")
+    print(f">>> 其余 {num_test - expert_triggered_count} 个样本保持中位数平稳预测。")
+
     return final_predictions
 
 
