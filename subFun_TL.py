@@ -565,7 +565,6 @@ def show_Predict_model(dataPath):
     testDistance_TL = dataStrick['testDistance_TL']
     predictRSSI_TL = dataStrick['predictRSSI_TL']
     judge_model = dataStrick.get('judge_model', None)
-    # judge_model.to_csv("/Users/zhaoou/Desktop/課題1_TL拡張/TL検証/220MHz/judgeModel.csv", index=False)
     testData_TL = dataStrick['testData_TL']
     rxData_Altitude_TL = dataStrick['rxData_Altitude_TL']
     testRulData_TL = dataStrick['testRulData_TL']
@@ -582,10 +581,7 @@ def show_Predict_model(dataPath):
         np.abs(realRSSI - np.median(yPredTestMatrix_DL, axis=1)))
 
     rxData_Altitude_TL['Predicted_Value'] = np.median(yPredTestMatrix_DL, axis=1)
-    # rxData_Altitude_TL['Predicted_Value_Judge'] = get_top_k_prediction_judge_model(judge_model, testData_TL, yPredTestMatrix_DL)
-    # rxData_Altitude_TL['Predicted_Value_Judge'] = get_final_rssi_prediction(Pr_free, judge_model, expert_group_map, predictRSSI_TL, testData_TL)
-    # rxData_Altitude_TL['Predicted_Value_Judge'] = training_judge_model.get_correlation_distance_approach(judge_model, rxData_Altitude_TL, yPredTestMatrix_DL, 20, 3)
-    rxData_Altitude_TL['Predicted_Value_Judge'] = training_judge_model.train_judge_model_DN_Dis(judge_model, rxData_Altitude_TL, yPredTestMatrix_DL)
+    rxData_Altitude_TL['Predicted_Value_Judge'] = training_judge_model.train_and_predict_by_judge_model(judge_model, testData_TL, rxData_Altitude_TL)
     rxData_Altitude_TL['Uncertainty'] = np.std(yPredTestMatrix_DL, axis=1)
     rxData_Altitude_TL['pathLoss_eta_2'] = Pr_free
     Pr_free_eta_3 = subFun.cal_Pr_free_show(Pt, testData_TL[0,0,3,:], testDistance_TL, 3)

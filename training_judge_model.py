@@ -420,6 +420,112 @@ def train_judge_model_DN_Dis(judge_model, rxData_Altitude_TL, yPredTestMatrix_DL
     return final_predictions
 
 
+
+
+# 下面是主函数中调用裁判模型的示例，展示了如何将裁判模型集成到整体预测流程中
+def train_and_predict_by_judge_model(judgeModelInfo, testData_TL, rxData_Altitude_TL):
+
+    correctedPredictionValue = algo_FV_randomForestRegressor_residuals(judgeModelInfo, testData_TL, rxData_Altitude_TL)
+
+
+
+    return correctedPredictionValue
+
+
+
+def algo_FV_randomForestRegressor_residuals(judgeModelInfo, testData, rxData_Altitude_TL):
+    """
+    随机森林裁判训练函数：
+    FV: 特征向量 (W, L, C, N_samples)
+    TV: 真实RSSI (1, N_samples) 或 (N_samples,)
+    """
+    def get_adaptive_params(n_samples):
+        # 基础配置
+        params = {
+            'n_jobs': -1,
+            'random_state': 42
+        }
+        
+        if n_samples < 200:
+            # 极小样本：非常保守
+            params['n_estimators'] = 200
+            params['max_depth'] = 4
+            params['min_samples_leaf'] = 5
+        elif n_samples < 1000:
+            # 中等样本：平衡
+            params['n_estimators'] = 100
+            params['max_depth'] = 10
+            params['min_samples_leaf'] = 2
+        else:
+            # 较多样本：允许复杂
+            params['n_estimators'] = 100
+            params['max_depth'] = None # 允许自由生长
+            params['min_samples_leaf'] = 1
+            
+        return params
+
+    # 1. 准备数据：将 FV 转置为 (N_samples, W, L, C) 并展平为 (N_samples, Features)
+    # 裁判需要看环境特征来做决定
+    FV = judgeModelInfo['debug_data']['FV']  # 假设这里存了特征向量
+    TV = judgeModelInfo['debug_data']['TV']  # 真实RSSI值
+    numNetworks = judgeModelInfo['debug_data']['OOF'].shape[1]  # 专家数量
+    model_cols = ['Model_' + str(i) for i in range(numNetworks)]
+    predictValues = rxData_Altitude_TL[model_cols].values
+    
+    X_input = np.transpose(FV, (3, 0, 1, 2)) 
+    N_samples = X_input.shape[0]
+    X_flat = X_input.reshape(N_samples, -1) # 展平特征，供随机森林使用
+
+    # 确保 TV 是一维的
+    y_true = np.squeeze(TV)
+
+    # 2. 获取 30 个专家在这些微调数据上的预测结果
+    predictedMatrix = judgeModelInfo['debug_data']['OOF']
+    median_predictions = np.median(predictedMatrix, axis=1)
+
+    # 3. 【核心修改】构造残差标签
+    # 残差 = 真实值 - 中位数预测值
+    # 如果残差是 +5，说明中位数估低了；如果是 -5，说明中位数估高了
+    residuals = y_true - median_predictions
+
+    # 4. 训练随机森林回归器 (Regressor)
+    print("正在训练残差修正模型 (Random Forest Regressor)...")
+
+    # 这里的参数可以沿用之前的 get_adaptive_params 逻辑，但模型换成 Regressor
+    # 对于回归，max_depth 可以稍微设深一点点，或者不设
+    adaptive_params = get_adaptive_params(N_samples)
+    judge_model = RandomForestRegressor(**adaptive_params)
+
+    # 学习：环境特征 -> 应该修正多少分贝
+    judge_model.fit(X_flat, residuals)
+
+    # 5. 评估微调集上的效果
+    # 最终预测 = 中位数 + 修正值
+    train_corrections = judge_model.predict(X_flat)
+    final_train_preds = median_predictions + train_corrections
+    
+    new_mae = np.mean(np.abs(final_train_preds - y_true))
+    old_mae = np.mean(np.abs(median_predictions - y_true))
+    
+    print(f"修正模型训练完成。")
+    print(f"微调集原始中位数 MAE: {old_mae:.4f}")
+    print(f"微调集修正后 MAE: {new_mae:.4f}")
+
+
+    print("正在使用 judge_model 进行预测修正...")
+    test_input = np.transpose(testData, (3, 0, 1, 2)) 
+    test_N_samples = test_input.shape[0]
+    test_input_flat = test_input.reshape(test_N_samples, -1) # 展平特征，供随机森林使用
+    correction = judge_model.predict(test_input_flat)
+    current_median = np.median(predictValues, axis=1)
+    final_rssi = current_median + correction
+    print("预测修正完成。")
+
+    return np.array(final_rssi)
+
+
+
+
 if __name__ == "__main__":
     # 保留命令行调用能力
     import sys
