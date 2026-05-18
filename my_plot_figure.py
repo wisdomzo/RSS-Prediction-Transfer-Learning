@@ -5,6 +5,45 @@ import matplotlib.cm as cm
 from matplotlib.colors import Normalize
 
 
+def compute_cdf(data):
+    # 对数据进行排序
+    sorted_data = np.sort(data, axis=0)
+
+    # 生成CDF的y值
+    cdf = np.arange(1, len(sorted_data) + 1) / len(sorted_data)
+
+    return sorted_data, cdf
+
+
+def plot(*args):
+    if len(args) == 2:
+        plt.plot(args[0], args[1], color='b', marker='.', linestyle='')
+        plt.show()
+
+    if len(args) == 3:
+        # 启用交互式绘图（在 Jupyter Notebook 中使用）
+        plt.ion()  # 仅在 Jupyter Notebook 中使用
+        # plt.show()  # 在非交互模式下，可以使用这行
+
+        # 创建 3D 图形
+        fig = plt.figure()
+        ax = fig.add_subplot(111, projection='3d')
+
+        # 绘制三维散点图
+        sc = ax.scatter(args[0], args[1], args[2], c='b', marker='.', linestyle='')
+
+        # 添加坐标轴标签
+        ax.set_xlabel('X Label')
+        ax.set_ylabel('Y Label')
+        ax.set_zlabel('Z Label')
+
+        # 显示图形
+        plt.show()
+
+        # 之后可以进行手动编辑，比如使用图形界面的工具进行缩放、平移等
+    return
+
+
 def plot_MAE_CDF(output_file_path,targetFileAddress, referenceFileAddress=None, needPNG=True, needSVG=False):
     # 1. 全局配置高保真纸张字体（Helvetica）
     plt.rcParams['font.family'] = 'sans-serif'

@@ -581,7 +581,10 @@ def show_Predict_model(dataPath):
         np.abs(realRSSI - np.median(yPredTestMatrix_DL, axis=1)))
 
     rxData_Altitude_TL['Predicted_Value'] = np.median(yPredTestMatrix_DL, axis=1)
-    rxData_Altitude_TL['Predicted_Value_Judge'] = training_judge_model.train_and_predict_by_judge_model(judge_model, testData_TL, rxData_Altitude_TL)
+    if judge_model is not None:
+        rxData_Altitude_TL['Predicted_Value_Judge'] = training_judge_model.train_and_predict_by_judge_model(judge_model, testData_TL, rxData_Altitude_TL)
+    else:
+        print("No judge model provided, skipping judge-based prediction.")
     rxData_Altitude_TL['Uncertainty'] = np.std(yPredTestMatrix_DL, axis=1)
     rxData_Altitude_TL['pathLoss_eta_2'] = Pr_free
     Pr_free_eta_3 = subFun.cal_Pr_free_show(Pt, testData_TL[0,0,3,:], testDistance_TL, 3)
