@@ -65,8 +65,6 @@ def plot_MAE_CDF(output_file_path,targetFileAddress, referenceFileAddress=None, 
 
     if 'Median_Abs_Error' in df.columns:
         error_data = df['Median_Abs_Error'].values
-    elif 'Abs_Error' in df.columns:
-        error_data = df['Abs_Error'].values
     else:
         # 动态构建绝对误差
         error_data = np.abs(df['Predicted_Value'] - df['RSSI']).values
@@ -122,7 +120,12 @@ def plot_MAE_CDF(output_file_path,targetFileAddress, referenceFileAddress=None, 
         ax.text(p50_val_ref + 1.3, 0.52, f'Median: {p50_val_ref:.2f} dB', color='royalblue', fontsize=5)
         ax.text(p80_val_ref + 2.3, 0.82, f'80% CDF: {p80_val_ref:.2f} dB', color='royalblue', fontsize=5)
 
-    error_data_oracle = df['Best_Model_Error'].values
+    if 'Best_Model_Error' in df.columns:
+        error_data_oracle = df['Best_Model_Error'].values
+    else:
+        model_cols = [col for col in df.columns if col.startswith('Model_')]
+        absolute_errors = df[model_cols].sub(df['RSSI'], axis=0).abs()
+        error_data_oracle = absolute_errors.min(axis=1).values
     sorted_errors_oracle = np.sort(error_data_oracle)
     y_vals_oracle = np.arange(1, len(sorted_errors_oracle) + 1) / len(sorted_errors_oracle)
     ax.plot(sorted_errors_oracle, y_vals_oracle, color='firebrick', linewidth=1, label='Oracle Selection w/ Fine-Tuned Models')
@@ -138,7 +141,10 @@ def plot_MAE_CDF(output_file_path,targetFileAddress, referenceFileAddress=None, 
     ax.set_title('CDF of Median Absolute Error', fontsize=7, fontweight='bold')
     ax.set_xlabel('Median Absolute Error in dB', fontsize=7)
     ax.set_ylabel('Probability', fontsize=7)
-    ax.set_xlim(0, max(max(sorted_errors), max(sorted_errors_ref), max(sorted_errors_oracle)) + 0.5)
+    if referenceFileAddress is not None:
+        ax.set_xlim(0, max(max(sorted_errors), max(sorted_errors_ref), max(sorted_errors_oracle)) + 0.5)
+    else:
+        ax.set_xlim(0, max(max(sorted_errors), max(sorted_errors_oracle)) + 0.5)
     ax.set_ylim(0, 1.02)
     ax.grid(True, alpha=0.2, linestyle=':')
     ax.legend(loc='lower right', fontsize=5)
@@ -191,6 +197,10 @@ def plot_global_share_pure_matplotlib(output_file_path, file_path, fix_lon=139.6
     df['dn_band'] = pd.cut(df['DN'], bins=dn_bins, labels=dn_labels, include_lowest=True)
 
     # 全局分母：计算全地图范围内大误差（>threshold dB）的总点数
+    model_cols = [col for col in df.columns if col.startswith('Model_')]
+    model_median = df[model_cols].median(axis=1)
+    calculated_abs_error = (model_median - df['RSSI']).abs()
+    df['Median_Abs_Error'] = calculated_abs_error
     grand_total_gt10 = (df['Median_Abs_Error'] > threshold).sum()
 
     # 计算大误差份额矩阵
@@ -309,8 +319,8 @@ def main():
     # fix_altitude = 115 #海拔79.74米，楼35.2米
     # fix_antennaHeight = 1.8
     # move_antennaHeight = 1.37
-    targetFileAddress = "/Users/zhaoou/Desktop/課題1_TL拡張/TL検証/220MHz/oof_analysis_FT30.csv"
-    referenceFileAddress = "/Users/zhaoou/Desktop/課題1_TL拡張/TL検証/220MHz/predict_RSS_M0.csv"
+    targetFileAddress = "/Users/zhaoou/Desktop/課題1_TL拡張/TL検証/220MHz/oof_analysis_FT10.csv"
+    referenceFileAddress = "/Users/zhaoou/Desktop/課題1_TL拡張/TL検証/220MHz/predict_RSS_M0_FT_10.csv"
     outputFileAddress = "/Users/zhaoou/Downloads/"
 
     plot_MAE_CDF(outputFileAddress, targetFileAddress, referenceFileAddress, needPNG=True, needSVG=False)
