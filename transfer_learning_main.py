@@ -132,7 +132,6 @@ def run_transfer_learning(selected_folder_csv, num_test_per, user_input, model_p
         # --- 第二阶段：训练裁判 ---
         print("训练裁判...Start.")
         judge_model = subFun_TL.trainJudgeModel_cnn(numNetworks, historyModels, FV_forTraining_TL, TV_forTraining_TL, rxData_Altitude_forTraining_TL, numCore1, numCore2, numCore3, learning_type, freeze_layer, learning_rate)
-        #judge_model = subFun_TL.trainJudgeModel(numNetworks, predictRSSI_TL, FV_forTraining_TL, TV_forTraining_TL)#随机森林
         print("训练裁判...Done.")
 
         print("\n保存模型...Start.")

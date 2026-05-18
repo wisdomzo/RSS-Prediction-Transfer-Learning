@@ -424,12 +424,114 @@ def train_judge_model_DN_Dis(judge_model, rxData_Altitude_TL, yPredTestMatrix_DL
 
 # 下面是主函数中调用裁判模型的示例，展示了如何将裁判模型集成到整体预测流程中
 def train_and_predict_by_judge_model(judgeModelInfo, testData_TL, rxData_Altitude_TL):
+    """
+    judgeModelInfo记录了所有在微调数据集上训练的30个模型的预测结果，以及每个样本点的相关特征和真实值。这些信息可以用来训练一个裁判模型
+        judgeModelInfo = {
+            "df_oof": df_oof,#dataframe
+            "debug_data": debug_data, #字典
+        }
+        debug_data = {
+            "FV": FV,
+            "TV": TV,
+            "optionalParams": optionalParams,
+            "OOF": oof_predict_matrix,
+        }
+        judgeModelInfo['debug_data']['OOF'].shape[1]：专家数量。
+        df_oof['Model_n']：模型在微调数据集上的预测值，n=0,1,...,29。
+        df_oof['RSSI_TV']：模型对应的真实值，即与FV对应的TV值。
+        df_oof['Median_Prediction']：N个模型的中位数预测值，作为基准参考。
+        df_oof['Median_Abs_Error']：中位数预测值与真实值之间的绝对误差。
+        df_oof['Best_Model_Idx']：表现最好的模型的索引。
+        df_oof['Best_Model_Error']：最佳模型的预测误差。
+        df_oof['Latitude']：纬度坐标。
+        df_oof['Longitude']：经度坐标。
+        df_oof['RSSI']：采集到的真实值。
+        df_oof['DN']：海拔高度。
+        df_oof['FresnelR_H']：第一半波长处的菲涅尔绕射参数。
+        df_oof['FresnelR_V']：垂直方向的菲涅尔绕射参数。
+        df_oof['disBtwTxRx']：发射机与接收机之间的距离。
+    testData_TL是用来测试的数据的输入特征向量，FV，31*36*5*N。
+    rxData_Altitude_TL是用来测试的数据的相关特征和真实值，包含了Latitude, Longitude, RSSI, DN, FresnelR_H, FresnelR_V, disBtwTxRx等列。
+        rxData_Altitude_TL[model_n]：模型在测试数据上的预测值，n=0,1,...,29。
+    """
 
-    correctedPredictionValue = algo_FV_randomForestRegressor_residuals(judgeModelInfo, testData_TL, rxData_Altitude_TL)
+    # correctedPredictionValue = algo_FV_randomForestRegressor_residuals(judgeModelInfo, testData_TL, rxData_Altitude_TL)
+    correctedPredictionValue = algo_disDN_mapping_sign(judgeModelInfo, testData_TL, rxData_Altitude_TL)
 
 
 
     return correctedPredictionValue
+
+
+def algo_disDN_mapping_sign(judgeModelInfo, testData, rxData_Altitude_TL):
+    """
+    非对称剔除策略：基于环境指纹(DN, Distance)进行中位数偏移补偿
+    """
+    # 1. 获取训练数据 (微调数据集 B 的 OOF 结果)
+    numNetworks = judgeModelInfo['debug_data']['OOF'].shape[1]  # 专家数量
+    df_oof = judgeModelInfo["df_oof"].copy()
+    model_cols = ['Model_' + str(i) for i in range(numNetworks)]
+
+    # 计算训练集的统计量
+    df_oof['mean_30'] = df_oof[model_cols].mean(axis=1)
+    df_oof['std_30'] = df_oof[model_cols].std(axis=1)
+    # K 实际值：误差绝对值 / 标准差
+    df_oof['K_actual'] = df_oof['Median_Abs_Error'] / (df_oof['std_30'] + 1e-9)
+    # Sign 实际值：(中位数 - 真实值) 的符号。
+    # 注意：如果 Median > TV，符号为 +1 (高估)；如果 Median < TV，符号为 -1 (低估)
+    df_oof['Bias_Sign'] = np.sign(df_oof['Median_Prediction'] - df_oof['RSSI_TV'])
+
+    # 2. 构建 MxM 环境指纹表 (Lookup Tables)
+    # 使用等频或等宽分箱，这里建议使用 judge 数据的范围来定义边界
+    M = 10
+    dist_bins = pd.cut(df_oof['disBtwTxRx'], bins=M, retbins=True)[1]
+    dn_bins = pd.cut(df_oof['DN'], bins=M, retbins=True)[1]
+
+    # 将 bin 标签打回 df
+    df_oof['dist_grid'] = pd.cut(df_oof['disBtwTxRx'], bins=dist_bins, labels=False, include_lowest=True)
+    df_oof['dn_grid'] = pd.cut(df_oof['DN'], bins=dn_bins, labels=False, include_lowest=True)
+
+    # 计算每个格子的平均 K 值和平均 Sign 值
+    # K_table: 记录该环境下平均错了几倍 sigma
+    # Sign_table: 记录该环境下高估/低估的一致性（-1 到 1 之间）
+    k_table = df_oof.groupby(['dn_grid', 'dist_grid'])['K_actual'].mean()
+    sign_table = df_oof.groupby(['dn_grid', 'dist_grid'])['Bias_Sign'].mean()
+
+    # 3. 对测试数据进行处理
+    # 计算测试集 30 个模型的统计量
+    test_model_cols = ['Model_' + str(i) for i in range(numNetworks)]
+    test_preds_matrix = rxData_Altitude_TL[test_model_cols].values
+    
+    test_median = np.median(test_preds_matrix, axis=1)
+    test_std = np.std(test_preds_matrix, axis=1)
+
+    # 匹配测试点所属的格子
+    test_dist_grid = pd.cut(rxData_Altitude_TL['disBtwTxRx'], bins=dist_bins, labels=False, include_lowest=True).values
+    test_dn_grid = pd.cut(rxData_Altitude_TL['DN'], bins=dn_bins, labels=False, include_lowest=True).values
+
+    correctedPredictionValue = test_median.copy()
+
+    # 4. 执行非对称补偿逻辑
+    for i in range(len(rxData_Altitude_TL)):
+        g_dn = test_dn_grid[i]
+        g_dist = test_dist_grid[i]
+        
+        # 检查格子索引是否存在（防止测试集超出训练集边界）
+        if (g_dn, g_dist) in sign_table.index:
+            k_val = k_table[(g_dn, g_dist)]
+            s_val = sign_table[(g_dn, g_dist)]
+            
+            # 核心策略：只有符号一致性绝对值超过 0.5
+            if np.abs(s_val) > 0.5:
+                # 如果 s_val > 0.5，说明该区域普遍高估(Median > TV)，我们需要减去偏差
+                # 如果 s_val < -0.5，说明该区域普遍低估(Median < TV)，我们需要加上偏差
+                # 修正公式：Corrected = Median - (Sign_Direction * K * Sigma)
+                # 因为 Bias_Sign 定义为 Median - TV，所以补偿应该是 减去 这个偏差
+                correction = s_val * k_val * test_std[i]
+                correctedPredictionValue[i] = test_median[i] - correction
+    
+    return correctedPredictionValue
+
 
 
 
