@@ -819,7 +819,9 @@ def run_in_parallel_TL_adaptive(predictRSSI_TL, numNetworks, machineLearningData
             if historyModels and historyModels[nw] and historyModels[nw].get('model'):
                 repNum = int(np.ceil( 200 / (machineLearningData[0]['trainRulData'].shape[0] + machineLearningData[0]['valRulData'].shape[0]) ))
                 trainD = np.tile(machineLearningData[nw]['trainData'], (1,1,1,repNum))
+                trainRulD = np.tile(machineLearningData[nw]['trainRulData'], (repNum, 1))
                 valD = np.tile(machineLearningData[nw]['valData'], (1,1,1,repNum))
+                valRulD = np.tile(machineLearningData[nw]['valRulData'], (repNum, 1))
                 weights = historyModels[nw]['model'].get_weights()
             else:
                 trainD = machineLearningData[nw]['trainData']
@@ -827,8 +829,8 @@ def run_in_parallel_TL_adaptive(predictRSSI_TL, numNetworks, machineLearningData
             
             f = client.submit(
                 subFun_TL.remote_train_wrapper,
-                trainD, machineLearningData[nw]['trainRulData'],
-                valD, machineLearningData[nw]['valRulData'],
+                trainD, trainRulD,
+                valD, valRulD,
                 weights, numCore1, numCore2, numCore3, 
                 learning_type, trainD.shape[:-1], freeze_layer, learning_rate,
                 pure=False,
