@@ -3,6 +3,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 from matplotlib.colors import Normalize
+from sklearn.cluster import KMeans
+from sklearn.preprocessing import StandardScaler
+from scipy.spatial import ConvexHull
 
 
 def compute_cdf(data):
@@ -161,8 +164,11 @@ def plot_MAE_CDF(output_file_path,targetFileAddress, referenceFileAddress=None, 
 
 
 
-def plot_global_share_pure_matplotlib(output_file_path, file_path, fix_lon=139.674057, fix_lat=35.223331, threshold=10, needPNG=True, needSVG=False):
-    # 1. 锁死出版级图表通用 RC 参数（Helvetica + 7pt/5pt 字号阶梯）
+def plot_dynamic_clustering_high_error_heatmap(outputFileAddress, file_path, fix_longitude, fix_latitude, mae_threshold=5.0, n_clusters=6, needPNG=True, needSVG=False):
+    """
+    仅针对 MAE 大于指定阈值的恶性样本点进行自适应空间环境聚类并绘制热力图
+    """
+    # 1. 锁死出版级图表通用 RC 参数（Helvetica + 严谨字号阶梯）
     plt.rcParams['font.family'] = 'sans-serif'
     plt.rcParams['font.sans-serif'] = ['Helvetica', 'Arial', 'DejaVu Sans']
     plt.rcParams['font.size'] = 7
@@ -170,10 +176,14 @@ def plot_global_share_pure_matplotlib(output_file_path, file_path, fix_lon=139.6
     plt.rcParams['axes.titlesize'] = 7
     plt.rcParams['xtick.labelsize'] = 5
     plt.rcParams['ytick.labelsize'] = 5
-    plt.rcParams['svg.fonttype'] = 'none' # 极其关键：维持 Inkscape 内文字完全为可编辑的独立文本图层
+    plt.rcParams['svg.fonttype'] = 'none'
 
     # 读取输入文件
     df = pd.read_csv(file_path)
+    
+    # 发射机固定端经纬度
+    tx_lon = fix_longitude
+    tx_lat = fix_latitude
 
     # 大圆球面距离重算函数 (Haversine Formula)
     def haversine_dist(lon1, lat1, lon2, lat2):
@@ -185,95 +195,235 @@ def plot_global_share_pure_matplotlib(output_file_path, file_path, fix_lon=139.6
         return 2 * np.arctan2(np.sqrt(a), np.sqrt(1 - a)) * R * 1000
 
     # 重新计算距离
-    df['calc_dist'] = haversine_dist(df['Longitude'], df['Latitude'], fix_lon, fix_lat)
+    df['calc_dist'] = haversine_dist(df['Longitude'], df['Latitude'], tx_lon, tx_lat)
 
-    # 定义距离与 DN 分箱边界
-    dist_bins = [0, 500, 1000, 1500, 2000, 2500, 3500]
-    dist_labels = ['0-500 m', '500-1k m', '1k-1.5k m', '1.5k-2k m', '2k-2.5k m', '>2.5k m']
-    dn_bins = [0, 30, 60, 80, 100]
-    dn_labels = ['0-30 m', '30-60 m', '60-80 m', '80-100 m']
+    # ==================== 核心改动：仅保留绝对误差大于阈值的顽固样本 ====================
+    if 'Median_Abs_Error' not in df.columns:
+        df['Median_Abs_Error'] = np.abs(df['Predicted_Value'] - df['RSSI'])
+    df_filtered = df[df['Median_Abs_Error'] > mae_threshold].copy()
 
-    df['dist_band'] = pd.cut(df['calc_dist'], bins=dist_bins, labels=dist_labels, include_lowest=True)
-    df['dn_band'] = pd.cut(df['DN'], bins=dn_bins, labels=dn_labels, include_lowest=True)
+    total_bad_points = len(df_filtered)
+    print(f"📊 过滤完成：全图绝对误差 > {mae_threshold}dB 的高风险样本共计 {total_bad_points} 个。")
+    
+    if total_bad_points < n_clusters:
+        print(f"⚠️ 恶性样本点数 ({total_bad_points}) 少于设定的聚类数 ({n_clusters})，请调低阈值或减少簇数！")
+        return
+    # ==================================================================================
 
-    # 全局分母：计算全地图范围内大误差（>threshold dB）的总点数
-    model_cols = [col for col in df.columns if col.startswith('Model_')]
-    model_median = df[model_cols].median(axis=1)
-    calculated_abs_error = (model_median - df['RSSI']).abs()
-    df['Median_Abs_Error'] = calculated_abs_error
-    grand_total_gt10 = (df['Median_Abs_Error'] > threshold).sum()
+    # 提取过滤后的核心特征并标准化
+    X = df_filtered[['calc_dist', 'DN']].values
+    scaler = StandardScaler()
+    X_scaled = scaler.fit_transform(X)
 
-    # 计算大误差份额矩阵
-    df_val = pd.DataFrame(index=dn_labels, columns=dist_labels, dtype=float)
-    df_text = pd.DataFrame(index=dn_labels, columns=dist_labels, dtype=object)
+    # 对大误差样本点执行 K-Means 动态聚类
+    kmeans = KMeans(n_clusters=n_clusters, random_state=42, n_init=10)
+    df_filtered['cluster'] = kmeans.fit_predict(X_scaled)
 
-    for dn in dn_labels:
-        for d in dist_labels:
-            sub = df[(df['dn_band'] == dn) & (df['dist_band'] == d)]
-            cell_gt10 = (sub['Median_Abs_Error'] > threshold).sum()
-            
-            # 计算全局贡献份额
-            pct_global = (cell_gt10 / grand_total_gt10) * 100
-            df_val.loc[dn, d] = pct_global
-            df_text.loc[dn, d] = f"{pct_global:.1f}%"
-
-    # 倒序处理：让浅层遮挡（0-30m）在底部，深层在顶部
-    df_val_final = df_val.iloc[::-1]
-    df_text_final = df_text.iloc[::-1]
-    matrix_data = df_val_final.values
+    # 计算大误差簇内部的 MAE 统计值
+    cluster_max_mae = df_filtered.groupby('cluster')['Median_Abs_Error'].max().to_dict()
 
     # 2. 精准映射画布物理尺寸 (80mm x 56.56mm)
     width_inch = 80 / 25.4
     height_inch = 56.56 / 25.4
     
-    # 建立独立双通道，彻底切断主图文字与右侧指标条的交叠空间
+    # 建立独立双通道，彻底隔离主图文本与右侧指标条
     fig, (ax, cbar_ax) = plt.subplots(1, 2, figsize=(width_inch, height_inch), 
                                        gridspec_kw={'width_ratios': [20, 1]})
 
-    # 3. 使用纯 matplotlib 渲染矩阵底色
-    cmap = cm.get_cmap('YlOrRd')
-    norm = Normalize(vmin=0, vmax=20)
-    im = ax.imshow(matrix_data, cmap=cmap, norm=norm, aspect='auto')
-
-    # ==================== 强制限定内部框比例为 80:56.56 ====================
+    # 强制限定核心内部框比例为 80:56.56
     ax.set_box_aspect(56.56 / 80.0)
-    # ==========================================================================
 
-    # 4. 手工添加网格内的数值标签（智能判定文字前背景对比色，防止黑字看不清）
-    nrows, ncols = matrix_data.shape
-    for i in range(nrows):
-        for j in range(ncols):
-            val_str = df_text_final.iloc[i, j]
-            # 如果背景色太深（份额 > 12%），文字自动转为白色，其余为黑色，保证极致的清晰度
-            text_color = 'white' if matrix_data[i, j] > 12 else 'black'
-            ax.text(j, i, val_str, ha='center', va='center', fontsize=5, color=text_color)
+    # 动态设定色彩映射范围（根据过滤后的真实 MAE 上下界自适应）
+    vmin = df_filtered['Median_Abs_Error'].min()
+    vmax = df_filtered['Median_Abs_Error'].max()
+    cmap = plt.get_cmap('YlOrRd')
 
-    # 5. 图表轴细节美化与刻度对齐
-    ax.set_xticks(np.arange(ncols))
-    ax.set_yticks(np.arange(nrows))
-    ax.set_title(f'Spatial Share of MAE > {threshold} dB', fontsize=7, fontweight='bold')
+    # 3. 动态绘制每个恶性环境簇的边界凸包
+    for cluster_id in range(n_clusters):
+        cluster_pts = X[df_filtered['cluster'] == cluster_id]
+        max_mae_val = cluster_max_mae[cluster_id]
+        
+        # 归一化色彩计算
+        color = cmap((max_mae_val - vmin) / (max(vmax - vmin, 0.1)))
+        
+        # 防御性重构：过滤完全重合的重复坐标点
+        unique_pts = np.unique(cluster_pts, axis=0)
+        
+        if len(unique_pts) >= 3:
+            try:
+                # 引入 QJ 参数彻底化解一维退化共线报错
+                hull = ConvexHull(cluster_pts, qhull_options='QJ')
+                polygon_pts = cluster_pts[hull.vertices]
+                
+                # 填充恶性盲点分布多边形
+                ax.fill(polygon_pts[:, 0], polygon_pts[:, 1], 
+                        facecolor=color, edgecolor='white', linewidth=0.3, alpha=0.85)
+            except Exception:
+                ax.scatter(cluster_pts[:, 0], cluster_pts[:, 1], color=color, s=8, edgecolor='white', linewidth=0.2)
+        else:
+            # 样本点过于稀疏或共线时降级为清晰的大散点高亮
+            ax.scatter(cluster_pts[:, 0], cluster_pts[:, 1], color=color, s=8, edgecolor='white', linewidth=0.2)
+            
+        # 在群落中心喷涂 MAE 中位数及包含的恶性点数量
+        cx = np.mean(cluster_pts[:, 0])
+        cy = np.mean(cluster_pts[:, 1])
+        text_ratio = (max_mae_val - vmin) / (max(vmax - vmin, 0.1))
+        text_color = 'white' if text_ratio > 0.6 else 'black'
+        ax.text(cx, cy, f"{max_mae_val:.1f}\n({len(cluster_pts)})", 
+                ha='center', va='center', fontsize=4.2, color=text_color, fontweight='bold')
+
+    # 4. 全量背景点微弱打底（将所有通过和未通过的原始采样点作为背景灰色铺设，凸显对比）
+    ax.scatter(df['calc_dist'], df['DN'], c='gray', s=1, alpha=0.10, zorder=0)
+
+    # 5. 图表坐标轴与网格规范化
+    ax.set_title(f'Dynamic Clusters of Severe Errors (MAE > {mae_threshold} dB)', fontsize=7, fontweight='bold')
     ax.set_xlabel('Geographical Distance Between Transceivers in m', fontsize=7)
-    ax.set_ylabel('Mobile Altitude in m', fontsize=7)
-
-    # 轴标签防拥挤优化
-    ax.set_xticklabels(dist_labels, rotation=30, ha='right', fontsize=5)
-    ax.set_yticklabels(df_val_final.index, rotation=0, fontsize=5)
-
-    # 6. 独立通道内的纯 Matplotlib 指标条渲染
-    cbar = fig.colorbar(im, cax=cbar_ax)
-    cbar_ax.tick_params(labelsize=4, pad=1)
-    cbar_ax.set_ylabel('Percentage in %', fontsize=5, labelpad=3)
-
-    # 调整两子图间的物理宽度，留出呼吸空间
-    plt.subplots_adjust(wspace=0.15)
+    ax.set_ylabel('Mobile Altitude + Building Height in m', fontsize=7)
+    ax.grid(True, linestyle=':', alpha=0.4, color='gray', zorder=0)
     
-    # 7. 同时输出高保真印刷级 PNG 和 Inkscape 二次编辑专用矢量 SVG
+    # 限制轴边界与全量数据集对齐，确保空间视野不缩水
+    ax.set_xlim(0, df['calc_dist'].max() * 1.05)
+    ax.set_ylim(0, df['DN'].max() * 1.05)
+
+    # 6. 独立通道内的纯颜色指标条渲染
+    sm = plt.cm.ScalarMappable(cmap=cmap, norm=plt.Normalize(vmin=vmin, vmax=vmax))
+    sm.set_array([])
+    cbar = fig.colorbar(sm, cax=cbar_ax)
+    cbar_ax.tick_params(labelsize=4, pad=1)
+    cbar_ax.set_ylabel('Cluster Worst MAE in dB', fontsize=5, labelpad=3)
+
+    # 调整子图间的物理宽度
+    plt.subplots_adjust(wspace=0.18)
+    
+    # 7. 同时输出 PNG 和矢量 SVG
+    out_name = f'report_heatmap_bad_clusters_gt{int(mae_threshold)}'
     if needPNG:
-        plt.savefig(output_file_path + 'MAE_heatmap_' + str(threshold) + 'dB.png', dpi=300, bbox_inches='tight')
+        plt.savefig(outputFileAddress + f'{out_name}.png', dpi=300, bbox_inches='tight')
     if needSVG:
-        plt.savefig(output_file_path + 'MAE_heatmap_' + str(threshold) + 'dB.svg', dpi=300, bbox_inches='tight')
-        pass
-    print("Pure matplotlib version generated successfully.")
+        plt.savefig(outputFileAddress + f'{out_name}.svg', dpi=300, bbox_inches='tight')
+    print(f"🎉 恶性长尾分析热力图成功导出为 {out_name}.png/.svg")
+
+
+
+def plot_vertical_stacked_environment_boxplots(outputFileAddress, file_path, fix_longitude, fix_latitude, needPNG=True, needSVG=False):
+    # 1. 锁死出版级图表通用 RC 参数（Helvetica + 严谨字号阶梯）
+    plt.rcParams['font.family'] = 'sans-serif'
+    plt.rcParams['font.sans-serif'] = ['Helvetica', 'Arial', 'DejaVu Sans']
+    plt.rcParams['font.size'] = 6.5
+    plt.rcParams['axes.labelsize'] = 7
+    plt.rcParams['axes.titlesize'] = 7
+    plt.rcParams['xtick.labelsize'] = 5.5
+    plt.rcParams['ytick.labelsize'] = 5.5
+    plt.rcParams['svg.fonttype'] = 'none'
+
+    # 读取输入文件
+    df = pd.read_csv(file_path)
+    
+    # 发射机固定端经纬度
+    tx_lon = fix_longitude
+    tx_lat = fix_latitude
+
+    # 大圆球面距离重算函数 (Haversine Formula)
+    def haversine_dist(lon1, lat1, lon2, lat2):
+        R = 6371.0088
+        lat1, lon1, lat2, lon2 = map(np.radians, [lat1, lon1, lat2, lon2])
+        dlat = lat2 - lat1
+        dlon = dlon1 = lon2 - lon1
+        a = np.sin(dlat / 2)**2 + np.cos(lat1) * np.cos(lat2) * np.sin(dlon / 2)**2
+        return 2 * np.arctan2(np.sqrt(a), np.sqrt(1 - a)) * R * 1000
+
+    # 准备物理坐标
+    df['calc_dist'] = haversine_dist(df['Longitude'], df['Latitude'], tx_lon, tx_lat)
+    
+    # 提取获胜模型的数字 ID
+    if 'Best_Model_Idx' not in df.columns:
+        model_cols = [col for col in df.columns if col.startswith('Model_')]
+        df['Best_Model_Idx'] = df[model_cols].sub(df['RSSI'], axis=0).abs().idxmin(axis=1).str.extract('Model_(\d+)').astype(int)
+    df['expert_id'] = df['Best_Model_Idx'].astype(int)
+
+    # 严格准备 0 到 29 的连续横轴
+    all_model_ids = list(range(30))
+    x_labels = [f"{i}" for i in all_model_ids]
+    
+    dist_data_per_model = []
+    dn_data_per_model = []
+
+    # 无论模型赢没赢过，都在横轴为其保留位置，未赢过的填充空数组以防错位
+    for m_id in all_model_ids:
+        winner_subset = df[df['expert_id'] == m_id]
+        if len(winner_subset) > 0:
+            dist_data_per_model.append(winner_subset['calc_dist'].values)
+            dn_data_per_model.append(winner_subset['DN'].values)
+        else:
+            dist_data_per_model.append(np.array([]))
+            dn_data_per_model.append(np.array([]))
+
+    # 2. 精准设定画布物理尺寸 (2行1列纵向堆叠，拉宽至 160mm 宽 x 120mm 高)
+    width_inch = 160 / 25.4
+    height_inch = 120 / 25.4
+    
+    # sharex=True 让上下两张图完全共享横轴的模型 ID 标签
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(width_inch, height_inch), sharex=True)
+
+    # 配备经典的 tab20 颜色，超过 20 个循环使用，保证 30 个模型颜色分明
+    cmap = plt.get_cmap('tab20')
+    box_colors = [cmap(i % 20) for i in range(30)]
+
+    # ==================== 上半部分：距离分布箱线图 ====================
+    # vert=True 切换为纵向箱线，positions 绑定 0~29 确保与横轴对齐
+    bplot1 = ax1.boxplot(dist_data_per_model, vert=True, patch_artist=True, 
+                          positions=all_model_ids, widths=0.5,
+                          flierprops=dict(marker='o', markersize=1.0, markeredgecolor='gray', alpha=0.3))
+    
+    # 渲染上色
+    for patch, color in zip(bplot1['boxes'], box_colors):
+        patch.set_facecolor(color)
+        patch.set_alpha(0.75)
+        patch.set_edgecolor('black')
+        patch.set_linewidth(0.4)
+    for median in bplot1['medians']:
+        median.set_color('darkred')
+        median.set_linewidth(0.8)
+        
+    ax1.set_title("(a) Geographical Distance Bounds Between Transceivers per Fine-Tuned Model", fontsize=7, fontweight='bold')
+    ax1.set_ylabel("Geographical Distance in m", fontsize=7)
+    ax1.grid(True, linestyle=':', alpha=0.3, color='gray')
+
+    # ==================== 下半部分：DN 遮挡深度箱线图 ====================
+    bplot2 = ax2.boxplot(dn_data_per_model, vert=True, patch_artist=True, 
+                          positions=all_model_ids, widths=0.5,
+                          flierprops=dict(marker='o', markersize=1.0, markeredgecolor='gray', alpha=0.3))
+    
+    for patch, color in zip(bplot2['boxes'], box_colors):
+        patch.set_facecolor(color)
+        patch.set_alpha(0.75)
+        patch.set_edgecolor('black')
+        patch.set_linewidth(0.4)
+    for median in bplot2['medians']:
+        median.set_color('darkred')
+        median.set_linewidth(0.8)
+        
+    ax2.set_title("(b) Altitude + Building Height Bounds per Fine-Tuned Model", fontsize=7, fontweight='bold')
+    ax2.set_ylabel("Altitude + Building Height in m", fontsize=7)
+    ax2.set_xlabel("Fine-Tuned Model ID", fontsize=7)
+    ax2.grid(True, linestyle=':', alpha=0.3, color='gray')
+
+    # 设置完美的 X 轴刻度和标签显示
+    ax2.set_xticks(all_model_ids)
+    ax2.set_xticklabels(x_labels, rotation=45, ha='right')
+
+    # 3. 紧凑排版，压缩上下子图之间的空白，避免跨度过大
+    plt.subplots_adjust(hspace=0.18)
+    
+    # 4. 双格式印刷级输出
+    out_name = 'report_stacked_boxplot_models_comparison'
+    if needPNG:
+        plt.savefig(outputFileAddress + f'{out_name}.png', dpi=300, bbox_inches='tight')
+    if needSVG:
+        plt.savefig(outputFileAddress + f'{out_name}.svg', dpi=300, bbox_inches='tight')
+    plt.close()
+    
+    print(f"🎉 纵向堆叠多维箱线图绘制成功！已导出为 {out_name}.png/.svg")
 
 
 
@@ -319,12 +469,13 @@ def main():
     # fix_altitude = 115 #海拔79.74米，楼35.2米
     # fix_antennaHeight = 1.8
     # move_antennaHeight = 1.37
-    targetFileAddress = "/Users/zhaoou/Desktop/課題1_TL拡張/TL検証/220MHz/oof_analysis_FT10.csv"
-    referenceFileAddress = "/Users/zhaoou/Desktop/課題1_TL拡張/TL検証/220MHz/predict_RSS_M0_FT_10.csv"
+    targetFileAddress = "/Users/zhaoou/Desktop/課題1_TL拡張/TL検証/920MHz/predict_RSS_FT30.csv"
+    referenceFileAddress = "/Users/zhaoou/Desktop/課題1_TL拡張/TL検証/920MHz/predict_RSS_M0_test_30.csv"
     outputFileAddress = "/Users/zhaoou/Downloads/"
 
-    plot_MAE_CDF(outputFileAddress, targetFileAddress, referenceFileAddress, needPNG=True, needSVG=False)
-    plot_global_share_pure_matplotlib(outputFileAddress, targetFileAddress, fix_longitude, fix_latitude, threshold=10, needPNG=True, needSVG=False)
+    #plot_MAE_CDF(outputFileAddress, targetFileAddress, referenceFileAddress, needPNG=True, needSVG=False)
+    #plot_dynamic_clustering_high_error_heatmap(outputFileAddress, targetFileAddress, fix_longitude, fix_latitude, mae_threshold=4.79, n_clusters=3, needPNG=True, needSVG=False)
+    plot_vertical_stacked_environment_boxplots(outputFileAddress, targetFileAddress, fix_longitude, fix_latitude, needPNG=True, needSVG=False)
 
     return
 
