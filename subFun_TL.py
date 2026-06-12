@@ -825,7 +825,9 @@ def run_in_parallel_TL_adaptive(predictRSSI_TL, numNetworks, machineLearningData
                 weights = historyModels[nw]['model'].get_weights()
             else:
                 trainD = machineLearningData[nw]['trainData']
+                trainRulD = machineLearningData[nw]['trainRulData']
                 valD = machineLearningData[nw]['valData']
+                valRulD = machineLearningData[nw]['valRulData']
             
             f = client.submit(
                 subFun_TL.remote_train_wrapper,
