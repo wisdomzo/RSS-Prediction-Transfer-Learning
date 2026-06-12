@@ -427,6 +427,711 @@ def plot_vertical_stacked_environment_boxplots(outputFileAddress, file_path, fix
 
 
 
+
+
+
+def plot_Uncertainty_Prediction_Error(folderAddress, needPNG, needSVG):
+    # ========================================================
+    # 1. 全局配置高保真纸张字体与科研规格（严格匹配你的标准）
+    # ========================================================
+    plt.rcParams['font.family'] = 'sans-serif'
+    plt.rcParams['font.sans-serif'] = ['Helvetica', 'Arial', 'DejaVu Sans']
+
+    # 严格执行 7pt / 5pt 的紧凑科研字号，避免文字过大挤压图表空间
+    plt.rcParams['font.size'] = 7
+    plt.rcParams['axes.labelsize'] = 7
+    plt.rcParams['axes.titlesize'] = 7
+    plt.rcParams['xtick.labelsize'] = 7
+    plt.rcParams['ytick.labelsize'] = 7
+    plt.rcParams['legend.fontsize'] = 7 
+
+    # 设定精确的物理画布尺寸 (mm 转换为 inch)
+    width_inch = 80 / 24
+    height_inch = 56.56 / 24
+
+    # 核心设定：保证导出的 SVG 格式中文字是可编辑的、不会被转为线条（Path）
+    plt.rcParams['svg.fonttype'] = 'none'
+
+    # ========================================================
+    # 2. 数据读取与并行处理逻辑（220MHz 与 920MHz）
+    # ========================================================
+    file_path_220 = os.path.join(folderAddress, "predict_RSS_M0_220.csv")
+    file_path_920 = os.path.join(folderAddress, "predict_RSS_M0_920.csv")
+    
+    if not os.path.exists(file_path_220) or not os.path.exists(file_path_920):
+        print(f"Error: Make sure both M0_220.csv and M0_920.csv exist in {folderAddress}")
+        return
+
+    # 读取并处理 220MHz 数据
+    df_220 = pd.read_csv(file_path_220)
+    df_220['Absolute_Error'] = (df_220['RSSI'] - df_220['Predicted_Value']).abs()
+
+    # 读取并处理 920MHz 数据
+    df_920 = pd.read_csv(file_path_920)
+    df_920['Absolute_Error'] = (df_920['RSSI'] - df_920['Predicted_Value']).abs()
+
+    # 初始预设的区间划分边界与标签
+    custom_bins = [0, 3, 5, float('inf')]
+    custom_labels = ['0-3 dB', '3-5 dB', '> 5 dB']
+
+    # 硬切分区间
+    df_220['Uncertainty_Group'] = pd.cut(df_220['Uncertainty'], bins=custom_bins, labels=custom_labels, include_lowest=True)
+    df_920['Uncertainty_Group'] = pd.cut(df_920['Uncertainty'], bins=custom_bins, labels=custom_labels, include_lowest=True)
+
+    # 按初始区间粗提取数据
+    raw_data_220 = [df_220[df_220['Uncertainty_Group'] == label]['Absolute_Error'].dropna().values for label in custom_labels]
+    raw_data_920 = [df_920[df_920['Uncertainty_Group'] == label]['Absolute_Error'].dropna().values for label in custom_labels]
+
+    # ========================================================
+    # 3. 动态筛选有数据的区间（0样本数据不留白占位）
+    # ========================================================
+    active_labels = []
+    filtered_data_220 = []
+    filtered_data_920 = []
+
+    for i, label in enumerate(custom_labels):
+        has_220 = len(raw_data_220[i]) > 0
+        has_920 = len(raw_data_920[i]) > 0
+        
+        if has_220 or has_920:
+            active_labels.append(label)
+            filtered_data_220.append(raw_data_220[i])
+            filtered_data_920.append(raw_data_920[i])
+
+    if not active_labels:
+        print("Error: No valid data found in any uncertainty intervals.")
+        return
+
+    # 根据筛选后实际剩下的有效区间数量，动态生成 X 轴主刻度
+    x_indices = np.arange(1, len(active_labels) + 1)
+    
+    box_width = 0.25   # 每个单箱体的宽度
+    gap = 0.04         # 220和920箱体之间的微小间隙
+
+    # 错开后的精确绘制中心位置坐标
+    pos_220 = x_indices - (box_width / 2 + gap / 2)
+    pos_920 = x_indices + (box_width / 2 + gap / 2)
+
+    # ========================================================
+    # 4. 开始绘制纯 matplotlib 交错并列箱线图
+    # ========================================================
+    fig, ax = plt.subplots(figsize=(width_inch, height_inch), dpi=300)
+
+    # 共享线条参数，适配 80mm 物理微型图表宽度
+    line_props = {
+        'medianprops': {'color': '#333333', 'linewidth': 0.7},
+        'boxprops': {'linewidth': 0.5},
+        'whiskerprops': {'linewidth': 0.5, 'linestyle': '-'},
+        'capprops': {'linewidth': 0.5},
+        'flierprops': {
+            'marker': 'o', 'markersize': 1.2, 'alpha': 0.18, 'markeredgecolor': 'none'
+        }
+    }
+
+    # 绘制箱线图组
+    box_220 = ax.boxplot(filtered_data_220, positions=pos_220, widths=box_width, patch_artist=True, **line_props)
+    box_920 = ax.boxplot(filtered_data_920, positions=pos_920, widths=box_width, patch_artist=True, **line_props)
+
+    # ========================================================
+    # 5. 配色与高级渐变色控制
+    # ========================================================
+    color_220 = '#9ecae1'  
+    color_920 = '#2171b5'  
+    
+    for patch in box_220['boxes']:
+        patch.set_facecolor(color_220)
+        patch.set_edgecolor('#1c4563')
+
+    for patch in box_920['boxes']:
+        patch.set_facecolor(color_920)
+        patch.set_edgecolor('#082a4d')
+
+    for flier in box_220['fliers']: flier.set_markerfacecolor(color_220)
+    for flier in box_920['fliers']: flier.set_markerfacecolor(color_920)
+
+    # ========================================================
+    # 6. 图表细节修饰（移除 Title 并压缩余白）
+    # ========================================================
+    # 移除原有的 ax.set_title()，上方不再预留任何文字空间
+    ax.set_xlabel('Uncertainty Intervals', labelpad=2)   # 压紧横轴标签间距
+    ax.set_ylabel('Absolute Error in dB', labelpad=2)     # 压紧纵轴标签间距
+
+    # 将 X 轴刻度牢牢固定在两条并列箱体的正中间
+    ax.set_xticks(x_indices)
+    ax.set_xticklabels(active_labels)
+    
+    # 优化 X 轴两端留白，既不贴墙也绝不过宽
+    ax.set_xlim(0.4, len(active_labels) + 0.6)
+
+    # 细化网格线
+    ax.grid(axis='y', linestyle='--', linewidth=0.5, alpha=0.5)
+
+    # 创建紧凑的学术图例
+    ax.legend(
+        [box_220['boxes'][0], box_920['boxes'][0]], 
+        ['220 MHz', '920 MHz'], 
+        loc='upper left', 
+        frameon=True, 
+        edgecolor='#e0e0e0',
+        fancybox=False,
+        borderpad=0.3,       # 缩减图例内边距
+        labelspacing=0.3     # 缩减图例行间距
+    )
+
+    # ========================================================
+    # 7. 极致余白压缩与精确画布保存
+    # ========================================================
+    # 使用 subplots_adjust 强制控制绘图边界。
+    # top=0.96 彻底吃掉原本留给 Title 的巨大空白，让箱体区域向上延伸
+    plt.subplots_adjust(left=0.12, right=0.96, top=0.96, bottom=0.14)
+
+    svg_output = os.path.join(folderAddress, 'Uncertainty_Prediction_Error.svg')
+    png_output = os.path.join(folderAddress, 'Uncertainty_Prediction_Error.png')
+    
+    # 在 savefig 时显式指定 pad_inches=0.012 (约 0.3mm)，实现无宽边裁剪
+    save_props = {'dpi': 300, 'bbox_inches': 'tight', 'pad_inches': 0.012}
+    
+    if needSVG:
+        plt.savefig(svg_output, format='svg', **save_props)
+    if needPNG:
+        plt.savefig(png_output, **save_props)
+    
+    plt.show()
+
+    # ========================================================
+    # 8. 打印每个频段在实际有效区间下的样本量
+    # ========================================================
+    print("\n--- [220 MHz] 实际样本数量统计 ---")
+    print(df_220['Uncertainty_Group'].value_counts().sort_index())
+    print("\n--- [920 MHz] 实际样本数量统计 ---")
+    print(df_920['Uncertainty_Group'].value_counts().sort_index())
+
+
+
+def plot_High_Error_Probability(folderAddress, needPNG, needSVG):
+    # ========================================================
+    # 1. 全局配置高保真纸张字体与科研规格（严格匹配你的标准）
+    # ========================================================
+    plt.rcParams['font.family'] = 'sans-serif'
+    plt.rcParams['font.sans-serif'] = ['Helvetica', 'Arial', 'DejaVu Sans']
+
+    # 严格执行 7pt / 5pt 的紧凑科研字号
+    plt.rcParams['font.size'] = 7
+    plt.rcParams['axes.labelsize'] = 7
+    plt.rcParams['axes.titlesize'] = 7
+    plt.rcParams['xtick.labelsize'] = 7
+    plt.rcParams['ytick.labelsize'] = 7
+    plt.rcParams['legend.fontsize'] = 5 
+
+    # 设定精确的物理画布尺寸 (mm 转换为 inch)
+    width_inch = 80 / 25.4
+    height_inch = 56.56 / 25.4
+    plt.rcParams['svg.fonttype'] = 'none'
+
+    # ========================================================
+    # 2. 数据读取与并行处理逻辑（220MHz 与 920MHz）
+    # ========================================================
+    file_path_220 = os.path.join(folderAddress, "predict_RSS_M0_220.csv")
+    file_path_920 = os.path.join(folderAddress, "predict_RSS_M0_920.csv")
+    
+    if not os.path.exists(file_path_220) or not os.path.exists(file_path_920):
+        print(f"Error: Make sure both M0_220.csv and M0_920.csv exist in {folderAddress}")
+        return
+
+    # 读取并计算绝对误差
+    df_220 = pd.read_csv(file_path_220)
+    df_220['Absolute_Error'] = (df_220['RSSI'] - df_220['Predicted_Value']).abs()
+
+    df_920 = pd.read_csv(file_path_920)
+    df_920['Absolute_Error'] = (df_920['RSSI'] - df_920['Predicted_Value']).abs()
+
+    # 指定新的区间：0-3, 3-5, >5
+    custom_bins = [0, 3, 5, float('inf')]
+    custom_labels = ['0-3 dB', '3-5 dB', '> 5 dB']
+
+    # 硬切分区间
+    df_220['Uncertainty_Group'] = pd.cut(df_220['Uncertainty'], bins=custom_bins, labels=custom_labels, include_lowest=True)
+    df_920['Uncertainty_Group'] = pd.cut(df_920['Uncertainty'], bins=custom_bins, labels=custom_labels, include_lowest=True)
+
+    # ========================================================
+    # 3. 核心统计逻辑：计算每个区间内 Error > 10dB 的概率
+    # ========================================================
+    prob_220 = []
+    prob_920 = []
+    active_labels = []
+
+    for label in custom_labels:
+        sub_220 = df_220[df_220['Uncertainty_Group'] == label]
+        sub_920 = df_920[df_920['Uncertainty_Group'] == label]
+        
+        total_220 = len(sub_220)
+        total_920 = len(sub_920)
+        
+        # 只要有一方有样本，就保留该区间，防止空置错位
+        if total_220 > 0 or total_920 > 0:
+            active_labels.append(label)
+            
+            # 计算 220 MHz 的概率
+            if total_220 > 0:
+                high_err_220 = len(sub_220[sub_220['Absolute_Error'] > 10])
+                prob_220.append((high_err_220 / total_220) * 100) # 转换为百分比
+            else:
+                prob_220.append(0.0)
+                
+            # 计算 920 MHz 的概率
+            if total_920 > 0:
+                high_err_920 = len(sub_920[sub_920['Absolute_Error'] > 10])
+                prob_920.append((high_err_920 / total_920) * 100)
+            else:
+                prob_920.append(0.0)
+
+    if not active_labels:
+        print("Error: No data found in any of the specified intervals.")
+        return
+
+    # ========================================================
+    # 4. 绘图坐标计算（并列柱状图）
+    # ========================================================
+    x_indices = np.arange(1, len(active_labels) + 1)
+    bar_width = 0.25   # 柱子宽度
+    gap = 0.02         # 柱子间微小间隙
+
+    pos_220 = x_indices - (bar_width / 2 + gap / 2)
+    pos_920 = x_indices + (bar_width / 2 + gap / 2)
+
+    # ========================================================
+    # 5. 开始绘制纯 matplotlib 柱状图
+    # ========================================================
+    fig, ax = plt.subplots(figsize=(width_inch, height_inch), dpi=300)
+
+    # 学术蓝双色系
+    color_220 = '#9ecae1'  
+    color_920 = '#2171b5'  
+
+    # 绘制两组柱状图
+    bars_220 = ax.bar(pos_220, prob_220, width=bar_width, color=color_220, edgecolor='#1c4563', linewidth=0.5, label='220 MHz')
+    bars_920 = ax.bar(pos_920, prob_920, width=bar_width, color=color_920, edgecolor='#082a4d', linewidth=0.5, label='920 MHz')
+
+    # ========================================================
+    # 6. 图表细节修饰（无 Title、极限压紧余白）
+    # ========================================================
+    ax.set_xlabel('Uncertainty Intervals', labelpad=2)
+    ax.set_ylabel('Probability of Error > 10 dB (%)', labelpad=2)
+
+    # 刻度及边缘紧凑对齐
+    ax.set_xticks(x_indices)
+    ax.set_xticklabels(active_labels)
+    ax.set_xlim(0.4, len(active_labels) + 0.6)
+    
+    # 纵轴从 0 到 100%
+    ax.set_ylim(0, 105) 
+    ax.grid(axis='y', linestyle='--', linewidth=0.5, alpha=0.5)
+
+    # 紧凑图例
+    ax.legend(
+        loc='upper left', 
+        frameon=True, 
+        edgecolor='#e0e0e0',
+        fancybox=False,
+        borderpad=0.3,       
+        labelspacing=0.3     
+    )
+
+    # ========================================================
+    # 7. 极致余白压缩与保存
+    # ========================================================
+    plt.subplots_adjust(left=0.12, right=0.97, top=0.96, bottom=0.14)
+
+    svg_output = os.path.join(folderAddress, 'High_Error_Probability.svg')
+    png_output = os.path.join(folderAddress, 'High_Error_Probability.png')
+    
+    save_props = {'dpi': 300, 'bbox_inches': 'tight', 'pad_inches': 0.012}
+    
+    if needSVG:
+        plt.savefig(svg_output, format='svg', **save_props)
+    if needPNG:
+        plt.savefig(png_output, **save_props)
+    
+    plt.show()
+
+    # ========================================================
+    # 8. 在控制台打印具体的概率数值，便于论文撰写和检查
+    # ========================================================
+    print("\n--- 统计分析结果报告 ---")
+    for i, label in enumerate(active_labels):
+        print(f"区间 [{label}]:")
+        print(f"  - 220 MHz 样本高误差概率: {prob_220[i]:.2f}%")
+        print(f"  - 920 MHz 样本高误差概率: {prob_920[i]:.2f}%")
+
+
+
+
+def plot_Quantile_Uncertainty_Error(folderAddress, needPNG, needSVG):
+    # ========================================================
+    # 1. 全局配置高保真纸张字体与科研规格（严格匹配你的标准）
+    # ========================================================
+    plt.rcParams['font.family'] = 'sans-serif'
+    plt.rcParams['font.sans-serif'] = ['Helvetica', 'Arial', 'DejaVu Sans']
+
+    # 严格执行 7pt / 5pt 的紧凑科研字号，避免文字过大挤压图表空间
+    plt.rcParams['font.size'] = 7
+    plt.rcParams['axes.labelsize'] = 7
+    plt.rcParams['axes.titlesize'] = 7
+    plt.rcParams['xtick.labelsize'] = 7
+    plt.rcParams['ytick.labelsize'] = 7
+    plt.rcParams['legend.fontsize'] = 5 
+
+    # 设定精确的物理画布尺寸 (mm 转换为 inch)
+    width_inch = 80 / 25.4
+    height_inch = 56.56 / 25.4
+
+    # 核心设定：保证导出的 SVG 格式中文字是可编辑的、不会被转为线条（Path）
+    plt.rcParams['svg.fonttype'] = 'none'
+
+    # ========================================================
+    # 2. 数据读取与并行处理逻辑（220MHz 与 920MHz）
+    # ========================================================
+    file_path_220 = os.path.join(folderAddress, "predict_RSS_M0_220.csv")
+    file_path_920 = os.path.join(folderAddress, "predict_RSS_M0_920.csv")
+    
+    if not os.path.exists(file_path_220) or not os.path.exists(file_path_920):
+        print(f"Error: Make sure both M0_220.csv and M0_920.csv exist in {folderAddress}")
+        return
+
+    # 读取并处理 220MHz 数据
+    df_220 = pd.read_csv(file_path_220)
+    df_220['Absolute_Error'] = (df_220['RSSI'] - df_220['Predicted_Value']).abs()
+
+    # 读取并处理 920MHz 数据
+    df_920 = pd.read_csv(file_path_920)
+    df_920['Absolute_Error'] = (df_920['RSSI'] - df_920['Predicted_Value']).abs()
+
+    # 定义统一的分位数区间标签
+    # 后 20% (Low), 中间 60% (Mid), 前 20% (High)
+    custom_labels = ['Bottom 20% (Low)', 'Middle 60% (Med)', 'Top 20% (High)']
+
+    # ========================================================
+    # 3. 动态分位数切分函数（核心修改）
+    # ========================================================
+    def segment_by_quantile(df):
+        # 自动计算 20% 和 80% 的分位数边界值
+        q20 = df['Uncertainty'].quantile(0.2)
+        q80 = df['Uncertainty'].quantile(0.8)
+        
+        # 建立边界数组，包含极值保护
+        bins = [-float('inf'), q20, q80, float('inf')]
+        
+        # 使用 pd.cut 进行动态硬切分
+        df['Uncertainty_Group'] = pd.cut(
+            df['Uncertainty'], 
+            bins=bins, 
+            labels=custom_labels, 
+            include_lowest=True
+        )
+        return df
+
+    df_220 = segment_by_quantile(df_220)
+    df_920 = segment_by_quantile(df_920)
+
+    # 提取各区间对应的数据列表
+    raw_data_220 = [df_220[df_220['Uncertainty_Group'] == label]['Absolute_Error'].dropna().values for label in custom_labels]
+    raw_data_920 = [df_920[df_920['Uncertainty_Group'] == label]['Absolute_Error'].dropna().values for label in custom_labels]
+
+    # ========================================================
+    # 4. 动态筛选有数据的区间（防止空样本占位，保持代码健壮性）
+    # ========================================================
+    active_labels = []
+    filtered_data_220 = []
+    filtered_data_920 = []
+
+    for i, label in enumerate(custom_labels):
+        has_220 = len(raw_data_220[i]) > 0
+        has_920 = len(raw_data_920[i]) > 0
+        
+        if has_220 or has_920:
+            active_labels.append(label)
+            filtered_data_220.append(raw_data_220[i])
+            filtered_data_920.append(raw_data_920[i])
+
+    if not active_labels:
+        print("Error: No valid data found after quantile split.")
+        return
+
+    # 动态生成并列坐标系
+    x_indices = np.arange(1, len(active_labels) + 1)
+    box_width = 0.25   
+    gap = 0.04         
+
+    pos_220 = x_indices - (box_width / 2 + gap / 2)
+    pos_920 = x_indices + (box_width / 2 + gap / 2)
+
+    # ========================================================
+    # 5. 开始绘制纯 matplotlib 交错并列箱线图
+    # ========================================================
+    fig, ax = plt.subplots(figsize=(width_inch, height_inch), dpi=300)
+
+    line_props = {
+        'medianprops': {'color': '#333333', 'linewidth': 0.7},
+        'boxprops': {'linewidth': 0.5},
+        'whiskerprops': {'linewidth': 0.5, 'linestyle': '-'},
+        'capprops': {'linewidth': 0.5},
+        'flierprops': {
+            'marker': 'o', 'markersize': 1.2, 'alpha': 0.18, 'markeredgecolor': 'none'
+        }
+    }
+
+    box_220 = ax.boxplot(filtered_data_220, positions=pos_220, widths=box_width, patch_artist=True, **line_props)
+    box_920 = ax.boxplot(filtered_data_920, positions=pos_920, widths=box_width, patch_artist=True, **line_props)
+
+    # ========================================================
+    # 6. 配色控制（220MHz: 浅蓝，920MHz: 深蓝）
+    # ========================================================
+    color_220 = '#9ecae1'  
+    color_920 = '#2171b5'  
+    
+    for patch in box_220['boxes']:
+        patch.set_facecolor(color_220)
+        patch.set_edgecolor('#1c4563')
+
+    for patch in box_920['boxes']:
+        patch.set_facecolor(color_920)
+        patch.set_edgecolor('#082a4d')
+
+    for flier in box_220['fliers']: flier.set_markerfacecolor(color_220)
+    for flier in box_920['fliers']: flier.set_markerfacecolor(color_920)
+
+    # ========================================================
+    # 7. 图表细节修饰与紧凑对齐（不要 Title 且极限压紧空间）
+    # ========================================================
+    ax.set_xlabel('Uncertainty Quantile Intervals', labelpad=2)   
+    ax.set_ylabel('Absolute Error in dB', labelpad=2)     
+
+    ax.set_xticks(x_indices)
+    ax.set_xticklabels(active_labels)
+    ax.set_xlim(0.4, len(active_labels) + 0.6)
+
+    ax.grid(axis='y', linestyle='--', linewidth=0.5, alpha=0.5)
+
+    # 严谨的论文级小图例
+    ax.legend(
+        [box_220['boxes'][0], box_920['boxes'][0]], 
+        ['220 MHz', '920 MHz'], 
+        loc='upper left', 
+        frameon=True, 
+        edgecolor='#e0e0e0',
+        fancybox=False,
+        borderpad=0.3,       
+        labelspacing=0.3     
+    )
+
+    # ========================================================
+    # 8. 极致余白压缩与精确画布保存
+    # ========================================================
+    # top=0.96 顶满上方，配合去除了 title，空间利用率达到最高
+    plt.subplots_adjust(left=0.12, right=0.97, top=0.96, bottom=0.14)
+
+    svg_output = os.path.join(folderAddress, 'Quantile_Uncertainty_Prediction_Error.svg')
+    png_output = os.path.join(folderAddress, 'Quantile_Uncertainty_Prediction_Error.png')
+    
+    save_props = {'dpi': 300, 'bbox_inches': 'tight', 'pad_inches': 0.012}
+    
+    if needSVG:
+        plt.savefig(svg_output, format='svg', **save_props)
+    if needPNG:
+        plt.savefig(png_output, **save_props)
+    
+    plt.show()
+
+    # ========================================================
+    # 9. 打印每个频段在分位数区间下的实际样本量（控制台审查）
+    # ========================================================
+    print("\n--- [220 MHz] 分位数区间样本数量统计 ---")
+    print(df_220['Uncertainty_Group'].value_counts().sort_index())
+    print("\n--- [920 MHz] 分位数区间样本数量统计 ---")
+    print(df_920['Uncertainty_Group'].value_counts().sort_index())
+
+
+
+
+
+def plot_Quantile_High_Error_Rate(folderAddress, rho, needPNG, needSVG):
+    """
+    统计不同频段在 Uncertainty 分位数区间内，Absolute_Error 超过 rho 的样本比例。
+    
+    参数:
+    - folderAddress: 数据文件夹路径
+    - rho: 绝对误差阈值 (dB)，例如 10 或 6
+    - needPNG: 是否保存 PNG
+    - needSVG: 是否保存 SVG
+    """
+    # ========================================================
+    # 1. 全局配置高保真纸张字体与科研规格（严格匹配标准）
+    # ========================================================
+    plt.rcParams['font.family'] = 'sans-serif'
+    plt.rcParams['font.sans-serif'] = ['Helvetica', 'Arial', 'DejaVu Sans']
+
+    # 严格执行 7pt / 5pt 的紧凑科研字号，避免文字过大挤压空间
+    plt.rcParams['font.size'] = 7
+    plt.rcParams['axes.labelsize'] = 7
+    plt.rcParams['axes.titlesize'] = 7
+    plt.rcParams['xtick.labelsize'] = 7
+    plt.rcParams['ytick.labelsize'] = 7
+    plt.rcParams['legend.fontsize'] = 5 
+
+    # 设定精确的物理画布尺寸 (mm 转换为 inch)
+    width_inch = 80 / 25.4
+    height_inch = 56.56 / 25.4
+    plt.rcParams['svg.fonttype'] = 'none'
+
+    # ========================================================
+    # 2. 数据读取与并行处理逻辑（220MHz 与 920MHz）
+    # ========================================================
+    file_path_220 = os.path.join(folderAddress, "predict_RSS_M0_220.csv")
+    file_path_920 = os.path.join(folderAddress, "predict_RSS_M0_920.csv")
+    
+    if not os.path.exists(file_path_220) or not os.path.exists(file_path_920):
+        print(f"Error: Make sure both M0_220.csv and M0_920.csv exist in {folderAddress}")
+        return
+
+    # 读取并处理 220MHz 数据
+    df_220 = pd.read_csv(file_path_220)
+    df_220['Absolute_Error'] = (df_220['RSSI'] - df_220['Predicted_Value']).abs()
+
+    # 读取并处理 920MHz 数据
+    df_920 = pd.read_csv(file_path_920)
+    df_920['Absolute_Error'] = (df_920['RSSI'] - df_920['Predicted_Value']).abs()
+
+    # 统一定义分位数区间标签
+    custom_labels = ['Bottom 20% (Low)', 'Middle 60% (Med)', 'Top 20% (High)']
+
+    # ========================================================
+    # 3. 动态分位数硬切分与高误率统计
+    # ========================================================
+    def compute_high_error_rates(df):
+        # 自动获取当前频段数据的 20% 和 80% 分位数边界值
+        q20 = df['Uncertainty'].quantile(0.3)
+        q80 = df['Uncertainty'].quantile(0.7)
+        bins = [-float('inf'), q20, q80, float('inf')]
+        
+        df['Uncertainty_Group'] = pd.cut(df['Uncertainty'], bins=bins, labels=custom_labels, include_lowest=True)
+        
+        rates = []
+        counts = []
+        for label in custom_labels:
+            sub_df = df[df['Uncertainty_Group'] == label]
+            total_samples = len(sub_df)
+            counts.append(total_samples)
+            
+            if total_samples > 0:
+                # 统计 Absolute_Error 严格大于 rho 的样本比例
+                high_error_count = len(sub_df[sub_df['Absolute_Error'] > rho])
+                rates.append((high_error_count / total_samples) * 100)  # 转换为百分比
+            else:
+                rates.append(0.0)
+        return rates, counts
+
+    rates_220, counts_220 = compute_high_error_rates(df_220)
+    rates_920, counts_920 = compute_high_error_rates(df_920)
+
+    # ========================================================
+    # 4. 动态过滤无效空置区间
+    # ========================================================
+    active_labels = []
+    filtered_rates_220 = []
+    filtered_rates_920 = []
+
+    for i, label in enumerate(custom_labels):
+        # 只要该分位数区间内含有有效样本，即保留该列坐标
+        if counts_220[i] > 0 or counts_920[i] > 0:
+            active_labels.append(label)
+            filtered_rates_220.append(rates_220[i])
+            filtered_rates_920.append(rates_920[i])
+
+    if not active_labels:
+        print("Error: No data available to plot.")
+        return
+
+    # 计算并列柱状图横坐标位置
+    x_indices = np.arange(1, len(active_labels) + 1)
+    bar_width = 0.25   # 单根柱子物理宽度
+    gap = 0.02         # 两根柱子间微小间隙
+
+    pos_220 = x_indices - (bar_width / 2 + gap / 2)
+    pos_920 = x_indices + (bar_width / 2 + gap / 2)
+
+    # ========================================================
+    # 5. 开始绘制纯 matplotlib 柱状图
+    # ========================================================
+    fig, ax = plt.subplots(figsize=(width_inch, height_inch), dpi=300)
+
+    # 双色高保真学术蓝
+    color_220 = '#9ecae1'  
+    color_920 = '#2171b5'  
+
+    # 渲染并列柱体
+    bars_220 = ax.bar(pos_220, filtered_rates_220, width=bar_width, color=color_220, edgecolor='#1c4563', linewidth=0.5, label='220 MHz')
+    bars_920 = ax.bar(pos_920, filtered_rates_920, width=bar_width, color=color_920, edgecolor='#082a4d', linewidth=0.5, label='920 MHz')
+
+    # ========================================================
+    # 6. 图表细节修饰（无 Title 且极限压紧空间）
+    # ========================================================
+    ax.set_xlabel('Uncertainty Quantile Intervals', labelpad=2)
+    # 动态将 rho 写入纵轴标签，增强论文字符规范性
+    ax.set_ylabel(f'Ratio of Error > {rho} dB (%)', labelpad=2)
+
+    # 精确对齐横轴刻度标签
+    ax.set_xticks(x_indices)
+    ax.set_xticklabels(active_labels)
+    ax.set_xlim(0.4, len(active_labels) + 0.6)
+    
+    # 纵轴留出合适冗余防遮挡图例
+    max_rate = max(max(filtered_rates_220), max(filtered_rates_920))
+    ax.set_ylim(0, min(105, max_rate + 20) if max_rate > 0 else 105)
+    
+    # 细化横向网格参考线
+    ax.grid(axis='y', linestyle='--', linewidth=0.5, alpha=0.5)
+
+    # 紧凑图例设计
+    ax.legend(
+        loc='upper left', 
+        frameon=True, 
+        edgecolor='#e0e0e0',
+        fancybox=False,
+        borderpad=0.3,       
+        labelspacing=0.3     
+    )
+
+    # ========================================================
+    # 7. 极致余白压缩与精确保存
+    # ========================================================
+    # top=0.96 完全吃掉 Title 释放的全部顶部空间，紧凑度最大化
+    plt.subplots_adjust(left=0.12, right=0.97, top=0.96, bottom=0.14)
+
+    filename = f'Quantile_High_Error_Rate_rho_{rho}'
+    svg_output = os.path.join(folderAddress, f'{filename}.svg')
+    png_output = os.path.join(folderAddress, f'{filename}.png')
+    
+    save_props = {'dpi': 300, 'bbox_inches': 'tight', 'pad_inches': 0.012}
+    
+    if needSVG:
+        plt.savefig(svg_output, format='svg', **save_props)
+    if needPNG:
+        plt.savefig(png_output, **save_props)
+    
+    plt.show()
+
+    # ========================================================
+    # 8. 控制台打印数值报告（便于写论文直接复制数据）
+    # ========================================================
+    print(f"\n--- 统计报告：误差超过 {rho} dB 的样本比例 ---")
+    for i, label in enumerate(active_labels):
+        print(f"区间 [{label}]:")
+        print(f"  - 220 MHz 占比: {filtered_rates_220[i]:.2f}% (区间总数: {counts_220[i]})")
+        print(f"  - 920 MHz 占比: {filtered_rates_920[i]:.2f}% (区间总数: {counts_920[i]})")
+
+
+
+
 def main():
     '''
     请严格按照以下【科研出版级制图规范】为我编写 Python 绘图代码，并读取指定的数据文件运行生成图表：
@@ -472,14 +1177,21 @@ def main():
     targetFileAddress = "/Users/zhaoou/Desktop/課題1_TL拡張/TL検証/920MHz/predict_RSS_FT30.csv"
     referenceFileAddress = "/Users/zhaoou/Desktop/課題1_TL拡張/TL検証/920MHz/predict_RSS_M0_test_30.csv"
     outputFileAddress = "/Users/zhaoou/Downloads/"
+    folderAddress = "/Users/zhaoou/Desktop/課題1_TL拡張/TL検証/1_Uncertainty_vs_Error"
 
     #plot_MAE_CDF(outputFileAddress, targetFileAddress, referenceFileAddress, needPNG=True, needSVG=False)
     #plot_dynamic_clustering_high_error_heatmap(outputFileAddress, targetFileAddress, fix_longitude, fix_latitude, mae_threshold=4.79, n_clusters=3, needPNG=True, needSVG=False)
-    plot_vertical_stacked_environment_boxplots(outputFileAddress, targetFileAddress, fix_longitude, fix_latitude, needPNG=True, needSVG=False)
-
+    #plot_vertical_stacked_environment_boxplots(outputFileAddress, targetFileAddress, fix_longitude, fix_latitude, needPNG=True, needSVG=False)
+    #plot_Uncertainty_Prediction_Error(folderAddress, needPNG=True, needSVG=True)
+    #plot_High_Error_Probability(folderAddress, needPNG=True, needSVG=True)
+    #plot_Quantile_Uncertainty_Error(folderAddress, needPNG=True, needSVG=True)
+    plot_Quantile_High_Error_Rate(folderAddress, 12, needPNG=True, needSVG=True)
     return
 
 
+
+
+
 if __name__ == "__main__":
-    import sys
+    import sys,os
     main() 
