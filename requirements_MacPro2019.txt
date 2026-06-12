@@ -83,3 +83,5 @@ Werkzeug==3.1.8
 wrapt==2.1.2
 scikit-learn
 dill
+dask
+dask[distributed]
