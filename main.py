@@ -259,7 +259,8 @@ def worker_thread(coords):
             "DB_matumotoCity": "database/nagano_matumoto_shinndai",
             "DB_kouchi_kamishi": "database/kouchi_kami",
             "DB_kouchi_shimanntoucyou": "database/kouchi_shimanntoucyou",
-            "DB_kanagawa_yokosukashi": "database/kanagawa_yokosuka"
+            "DB_kanagawa_yokosukashi": "database/kanagawa_yokosuka",
+            "DB_nagano_urugimura": "database/nagano_urugimura"
         }
         db_key = coords.get('database')
         relative_path = DATABASE_MAP.get(db_key)
@@ -336,6 +337,8 @@ def worker_thread_modelGen(api_instance, coords):
         # 转移学习方法
         if coords['model'] == "NICT_latest_model":
             selected_predict_model = subFun.get_gpkg_files(os.path.join(APP_ROOT, "models"), "*NICT*")
+        if coords['model'] == "customized_model":
+            selected_predict_model = select_custom_model_file(window)
         contentReadDataIndex = subFun.get_ML_files(selected_folder_csv, "ML_myTempExp_*")
         window.evaluate_js("updateProgress(10, '時間かかりますが、転移学習によるモデル生成を実行中...')")
         try:

@@ -260,6 +260,7 @@
                                         <option value="DB_kouchi_kamishi">高知県香美市</option>
                                         <option value="DB_kouchi_shimanntoucyou">高知県四万十町</option>
                                         <option value="DB_kanagawa_yokosukashi">神奈川県横須賀市</option>
+                                        <option value="DB_nagano_urugimura">長野県売木村</option>
                                     </select>
                                 </div>
 
@@ -562,6 +563,7 @@
                                     <select id="m-model" name="m-model" onchange="m_handleModelChange()" required disabled>
                                         <option value="noModel">新規モデル</option>
                                         <option value="NICT_latest_model">汎用モデルM0（NICT信州大202605）</option>
+                                        <option value="customized_model">カスタムモデル</option>
                                     </select>
                                 </div>
 
@@ -1053,6 +1055,8 @@
                 openMap([33.18537516997172, 133.04670429251874], 12, true);
             } else if (databaseValue === "DB_kanagawa_yokosukashi") {
                 openMap([35.22331491024992, 139.67415715571389], 14, true);
+            } else if (databaseValue === "DB_nagano_urugimura") {
+                openMap([35.27004166, 137.7153306], 14, true);
             } else {
                 openMap([35.6895, 139.6917], 12, false);
             }

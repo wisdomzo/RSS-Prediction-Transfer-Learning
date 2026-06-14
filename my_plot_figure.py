@@ -162,8 +162,6 @@ def plot_MAE_CDF(output_file_path,targetFileAddress, referenceFileAddress=None, 
     return
 
 
-
-
 def plot_dynamic_clustering_high_error_heatmap(outputFileAddress, file_path, fix_longitude, fix_latitude, mae_threshold=5.0, n_clusters=6, needPNG=True, needSVG=False):
     """
     仅针对 MAE 大于指定阈值的恶性样本点进行自适应空间环境聚类并绘制热力图
@@ -304,7 +302,6 @@ def plot_dynamic_clustering_high_error_heatmap(outputFileAddress, file_path, fix
     print(f"🎉 恶性长尾分析热力图成功导出为 {out_name}.png/.svg")
 
 
-
 def plot_vertical_stacked_environment_boxplots(outputFileAddress, file_path, fix_longitude, fix_latitude, needPNG=True, needSVG=False):
     # 1. 锁死出版级图表通用 RC 参数（Helvetica + 严谨字号阶梯）
     plt.rcParams['font.family'] = 'sans-serif'
@@ -424,10 +421,6 @@ def plot_vertical_stacked_environment_boxplots(outputFileAddress, file_path, fix
     plt.close()
     
     print(f"🎉 纵向堆叠多维箱线图绘制成功！已导出为 {out_name}.png/.svg")
-
-
-
-
 
 
 def plot_Uncertainty_Prediction_Error(folderAddress, needPNG, needSVG):
@@ -607,7 +600,6 @@ def plot_Uncertainty_Prediction_Error(folderAddress, needPNG, needSVG):
     print(df_920['Uncertainty_Group'].value_counts().sort_index())
 
 
-
 def plot_High_Error_Probability(folderAddress, needPNG, needSVG):
     # ========================================================
     # 1. 全局配置高保真纸张字体与科研规格（严格匹配你的标准）
@@ -762,8 +754,6 @@ def plot_High_Error_Probability(folderAddress, needPNG, needSVG):
         print(f"区间 [{label}]:")
         print(f"  - 220 MHz 样本高误差概率: {prob_220[i]:.2f}%")
         print(f"  - 920 MHz 样本高误差概率: {prob_920[i]:.2f}%")
-
-
 
 
 def plot_Quantile_Uncertainty_Error(folderAddress, needPNG, needSVG):
@@ -951,9 +941,6 @@ def plot_Quantile_Uncertainty_Error(folderAddress, needPNG, needSVG):
     print(df_920['Uncertainty_Group'].value_counts().sort_index())
 
 
-
-
-
 def plot_Quantile_High_Error_Rate(folderAddress, rho, needPNG, needSVG):
     """
     统计不同频段在 Uncertainty 分位数区间内，Absolute_Error 超过 rho 的样本比例。
@@ -986,8 +973,8 @@ def plot_Quantile_High_Error_Rate(folderAddress, rho, needPNG, needSVG):
     # ========================================================
     # 2. 数据读取与并行处理逻辑（220MHz 与 920MHz）
     # ========================================================
-    file_path_220 = os.path.join(folderAddress, "predict_RSS_M0_220.csv")
-    file_path_920 = os.path.join(folderAddress, "predict_RSS_M0_920.csv")
+    file_path_220 = os.path.join(folderAddress, "predict_RSS_M0_220_10.csv")
+    file_path_920 = os.path.join(folderAddress, "predict_RSS_M0_920_10.csv")
     
     if not os.path.exists(file_path_220) or not os.path.exists(file_path_920):
         print(f"Error: Make sure both M0_220.csv and M0_920.csv exist in {folderAddress}")
@@ -1009,8 +996,8 @@ def plot_Quantile_High_Error_Rate(folderAddress, rho, needPNG, needSVG):
     # ========================================================
     def compute_high_error_rates(df):
         # 自动获取当前频段数据的 20% 和 80% 分位数边界值
-        q20 = df['Uncertainty'].quantile(0.3)
-        q80 = df['Uncertainty'].quantile(0.7)
+        q20 = df['Uncertainty'].quantile(0.2)
+        q80 = df['Uncertainty'].quantile(0.8)
         bins = [-float('inf'), q20, q80, float('inf')]
         
         df['Uncertainty_Group'] = pd.cut(df['Uncertainty'], bins=bins, labels=custom_labels, include_lowest=True)
@@ -1130,6 +1117,381 @@ def plot_Quantile_High_Error_Rate(folderAddress, rho, needPNG, needSVG):
         print(f"  - 920 MHz 占比: {filtered_rates_920[i]:.2f}% (区间总数: {counts_920[i]})")
 
 
+def plot_Top_Quantile_High_Error_Trend(folderAddress, rho, needPNG, needSVG):
+    """
+    统计 920MHz 频段在不同 Top 不确定性累积区间内（Top 10% - 100%），
+    Absolute_Error 超过 rho 的样本比例趋势。
+    
+    参数:
+    - folderAddress: 数据文件夹路径
+    - rho: 绝对误差阈值 (dB)
+    - needPNG: 是否保存 PNG
+    - needSVG: 是否保存 SVG
+    """
+    # ========================================================
+    # 1. 全局配置高保真纸张字体与科研规格（严格匹配你的标准）
+    # ========================================================
+    plt.rcParams['font.family'] = 'sans-serif'
+    plt.rcParams['font.sans-serif'] = ['Helvetica', 'Arial', 'DejaVu Sans']
+
+    # 严格执行 7pt / 5pt 的紧凑科研字号，避免文字过大挤压空间
+    plt.rcParams['font.size'] = 7
+    plt.rcParams['axes.labelsize'] = 7
+    plt.rcParams['axes.titlesize'] = 7
+    plt.rcParams['xtick.labelsize'] = 7
+    plt.rcParams['ytick.labelsize'] = 7
+    plt.rcParams['legend.fontsize'] = 5 
+
+    # 设定精确的物理画布尺寸 (mm 转换为 inch)
+    width_inch = 80 / 25.4
+    height_inch = 56.56 / 25.4
+    plt.rcParams['svg.fonttype'] = 'none'
+
+    # ========================================================
+    # 2. 数据读取与处理逻辑（仅读取 920MHz 数据）
+    # ========================================================
+    file_path_920 = os.path.join(folderAddress, "predict_RSS_exp23.csv")
+    
+    if not os.path.exists(file_path_920):
+        print(f"Error: File not found at {file_path_920}")
+        return
+
+    # 读取并计算绝对误差
+    df = pd.read_csv(file_path_920)
+    df['Absolute_Error'] = (df['RSSI'] - df['Predicted_Value']).abs()
+
+    # ========================================================
+    # 3. 核心统计逻辑：计算 Top 10% 到 Top 100% 的累积高误率
+    # ========================================================
+    # 定义 Top 梯队百分比：10%, 20%, 30%, ..., 100%
+    top_percentages = np.arange(10, 110, 10)
+    rates_920 = []
+    counts_920 = []
+    x_labels = [f'Top {p}%' for p in top_percentages]
+
+    for p in top_percentages:
+        # 计算当前分位数阈值。注意：Uncertainty 越大代表不确定性越高
+        # Top 10% 意味着不确定性处于前 10% 的高风险样本（即大于 90% 分位数的样本）
+        quantile_threshold = df['Uncertainty'].quantile(1.0 - (p / 100.0))
+        
+        # 筛选出 Uncertainty 大于等于该阈值的子集
+        sub_df = df[df['Uncertainty'] >= quantile_threshold]
+        total_samples = len(sub_df)
+        counts_920.append(total_samples)
+        
+        if total_samples > 0:
+            high_error_count = len(sub_df[sub_df['Absolute_Error'] > rho])
+            rates_920.append((high_error_count / total_samples) * 100)
+        else:
+            rates_920.append(0.0)
+
+    # ========================================================
+    # 4. 开始绘制纯 matplotlib 趋势折线图
+    # ========================================================
+    fig, ax = plt.subplots(figsize=(width_inch, height_inch), dpi=300)
+
+    # 精选学术沉稳深蓝系，配置精致微型标记
+    color_line = '#2171b5'  # Royal Blue
+    
+    ax.plot(
+        x_labels, 
+        rates_920, 
+        color=color_line, 
+        linestyle='-', 
+        linewidth=1.0, 
+        marker='o', 
+        markersize=2.5, 
+        markerfacecolor=color_line, 
+        markeredgecolor='white', 
+        markeredgewidth=0.4,
+        label='920 MHz'
+    )
+
+    # ========================================================
+    # 5. 图表细节修饰（无 Title 且极限压紧空间）
+    # ========================================================
+    ax.set_xlabel('Uncertainty Thresholds (Cumulative)', labelpad=2)
+    ax.set_ylabel(f'Ratio of Error > {rho} dB (%)', labelpad=2)
+
+    # 旋转横轴长文本标签以防挤压，紧凑对齐
+    ax.set_xticklabels(x_labels, rotation=30, ha='right')
+    
+    # 优化 X 轴两端留白，防止首尾数据点贴墙
+    ax.set_xlim(-0.4, len(x_labels) - 0.6)
+    
+    # 纵轴留出合适冗余防遮挡图例
+    max_rate = max(rates_920) if rates_920 else 0
+    ax.set_ylim(0, min(105, max_rate + 20) if max_rate > 0 else 105)
+    
+    # 细化横向网格参考线
+    ax.grid(axis='both', linestyle='--', linewidth=0.5, alpha=0.4)
+
+    # 紧凑图例设计
+    ax.legend(
+        loc='upper right', 
+        frameon=True, 
+        edgecolor='#e0e0e0',
+        fancybox=False,
+        borderpad=0.3,       
+        labelspacing=0.3     
+    )
+
+    # ========================================================
+    # 6. 极致余白压缩与精确保存
+    # ========================================================
+    # bottom=0.18 稍微为旋转后的 X 轴标签留出呼吸空间，top=0.96 顶满上方
+    plt.subplots_adjust(left=0.12, right=0.97, top=0.96, bottom=0.18)
+
+    filename = f'Top_Quantile_High_Error_Trend_rho_{rho}'
+    svg_output = os.path.join(folderAddress, f'{filename}.svg')
+    png_output = os.path.join(folderAddress, f'{filename}.png')
+    
+    save_props = {'dpi': 300, 'bbox_inches': 'tight', 'pad_inches': 0.012}
+    
+    if needSVG:
+        plt.savefig(svg_output, format='svg', **save_props)
+    if needPNG:
+        plt.savefig(png_output, **save_props)
+    
+    plt.show()
+
+    # ========================================================
+    # 7. 控制台打印数值报告（便于直接复制进正文或表格）
+    # ========================================================
+    print(f"\n--- 统计报告：920MHz 累积不确定性梯队 (Error > {rho} dB) ---")
+    for i, label in enumerate(x_labels):
+        print(f"区间 [{label}]: 占比 = {rates_920[i]:.2f}% (该累积集总样本数: {counts_920[i]})")
+
+
+def plot_Uncertainty_High_Error_Distribution(folderAddress, needPNG, needSVG):
+    """
+    针对 920MHz 频段，统计 Top 10% 最大误差样本在不同不确定性梯队（按从大到小每10%切分）中的分布比例。
+    """
+    # ========================================================
+    # 1. 全局配置高保真纸张字体与科研规格（严格匹配你的标准）
+    # ========================================================
+    plt.rcParams['font.family'] = 'sans-serif'
+    plt.rcParams['font.sans-serif'] = ['Helvetica', 'Arial', 'DejaVu Sans']
+
+    # 严格执行 7pt / 5pt 的紧凑科研字号，避免文字过大挤压空间
+    plt.rcParams['font.size'] = 7
+    plt.rcParams['axes.labelsize'] = 7
+    plt.rcParams['axes.titlesize'] = 7
+    plt.rcParams['xtick.labelsize'] = 7
+    plt.rcParams['ytick.labelsize'] = 7
+    plt.rcParams['legend.fontsize'] = 5 
+
+    # 设定精确的物理画布尺寸 (mm 转换为 inch)
+    width_inch = 80 / 25.4
+    height_inch = 56.56 / 25.4
+    plt.rcParams['svg.fonttype'] = 'none'
+
+    # ========================================================
+    # 2. 数据读取与处理逻辑（读取 920MHz 数据）
+    # ========================================================
+    file_path_920 = os.path.join(folderAddress, "predict_RSS_exp23.csv")
+    
+    if not os.path.exists(file_path_920):
+        print(f"Error: File not found at {file_path_920}")
+        return
+
+    # 读取并计算绝对误差
+    df = pd.read_csv(file_path_920)
+    df['Absolute_Error'] = (df['RSSI'] - df['Predicted_Value']).abs()
+
+    # ========================================================
+    # 3. 核心数学统计（完全对应你的3个功能需求）
+    # ========================================================
+    # 功能 (1)：找到全体数据中 Top 10% 的最大误差阈值 (即 90% 分位数边界)
+    error_threshold = df['Absolute_Error'].quantile(0.90)
+
+    # 功能 (2)：统计大于 10% Top 误差的总样本数
+    high_error_df = df[df['Absolute_Error'] > error_threshold]
+    total_high_error_count = len(high_error_df)
+    
+    if total_high_error_count == 0:
+        print("Error: Total high error count is 0. Check your dataset variance.")
+        return
+
+    # 功能 (3)：将【Uncertainty】从大到小降序排列
+    df_sorted = df.sort_values(by='Uncertainty', ascending=False).reset_index(drop=True)
+    total_samples = len(df_sorted)
+
+    # 准备进行每 10% 样本量的分桶统计
+    ratios = []
+    x_labels = [f'{i*10}-{(i+1)*10}%' for i in range(10)]
+    
+    # 动态计算每 10% 区间对应的行索引边界（精确到单条数据，防止四舍五入丢样本）
+    for i in range(10):
+        start_idx = int(np.floor(i * 0.1 * total_samples))
+        end_idx = int(np.floor((i + 1) * 0.1 * total_samples)) if i < 9 else total_samples
+        
+        # 截取当前不确定性梯队的子集
+        sub_chunk = df_sorted.iloc[start_idx:end_idx]
+        
+        # 统计当前梯队中绝对误差大于 Top 10% 阈值的样本数
+        sub_high_error_count = len(sub_chunk[sub_chunk['Absolute_Error'] > error_threshold])
+        
+        # 计算该数占“大于10%top误差总数”的比例
+        chunk_ratio = (sub_high_error_count / total_high_error_count) * 100
+        ratios.append(chunk_ratio)
+
+    # ========================================================
+    # 4. 开始绘制纯 matplotlib 紧凑型分布柱状图
+    # ========================================================
+    fig, ax = plt.subplots(figsize=(width_inch, height_inch), dpi=300)
+
+    # 选用 920MHz 专属的沉稳学术深蓝
+    color_bar = '#2171b5'  
+    
+    x_indices = np.arange(len(x_labels))
+    bar_width = 0.6  # 单单根柱子，稍微放宽增强视觉可读性
+
+    bars = ax.bar(
+        x_indices, 
+        ratios, 
+        width=bar_width, 
+        color=color_bar, 
+        edgecolor='#082a4d', 
+        linewidth=0.5, 
+        label='920 MHz'
+    )
+
+    # ========================================================
+    # 5. 图表细节修饰（无 Title 且极限压紧空间）
+    # ========================================================
+    ax.set_xlabel('Uncertainty Strata (From High to Low)', labelpad=2)
+    ax.set_ylabel('Percentage of Top 10% Errors (%)', labelpad=2)
+
+    # 旋转 X 轴标签以防微型图表重叠， ha='right' 精确右对齐
+    ax.set_xticks(x_indices)
+    ax.set_xticklabels(x_labels, rotation=30, ha='right')
+    
+    # 紧凑优化边缘留白
+    ax.set_xlim(-0.5, len(x_labels) - 0.5)
+    
+    # 动态增高 Y 轴上限，防止柱子触顶压迫左上角图例
+    max_ratio = max(ratios) if ratios else 0
+    ax.set_ylim(0, min(105, max_ratio + 12) if max_ratio > 0 else 105)
+    
+    # 细化网格参考线
+    ax.grid(axis='y', linestyle='--', linewidth=0.5, alpha=0.5)
+
+    # 极其小巧的科研图例
+    ax.legend(
+        loc='upper right', 
+        frameon=True, 
+        edgecolor='#e0e0e0',
+        fancybox=False,
+        borderpad=0.3,       
+        labelspacing=0.3     
+    )
+
+    # ========================================================
+    # 6. 极致余白压缩与精确画布保存
+    # ========================================================
+    # bottom=0.18 完美预留给旋转后的不确定性阶梯文本，top=0.96 顶满上方
+    plt.subplots_adjust(left=0.12, right=0.97, top=0.96, bottom=0.18)
+
+    filename = 'Uncertainty_Top10_Error_Distribution'
+    svg_output = os.path.join(folderAddress, f'{filename}.svg')
+    png_output = os.path.join(folderAddress, f'{filename}.png')
+    
+    save_props = {'dpi': 300, 'bbox_inches': 'tight', 'pad_inches': 0.012}
+    
+    if needSVG:
+        plt.savefig(svg_output, format='svg', **save_props)
+    if needPNG:
+        plt.savefig(png_output, **save_props)
+    
+    plt.show()
+
+    # ========================================================
+    # 7. 控制台输出审查报告（撰写论文时可直接引用这些核心结论）
+    # ========================================================
+    print(f"\n================ 统计分析审查报告 ================")
+    print(f"1. 整体样本总量: {total_samples} 条")
+    print(f"2. 全局 Top 10% 最大绝对误差阈值 (E_top10): {error_threshold:.4f} dB")
+    print(f"3. 绝对误差严格大于该阈值的总样本数 (N_total_high): {total_high_error_count} 条")
+    print(f"4. 大误差样本在【不确定性降序阶梯】中的分布比例:")
+    for i, label in enumerate(x_labels):
+        actual_count = int(round((ratios[i] / 100) * total_high_error_count))
+        print(f"   梯队 [{label}]: 占比 = {ratios[i]:.2f}% (含高误差样本数: {actual_count} 条)")
+    print(f"==================================================")
+
+
+def split_dataset_by_uncertainty(folderAddress, fileName="predict_RSS.csv"):
+    """
+    针对指定的 CSV 数据集，按照 Uncertainty 的三种模式（高、低、随机）
+    切分出前 10% 作为 fine-tuning (ft) 集，剩余 90% 作为 test 集。
+    
+    参数:
+    - folderAddress: 数据集所在的文件夹路径
+    - fileName: 数据集文件名，默认为 'predict_RSS.csv'
+    """
+    # ========================================================
+    # 1. 读取原始数据并进行基础校验
+    # ========================================================
+    file_path = os.path.join(folderAddress, fileName)
+    if not os.path.exists(file_path):
+        print(f"Error: File not found at {file_path}")
+        return
+
+    df = pd.read_csv(file_path)
+    total_samples = len(df)
+    
+    if total_samples == 0:
+        print("Error: The input CSV file is empty.")
+        return
+
+    # 精确计算 10% 样本量的截断行索引位置（使用 floor 确保索引安全）
+    split_idx = int(np.floor(0.1 * total_samples))
+    if split_idx == 0:
+        split_idx = 1 # 确保数据量极小时至少分出 1 行
+        
+    print(f"--- 数据集基础信息 ---")
+    print(f"总样本数: {total_samples} 行")
+    print(f"切分规格: 前 10% = {split_idx} 行, 剩余 90% = {total_samples - split_idx} 行\n")
+
+    # ========================================================
+    # 功能 (1)：高不确定性切分（Uncertainty 从大到小降序排列）
+    # ========================================================
+    df_high_sorted = df.sort_values(by='Uncertainty', ascending=False).reset_index(drop=True)
+    
+    high_ft_10p = df_high_sorted.iloc[:split_idx]
+    high_test_10p = df_high_sorted.iloc[split_idx:]
+    
+    high_ft_10p.to_csv(os.path.join(folderAddress, "hightUncertainty_ft_10p.csv"), index=False)
+    high_test_10p.to_csv(os.path.join(folderAddress, "hightUncertainty_test_10p.csv"), index=False)
+    print("✓ 成功导出: hightUncertainty_ft_10p.csv & hightUncertainty_test_10p.csv")
+
+    # ========================================================
+    # 功能 (2)：低不确定性切分（Uncertainty 从小到大升序排列）
+    # ========================================================
+    df_low_sorted = df.sort_values(by='Uncertainty', ascending=True).reset_index(drop=True)
+    
+    low_ft_10p = df_low_sorted.iloc[:split_idx]
+    low_test_10p = df_low_sorted.iloc[split_idx:]
+    
+    low_ft_10p.to_csv(os.path.join(folderAddress, "lowUncertainty_ft_10p.csv"), index=False)
+    low_test_10p.to_csv(os.path.join(folderAddress, "lowUncertainty_test_10p.csv"), index=False)
+    print("✓ 成功导出: lowUncertainty_ft_10p.csv & lowUncertainty_test_10p.csv")
+
+    # ========================================================
+    # 功能 (3)：随机切分（不进行任何物理排列，完全随机抽样）
+    # ========================================================
+    # 设定 random_state 确保实验的可重复性（若需要每次运行都完全随机，可将其删去或设为 None）
+    df_random_shuffled = df.sample(frac=1.0, random_state=42).reset_index(drop=True)
+    
+    random_ft_10p = df_random_shuffled.iloc[:split_idx]
+    random_test_10p = df_random_shuffled.iloc[split_idx:]
+    
+    random_ft_10p.to_csv(os.path.join(folderAddress, "randomUncertainty_ft_10p.csv"), index=False)
+    random_test_10p.to_csv(os.path.join(folderAddress, "randomUncertainty_test_10p.csv"), index=False)
+    print("✓ 成功导出: randomUncertainty_ft_10p.csv & randomUncertainty_test_10p.csv")
+    
+    print("\n================ 数据切分任务全部圆满完成 ================")
+
 
 
 def main():
@@ -1177,7 +1539,7 @@ def main():
     targetFileAddress = "/Users/zhaoou/Desktop/課題1_TL拡張/TL検証/920MHz/predict_RSS_FT30.csv"
     referenceFileAddress = "/Users/zhaoou/Desktop/課題1_TL拡張/TL検証/920MHz/predict_RSS_M0_test_30.csv"
     outputFileAddress = "/Users/zhaoou/Downloads/"
-    folderAddress = "/Users/zhaoou/Desktop/課題1_TL拡張/TL検証/1_Uncertainty_vs_Error"
+    folderAddress = "/Users/zhaoou/Desktop/課題1_TL拡張/TL検証/1_Uncertainty_vs_Error/unseen1"
 
     #plot_MAE_CDF(outputFileAddress, targetFileAddress, referenceFileAddress, needPNG=True, needSVG=False)
     #plot_dynamic_clustering_high_error_heatmap(outputFileAddress, targetFileAddress, fix_longitude, fix_latitude, mae_threshold=4.79, n_clusters=3, needPNG=True, needSVG=False)
@@ -1185,7 +1547,10 @@ def main():
     #plot_Uncertainty_Prediction_Error(folderAddress, needPNG=True, needSVG=True)
     #plot_High_Error_Probability(folderAddress, needPNG=True, needSVG=True)
     #plot_Quantile_Uncertainty_Error(folderAddress, needPNG=True, needSVG=True)
-    plot_Quantile_High_Error_Rate(folderAddress, 12, needPNG=True, needSVG=True)
+    #plot_Quantile_High_Error_Rate(folderAddress, 10, needPNG=False, needSVG=False)
+    #plot_Top_Quantile_High_Error_Trend(folderAddress, 10, needPNG=False, needSVG=False)
+    #plot_Uncertainty_High_Error_Distribution(folderAddress, needPNG=False, needSVG=False)
+    split_dataset_by_uncertainty(folderAddress, fileName="predict_RSS.csv")
     return
 
 
