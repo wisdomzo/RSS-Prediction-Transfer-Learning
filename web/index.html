@@ -261,6 +261,8 @@
                                         <option value="DB_kouchi_shimanntoucyou">高知県四万十町</option>
                                         <option value="DB_kanagawa_yokosukashi">神奈川県横須賀市</option>
                                         <option value="DB_nagano_urugimura">長野県売木村</option>
+                                        <option value="DB_okinawa_naha">沖縄県那覇市</option>
+                                        <option value="DB_okinawa_nago">沖縄県名護市</option>
                                     </select>
                                 </div>
 
@@ -563,7 +565,7 @@
                                     <select id="m-model" name="m-model" onchange="m_handleModelChange()" required disabled>
                                         <option value="noModel">新規モデル</option>
                                         <option value="NICT_latest_model">汎用モデルM0（NICT信州大202605）</option>
-                                        <option value="customized_model">カスタムモデル</option>
+                                        <option value="customized_model">カスタムモデルfor転移</option>
                                     </select>
                                 </div>
 
@@ -1057,6 +1059,10 @@
                 openMap([35.22331491024992, 139.67415715571389], 14, true);
             } else if (databaseValue === "DB_nagano_urugimura") {
                 openMap([35.27004166, 137.7153306], 14, true);
+            } else if (databaseValue === "DB_okinawa_naha") {
+                openMap([26.2532089, 127.7658981], 12, true);
+            } else if (databaseValue === "DB_okinawa_nago") {
+                openMap([26.61895, 127.984681], 12, true);
             } else {
                 openMap([35.6895, 139.6917], 12, false);
             }

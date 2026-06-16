@@ -6,6 +6,10 @@ from matplotlib.colors import Normalize
 from sklearn.cluster import KMeans
 from sklearn.preprocessing import StandardScaler
 from scipy.spatial import ConvexHull
+from scipy.stats import norm
+import scipy.stats as stats
+from scipy.spatial.distance import cdist
+from sklearn.cluster import DBSCAN
 
 
 def compute_cdf(data):
@@ -1422,8 +1426,9 @@ def plot_Uncertainty_High_Error_Distribution(folderAddress, needPNG, needSVG):
 
 def split_dataset_by_uncertainty(folderAddress, fileName="predict_RSS.csv"):
     """
-    针对指定的 CSV 数据集，按照 Uncertainty 的三种模式（高、低、随机）
-    切分出前 10% 作为 fine-tuning (ft) 集，剩余 90% 作为 test 集。
+    针对指定的 CSV 数据集，实现：
+    (1) 按 Uncertainty 降序，切分出前10%(High)、后10%(Low)以及剩余80%(Test)。
+    (2) 完全随机切分出 10%(Random FT) 和剩余 90%(Random Test)。
     
     参数:
     - folderAddress: 数据集所在的文件夹路径
@@ -1444,53 +1449,1596 @@ def split_dataset_by_uncertainty(folderAddress, fileName="predict_RSS.csv"):
         print("Error: The input CSV file is empty.")
         return
 
-    # 精确计算 10% 样本量的截断行索引位置（使用 floor 确保索引安全）
-    split_idx = int(np.floor(0.1 * total_samples))
-    if split_idx == 0:
-        split_idx = 1 # 确保数据量极小时至少分出 1 行
+    # 精确计算 10% 样本量的截断行数（使用 floor 确保索引安全）
+    p10_idx = int(np.floor(0.1 * total_samples))
+    if p10_idx == 0:
+        p10_idx = 1 # 基础保护：确保数据量极小时至少分出 1 行
         
     print(f"--- 数据集基础信息 ---")
     print(f"总样本数: {total_samples} 行")
-    print(f"切分规格: 前 10% = {split_idx} 行, 剩余 90% = {total_samples - split_idx} 行\n")
+    print(f"切分规格 (1): 高不确定性前 10% = {p10_idx} 行 | 低不确定性后 10% = {p10_idx} 行 | 剩余中间 80% = {total_samples - 2 * p10_idx} 行")
+    print(f"切分规格 (2): 随机前 10% = {p10_idx} 行 | 随机剩余 90% = {total_samples - p10_idx} 行\n")
 
     # ========================================================
-    # 功能 (1)：高不确定性切分（Uncertainty 从大到小降序排列）
+    # 功能 (1)：确定性排序与三段式切分（10% | 80% | 10%）
     # ========================================================
-    df_high_sorted = df.sort_values(by='Uncertainty', ascending=False).reset_index(drop=True)
+    # 按照 Uncertainty 从大到小降序排列
+    df_sorted = df.sort_values(by='Uncertainty', ascending=False).reset_index(drop=True)
     
-    high_ft_10p = df_high_sorted.iloc[:split_idx]
-    high_test_10p = df_high_sorted.iloc[split_idx:]
+    # 精确截取对应区间
+    high_ft_10p = df_sorted.iloc[:p10_idx]                       # 前 10%
+    uncertainty_test_80p = df_sorted.iloc[p10_idx:-p10_idx]      # 中间 80% (通过负索引安全截取)
+    low_ft_10p = df_sorted.iloc[-p10_idx:]                      # 后 10%
     
+    # 导出 CSV 文件
     high_ft_10p.to_csv(os.path.join(folderAddress, "hightUncertainty_ft_10p.csv"), index=False)
-    high_test_10p.to_csv(os.path.join(folderAddress, "hightUncertainty_test_10p.csv"), index=False)
-    print("✓ 成功导出: hightUncertainty_ft_10p.csv & hightUncertainty_test_10p.csv")
-
-    # ========================================================
-    # 功能 (2)：低不确定性切分（Uncertainty 从小到大升序排列）
-    # ========================================================
-    df_low_sorted = df.sort_values(by='Uncertainty', ascending=True).reset_index(drop=True)
-    
-    low_ft_10p = df_low_sorted.iloc[:split_idx]
-    low_test_10p = df_low_sorted.iloc[split_idx:]
-    
     low_ft_10p.to_csv(os.path.join(folderAddress, "lowUncertainty_ft_10p.csv"), index=False)
-    low_test_10p.to_csv(os.path.join(folderAddress, "lowUncertainty_test_10p.csv"), index=False)
-    print("✓ 成功导出: lowUncertainty_ft_10p.csv & lowUncertainty_test_10p.csv")
+    uncertainty_test_80p.to_csv(os.path.join(folderAddress, "uncertainty_test_10p.csv"), index=False)
+    
+    print("✓ 成功导出排序切分文件:")
+    print("  - hightUncertainty_ft_10p.csv")
+    print("  - lowUncertainty_ft_10p.csv")
+    print("  - uncertainty_test_10p.csv")
 
     # ========================================================
-    # 功能 (3)：随机切分（不进行任何物理排列，完全随机抽样）
+    # 功能 (2)：不进行任何物理排序，纯随机切分（10% | 90%）
     # ========================================================
-    # 设定 random_state 确保实验的可重复性（若需要每次运行都完全随机，可将其删去或设为 None）
+    # 设定 random_state=42 确保微调实验的可重复性
     df_random_shuffled = df.sample(frac=1.0, random_state=42).reset_index(drop=True)
     
-    random_ft_10p = df_random_shuffled.iloc[:split_idx]
-    random_test_10p = df_random_shuffled.iloc[split_idx:]
+    random_ft_10p = df_random_shuffled.iloc[:p10_idx]
+    random_test_10p = df_random_shuffled.iloc[p10_idx:]
     
+    # 导出 CSV 文件
     random_ft_10p.to_csv(os.path.join(folderAddress, "randomUncertainty_ft_10p.csv"), index=False)
     random_test_10p.to_csv(os.path.join(folderAddress, "randomUncertainty_test_10p.csv"), index=False)
-    print("✓ 成功导出: randomUncertainty_ft_10p.csv & randomUncertainty_test_10p.csv")
+    
+    print("\n✓ 成功导出随机切分文件:")
+    print("  - randomUncertainty_ft_10p.csv")
+    print("  - randomUncertainty_test_10p.csv")
     
     print("\n================ 数据切分任务全部圆满完成 ================")
+
+
+
+
+
+def plot_Four_Scenarios_Error_CDF(folderAddress, needPNG, needSVG):
+    """
+    读取四个指定切分场景的 CSV 文件，计算其绝对误差并绘制学术级对比 CDF 图。
+    
+    包含的文件：
+    1. predict_RSS_beforeFT.csv (微调前基准)
+    2. predict_RSS_height.csv   (高不确定性微调后)
+    3. predict_RSS_low.csv      (低不确定性微调后)
+    4. predict_RSS_random_42.csv   (随机不确定性微调后)
+    5. predict_RSS_proposal.csv   (高不确定性+多样性微调后)
+    """
+    # ========================================================
+    # 1. 全局配置高保真纸张字体与科研规格（严格匹配你的标准）
+    # ========================================================
+    plt.rcParams['font.family'] = 'sans-serif'
+    plt.rcParams['font.sans-serif'] = ['Helvetica', 'Arial', 'DejaVu Sans']
+
+    # 严格执行 7pt / 5pt 的紧凑科研字号
+    plt.rcParams['font.size'] = 7
+    plt.rcParams['axes.labelsize'] = 7
+    plt.rcParams['axes.titlesize'] = 7
+    plt.rcParams['xtick.labelsize'] = 7
+    plt.rcParams['ytick.labelsize'] = 7
+    plt.rcParams['legend.fontsize'] = 5 
+
+    # 设定精确的物理画布尺寸 (mm 转换为 inch) -> 标准单栏微型图
+    width_inch = 80 / 25.4
+    height_inch = 56.56 / 25.4
+    plt.rcParams['svg.fonttype'] = 'none'
+
+    # ========================================================
+    # 2. 定义文件配置映射（物理文件名、图例标签、颜色、线型）
+    # ========================================================
+    file_configs = [
+        {
+            'filename': 'predict_RSS_beforeFT.csv',
+            'label': 'Before FT (Base)',
+            'color': "#000000",       # 黑基准线
+            'linestyle': '--'         # 虚线代表未微调
+        },
+        {
+            'filename': 'predict_RSS_low.csv',
+            'label': 'After FT (Low)',
+            'color': '#002FA7',       # 浅绿
+            'linestyle': '-'
+        },
+        {
+            'filename': 'predict_RSS_random_42.csv',
+            'label': 'After FT (Random 42)',
+            'color': '#6ECC54',       # 橙色
+            'linestyle': '-'
+        },
+        {
+            'filename': 'predict_RSS_hight.csv',
+            'label': 'After FT (High)',
+            'color': '#EB5C20',       # 沉稳学术蓝（期望中最优的曲线）
+            'linestyle': '-'
+        },
+        {
+            'filename': 'predict_RSS_proposal.csv',
+            'label': 'After FT (Proposal)',
+            'color': '#C8161D',
+            'linestyle': '-'
+        }
+    ]
+
+    # ========================================================
+    # 3. 开始创建 matplotlib 画布
+    # ========================================================
+    fig, ax = plt.subplots(figsize=(width_inch, height_inch), dpi=300)
+    
+    print("--- CDF 统计分析审查中 ---")
+    valid_plots = 0
+
+    # ========================================================
+    # 4. 循环读取、计算绝对误差并绘制 CDF 曲线
+    # ========================================================
+    for cfg in file_configs:
+        file_path = os.path.join(folderAddress, cfg['filename'])
+        
+        if not os.path.exists(file_path):
+            print(f"Warning: File not found: {cfg['filename']}, skipped.")
+            continue
+            
+        # 读取数据
+        df = pd.read_csv(file_path)
+        if len(df) == 0:
+            print(f"Warning: File is empty: {cfg['filename']}, skipped.")
+            continue
+            
+        # 计算绝对误差 (Absolute Error)
+        abs_error = (df['RSSI'] - df['Predicted_Value']).abs().dropna().values
+        
+        # 核心数学逻辑：计算 CDF
+        sorted_error = np.sort(abs_error)
+        cdf_y = np.arange(1, len(sorted_error) + 1) / len(sorted_error)
+        
+        # 绘制该场景的 CDF 趋势线
+        ax.plot(
+            sorted_error, 
+            cdf_y, 
+            label=cfg['label'], 
+            color=cfg['color'], 
+            linestyle=cfg['linestyle'],
+            linewidth=1.0
+        )
+        
+        # 顺便计算并打印中位数误差(50% CDF)，方便你在论文文字里描述
+        median_err = np.median(abs_error)
+        print(f"✓ 成功加载 {cfg['filename']}: 样本数 = {len(abs_error)}, 中位数误差 = {median_err:.2f} dB")
+        valid_plots += 1
+
+    if valid_plots == 0:
+        print("Error: No valid data files were found to plot. Check folder path.")
+        return
+
+    # ========================================================
+    # 5. 图表细节修饰（无 Title 且极限压紧空间）
+    # ========================================================
+    ax.set_xlabel('Absolute Error in dB', labelpad=2)
+    ax.set_ylabel('CDF', labelpad=2)
+
+    # 严谨的 CDF 坐标范围控制（从0到1）
+    ax.set_ylim(0, 1.02)
+    ax.set_xlim(0, None)  # 误差从0开始，右边界自适应
+    
+    # 细化网格参考线
+    ax.grid(axis='both', linestyle='--', linewidth=0.5, alpha=0.4)
+
+    # 严谨的论文右下角（或左上角）小图例，这里设在右下角防止挡住 CDF 曲线抬头
+    ax.legend(
+        loc='lower right', 
+        frameon=True, 
+        edgecolor='#e0e0e0',
+        fancybox=False,
+        borderpad=0.3,       
+        labelspacing=0.3     
+    )
+
+    # ========================================================
+    # 6. 极致余白压缩与精确画布保存
+    # ========================================================
+    # top=0.96 完全释放 Title 占用的空间，实现紧凑度最大化
+    plt.subplots_adjust(left=0.12, right=0.97, top=0.96, bottom=0.14)
+
+    filename = 'Four_Scenarios_Error_CDF'
+    svg_output = os.path.join(folderAddress, f'{filename}.svg')
+    png_output = os.path.join(folderAddress, f'{filename}.png')
+    
+    save_props = {'dpi': 300, 'bbox_inches': 'tight', 'pad_inches': 0.012}
+    
+    if needSVG:
+        plt.savefig(svg_output, format='svg', **save_props)
+    if needPNG:
+        plt.savefig(png_output, **save_props)
+    
+    plt.show()
+    print("================ CDF 绘图任务圆满完成 ================")
+
+
+
+
+
+
+def plot_Normalized_Uncertainty_CDF(file_path, needPNG=True, needSVG=True):
+    """
+    读取指定的 CSV 文件，对 'Uncertainty' 列进行 Z-score 标准化，
+    并绘制其实际 CDF 与标准正态分布理论 CDF 的对比图。
+    
+    参数:
+    - file_path: CSV 文件的完整绝对或相对路径
+    - needPNG: 是否保存 300 DPI PNG 图像
+    - needSVG: 是否保存完全可编辑的 SVG 矢量图
+    """
+    # ========================================================
+    # 1. 全局配置高保真纸张字体与科研规格（严格匹配你的标准）
+    # ========================================================
+    plt.rcParams['font.family'] = 'sans-serif'
+    plt.rcParams['font.sans-serif'] = ['Helvetica', 'Arial', 'DejaVu Sans']
+
+    # 严格执行 7pt / 5pt 的紧凑科研字号，确保小图表空间利用率最大化
+    plt.rcParams['font.size'] = 7
+    plt.rcParams['axes.labelsize'] = 7
+    plt.rcParams['axes.titlesize'] = 7
+    plt.rcParams['xtick.labelsize'] = 7
+    plt.rcParams['ytick.labelsize'] = 7
+    plt.rcParams['legend.fontsize'] = 5 
+
+    # 设定精确的物理画布尺寸 (80mm * 56.56mm 转换为 inch)
+    width_inch = 80 / 25.4
+    height_inch = 56.56 / 25.4
+    plt.rcParams['svg.fonttype'] = 'none' # 保证导出的 SVG 文字保持文本属性可直接编辑
+
+    # ========================================================
+    # 2. 数据读取与 Z-score 标准化处理
+    # ========================================================
+    if not os.path.exists(file_path):
+        print(f"Error: File not found at {file_path}")
+        return
+
+    # 读取数据
+    df = pd.read_csv(file_path)
+    if 'Uncertainty' not in df.columns:
+        print("Error: 'Uncertainty' column not found in the CSV file.")
+        return
+        
+    # 剔除空值并提取数据
+    uncertainty_data = df['Uncertainty'].dropna().values
+    total_samples = len(uncertainty_data)
+    
+    if total_samples == 0:
+        print("Error: 'Uncertainty' column has no valid numerical data.")
+        return
+
+    # 核心数学转换：Z-score 标准化 (X - mu) / sigma
+    mean_val = np.mean(uncertainty_data)
+    std_val = np.std(uncertainty_data)
+    
+    if std_val == 0:
+        print("Error: Standard deviation is 0, cannot perform Z-score normalization.")
+        return
+        
+    normalized_data = (uncertainty_data - mean_val) / std_val
+
+    # ========================================================
+    # 3. 核心数学逻辑：计算实际数据的 CDF 与 理论正态分布 CDF
+    # ========================================================
+    # 实际数据的 CDF 计算
+    sorted_data = np.sort(normalized_data)
+    actual_cdf_y = np.arange(1, total_samples + 1) / total_samples
+
+    # 理论标准正态分布 (mu=0, sigma=1) 的 CDF 计算
+    # 产生覆盖标准正态核心分布区 (-4 到 +4) 的密集横坐标点
+    theoretical_x = np.linspace(-4.0, 4.0, 500)
+    theoretical_cdf_y = norm.cdf(theoretical_x)
+
+    # ========================================================
+    # 4. 开始创建 matplotlib 画布并绘图
+    # ========================================================
+    fig, ax = plt.subplots(figsize=(width_inch, height_inch), dpi=300)
+
+    # 绘制理论标准正态分布参照线（灰色虚线基准）
+    ax.plot(
+        theoretical_x, 
+        theoretical_cdf_y, 
+        label='Standard Normal Distribution', 
+        color='#7f7f7f', 
+        linestyle='--', 
+        linewidth=0.8
+    )
+
+    # 绘制实际标准化的 Uncertainty CDF 曲线（沉稳学术蓝）
+    ax.plot(
+        sorted_data, 
+        actual_cdf_y, 
+        label='Normalized Uncertainty', 
+        color='#2171b5', 
+        linestyle='-', 
+        linewidth=1.2
+    )
+
+    # ========================================================
+    # 5. 图表细节修饰（无 Title 且极限压紧空间）
+    # ========================================================
+    ax.set_xlabel('Standardized Value (Z-score)', labelpad=2)
+    ax.set_ylabel('CDF', labelpad=2)
+
+    # 严格控制坐标轴物理极限范围
+    #ax.set_xlim(-4.0, 4.0) # 标准正态分布在正负4倍标准差外基本为0和1
+    ax.set_ylim(0, 1.02)
+    
+    # 开启全向微型网格线
+    ax.grid(axis='both', linestyle='--', linewidth=0.5, alpha=0.4)
+
+    # 精确放置左上角（或右下角）的小型论文图例
+    ax.legend(
+        loc='upper left', 
+        frameon=True, 
+        edgecolor='#e0e0e0',
+        fancybox=False,
+        borderpad=0.3,       
+        labelspacing=0.3     
+    )
+
+    # ========================================================
+    # 6. 极致余白压缩与精确画布保存
+    # ========================================================
+    # top=0.96 完全干掉 Title 占用的所有上部白边
+    plt.subplots_adjust(left=0.12, right=0.97, top=0.96, bottom=0.14)
+
+    # 自动解析输入路径，将输出图表保存在 CSV 文件相同的目录下
+    folderAddress = os.path.dirname(file_path)
+    filename = 'Normalized_Uncertainty_CDF_Comparison'
+    
+    svg_output = os.path.join(folderAddress, f'{filename}.svg')
+    png_output = os.path.join(folderAddress, f'{filename}.png')
+    
+    save_props = {'dpi': 300, 'bbox_inches': 'tight', 'pad_inches': 0.012}
+    
+    if needSVG:
+        plt.savefig(svg_output, format='svg', **save_props)
+    if needPNG:
+        plt.savefig(png_output, **save_props)
+    
+    plt.show()
+
+    # ========================================================
+    # 7. 控制台审查报告（便于学术论证与检验）
+    # ========================================================
+    print(f"\n================ 统计分析审查报告 ================")
+    print(f"原始数据总样本数 : {total_samples} 条")
+    print(f"原始 Uncertainty 均值 (μ) : {mean_val:.4f}")
+    print(f"原始 Uncertainty 标准差 (σ): {std_val:.4f}")
+    print(f"标准化后检测结果 : 均值 ≈ {np.mean(sorted_data):.1f}, 标准差 ≈ {np.std(sorted_data):.1f}")
+    print(f"==================================================")
+
+
+
+
+def plot_Uncertainty_QQ_Plot(file_path, use_standardized=True, needPNG=True, needSVG=True):
+    """
+    读取指定的 CSV 文件，提取 'Uncertainty' 列，绘制学术级正态 Q-Q 图。
+    
+    参数:
+    - file_path: CSV 文件的完整路径
+    - use_standardized: True 表示先进行 Z-score 标准化再画 Q-Q 图（散点将围绕 y=x 分布）
+                        False 表示直接用原始尺度（参考线将根据数据的μ和σ自动拟合）
+    - needPNG: 是否保存 300 DPI PNG 图像
+    - needSVG: 是否保存完全可编辑的 SVG 矢量图
+    """
+    # ========================================================
+    # 1. 全局配置高保真纸张字体与科研规格（严格匹配你的标准）
+    # ========================================================
+    plt.rcParams['font.family'] = 'sans-serif'
+    plt.rcParams['font.sans-serif'] = ['Helvetica', 'Arial', 'DejaVu Sans']
+
+    # 严格执行 7pt / 5pt 的紧凑科研字号，确保小图表空间利用率最大化
+    plt.rcParams['font.size'] = 7
+    plt.rcParams['axes.labelsize'] = 7
+    plt.rcParams['axes.titlesize'] = 7
+    plt.rcParams['xtick.labelsize'] = 7
+    plt.rcParams['ytick.labelsize'] = 7
+    plt.rcParams['legend.fontsize'] = 5 
+
+    # 设定精确的物理画布尺寸 (80mm * 56.56mm 转换为 inch) -> 标准单栏小图
+    width_inch = 80 / 25.4
+    height_inch = 56.56 / 25.4
+    plt.rcParams['svg.fonttype'] = 'none' # 保证导出的 SVG 文字保持文本属性可直接编辑
+
+    # ========================================================
+    # 2. 数据读取与前置校验
+    # ========================================================
+    if not os.path.exists(file_path):
+        print(f"Error: File not found at {file_path}")
+        return
+
+    df = pd.read_csv(file_path)
+    if 'Uncertainty' not in df.columns:
+        print("Error: 'Uncertainty' column not found in the CSV file.")
+        return
+        
+    data = df['Uncertainty'].dropna().values
+    if len(data) == 0:
+        print("Error: 'Uncertainty' column has no valid numerical data.")
+        return
+
+    # 根据配置决定是否在绘图前执行 Z-score 标准化
+    if use_standardized:
+        mean_val = np.mean(data)
+        std_val = np.std(data)
+        if std_val > 0:
+            data = (data - mean_val) / std_val
+        else:
+            print("Error: Standard deviation is 0, cannot normalize.")
+            return
+
+    # ========================================================
+    # 3. 开始创建 matplotlib 画布并利用 scipy 计算 Q-Q 数据点
+    # ========================================================
+    fig, ax = plt.subplots(figsize=(width_inch, height_inch), dpi=300)
+
+    # 利用 scipy.stats.probplot 自动化计算理论分位数(osm)与实际分位数(osr)
+    # dist='norm' 代表检验目标为正态分布
+    (osm, osr), (slope, intercept, r) = stats.probplot(data, dist="norm", plot=None)
+
+    # ========================================================
+    # 4. 纯纯的 Matplotlib 精细渲染（抛弃 standard 的粗糙默认样式）
+    # ========================================================
+    # 场景 A：如果用户选了标准化，理论上理想分布就是 y = x 
+    # 场景 B：未标准化，参考线方程为 y = slope * x + intercept
+    x_ref = np.linspace(-4.0, 4.0, 100)
+    if use_standardized:
+        y_ref = x_ref # 完美的 45 度对角线
+        line_label = 'Ideal Normal (y = x)'
+    else:
+        y_ref = slope * x_ref + intercept
+        line_label = f'Fit Line ($R^2$={r**2:.3f})'
+
+    # 绘制理想分布参考线（灰色虚线，符合你的基准线规范）
+    ax.plot(x_ref, y_ref, color='#7f7f7f', linestyle='--', linewidth=0.8, label=line_label)
+
+    # 绘制真实样本分位数散点（沉稳学术蓝，微型半透明粒子防止稠密区重叠）
+    ax.scatter(
+        osm, 
+        osr, 
+        color='#2171b5', 
+        s=1.5,               # 微型颗粒
+        alpha=0.4,           # 半透明叠加，稠密区会自动变深，利于观察分布密度
+        edgecolors='none', 
+        label='Sample Quantiles'
+    )
+
+    # ========================================================
+    # 5. 图表细节修饰（无 Title 且极限压紧空间）
+    # ========================================================
+    ax.set_xlabel('Theoretical Quantiles', labelpad=2)
+    
+    if use_standardized:
+        ax.set_ylabel('Sample Quantiles (Standardized)', labelpad=2)
+        # 标准化后，X与Y物理尺度是对等的，强行锁定1:1纵横比是审稿人的最爱
+        ax.set_aspect('equal', 'box')
+        ax.set_xlim(-4.0, 4.0)
+        ax.set_ylim(-4.0, 4.0)
+    else:
+        ax.set_ylabel('Sample Quantiles (Original)', labelpad=2)
+        ax.set_xlim(-4.0, 4.0)
+        # 未标准化时 Y 轴范围自适应
+
+    # 开启全向微型网格参考线
+    ax.grid(axis='both', linestyle='--', linewidth=0.5, alpha=0.4)
+
+    # 精确放置左上角小型图例
+    ax.legend(
+        loc='upper left', 
+        frameon=True, 
+        edgecolor='#e0e0e0',
+        fancybox=False,
+        borderpad=0.3,       
+        labelspacing=0.3     
+    )
+
+    # ========================================================
+    # 6. 极致余白压缩与精确画布保存
+    # ========================================================
+    # top=0.96 完全干掉 Title 空间
+    plt.subplots_adjust(left=0.12, right=0.97, top=0.96, bottom=0.14)
+
+    folderAddress = os.path.dirname(file_path)
+    mode_str = 'Standardized' if use_standardized else 'Original'
+    filename = f'Uncertainty_QQ_Plot_{mode_str}'
+    
+    svg_output = os.path.join(folderAddress, f'{filename}.svg')
+    png_output = os.path.join(folderAddress, f'{filename}.png')
+    
+    save_props = {'dpi': 300, 'bbox_inches': 'tight', 'pad_inches': 0.012}
+    
+    if needSVG:
+        plt.savefig(svg_output, format='svg', **save_props)
+    if needPNG:
+        plt.savefig(png_output, **save_props)
+    
+    plt.show()
+    
+    print(f"✓ Q-Q 图绘制完成。决定系数 R^2 = {r**2:.4f}")
+
+
+
+def score_based_ud_sampling(
+        df,
+        lat_col='Latitude',
+        lon_col='Longitude',
+        uncertainty_col='Uncertainty',
+        sample_ratio=0.1,
+        alpha=0.7):
+    """
+    Score-based U+D Sampling
+
+    Score =
+        alpha * U
+        +
+        (1-alpha) * D
+
+    U : normalized uncertainty
+    D : normalized diversity
+
+    Returns:
+        selected_df
+    """
+
+    total_samples = len(df)
+
+    select_num = max(
+        int(total_samples * sample_ratio),
+        1
+    )
+
+    df = df.copy().reset_index(drop=True)
+
+    coords = df[[lat_col, lon_col]].values
+
+    uncertainty = df[uncertainty_col].values
+
+    # ==========================
+    # Normalize Uncertainty
+    # ==========================
+
+    u_min = uncertainty.min()
+    u_max = uncertainty.max()
+
+    if u_max == u_min:
+        u_norm = np.ones_like(uncertainty)
+    else:
+        u_norm = (
+            uncertainty - u_min
+        ) / (
+            u_max - u_min
+        )
+
+    # ==========================
+    # First point:
+    # highest uncertainty
+    # ==========================
+
+    first_idx = np.argmax(u_norm)
+
+    selected_idx = [first_idx]
+
+    remaining_idx = list(
+        set(range(total_samples))
+        - set(selected_idx)
+    )
+
+    # ==========================
+    # Greedy Selection
+    # ==========================
+
+    while len(selected_idx) < select_num:
+
+        selected_coords = coords[selected_idx]
+
+        remaining_coords = coords[remaining_idx]
+
+        dist_matrix = cdist(
+            remaining_coords,
+            selected_coords,
+            metric='euclidean'
+        )
+
+        min_dist = dist_matrix.min(axis=1)
+
+        d_min = min_dist.min()
+        d_max = min_dist.max()
+
+        if d_max == d_min:
+            d_norm = np.ones_like(min_dist)
+        else:
+            d_norm = (
+                min_dist - d_min
+            ) / (
+                d_max - d_min
+            )
+
+        u_current = u_norm[remaining_idx]
+
+        score = (
+            alpha * u_current
+            +
+            (1.0 - alpha) * d_norm
+        )
+
+        best_local_idx = np.argmax(score)
+
+        selected_idx.append(
+            remaining_idx[best_local_idx]
+        )
+
+        remaining_idx.pop(best_local_idx)
+
+    selected_df = df.iloc[selected_idx].copy()
+
+    return selected_df
+
+
+def split_dataset_by_uncertainty_v2(
+        folderAddress,
+        fileName="predict_RSS.csv",
+        lat_col="Latitude",
+        lon_col="Longitude",
+        alpha=0.5):
+
+    file_path = os.path.join(
+        folderAddress,
+        fileName
+    )
+
+    df = pd.read_csv(file_path)
+
+    if "SampleID" not in df.columns:
+        df["SampleID"] = np.arange(len(df))
+
+    total_samples = len(df)
+
+    p10_idx = max(
+        int(total_samples * 0.1),
+        1
+    )
+
+    # ==================================
+    # Top10%
+    # ==================================
+
+    df_sorted = df.sort_values(
+        by="Uncertainty",
+        ascending=False
+    )
+
+    high_ft = df_sorted.iloc[:p10_idx]
+
+    # ==================================
+    # Bottom10%
+    # ==================================
+
+    low_ft = df_sorted.iloc[-p10_idx:]
+
+    # ==================================
+    # Random seed = 42
+    # ==================================
+
+    random_42_ft = df.sample(
+        n=p10_idx,
+        random_state=42
+    )
+
+    # ==================================
+    # Random seed = 6666
+    # ==================================
+
+    random_6666_ft = df.sample(
+        n=p10_idx,
+        random_state=6666
+    )
+
+    # ==================================
+    # Score-based U+D
+    # ==================================
+
+    score_ud_ft = score_based_ud_sampling(
+        df,
+        lat_col=lat_col,
+        lon_col=lon_col,
+        uncertainty_col="Uncertainty",
+        sample_ratio=0.1,
+        alpha=alpha
+    )
+
+    # ==================================
+    # Save FT datasets
+    # ==================================
+
+    high_ft.to_csv(
+        os.path.join(
+            folderAddress,
+            "highUncertainty_ft_10p.csv"
+        ),
+        index=False
+    )
+
+    low_ft.to_csv(
+        os.path.join(
+            folderAddress,
+            "lowUncertainty_ft_10p.csv"
+        ),
+        index=False
+    )
+
+    random_42_ft.to_csv(
+        os.path.join(
+            folderAddress,
+            "randomUncertainty_42_ft_10p.csv"
+        ),
+        index=False
+    )
+
+    random_6666_ft.to_csv(
+        os.path.join(
+            folderAddress,
+            "randomUncertainty_6666_ft_10p.csv"
+        ),
+        index=False
+    )
+
+    score_ud_ft.to_csv(
+        os.path.join(
+            folderAddress,
+            "scoreUD_ft_10p.csv"
+        ),
+        index=False
+    )
+
+    # ==================================
+    # Common Test
+    # ==================================
+
+    train_ids = (
+        set(high_ft["SampleID"])
+        |
+        set(low_ft["SampleID"])
+        |
+        set(random_42_ft["SampleID"])
+        |
+        set(random_6666_ft["SampleID"])
+        |
+        set(score_ud_ft["SampleID"])
+    )
+
+    common_test = df[
+        ~df["SampleID"].isin(train_ids)
+    ].copy()
+
+    common_test.to_csv(
+        os.path.join(
+            folderAddress,
+            "common_test.csv"
+        ),
+        index=False
+    )
+
+    print("================================")
+    print("Finished")
+    print("================================")
+    print(f"Total Samples : {total_samples}")
+    print(f"FT Samples    : {p10_idx}")
+    print(f"Common Test   : {len(common_test)}")
+    print()
+    print(
+        f"High Mean U : {high_ft['Uncertainty'].mean():.3f}"
+    )
+    print(
+        f"Low Mean U  : {low_ft['Uncertainty'].mean():.3f}"
+    )
+    print(
+        f"Random 42 Mean U : {random_42_ft['Uncertainty'].mean():.3f}"
+    )
+    print(
+        f"Random 6666 Mean U : {random_6666_ft['Uncertainty'].mean():.3f}"
+    )
+    print(
+        f"ScoreUD Mean U : {score_ud_ft['Uncertainty'].mean():.3f}"
+    )
+
+
+
+
+def region_uncertainty_sampling(
+        df,
+        lat_col='Latitude',
+        lon_col='Longitude',
+        uncertainty_col='Uncertainty',
+        top_region_ratio=0.2,
+        sample_ratio=0.1,
+        eps=0.0005,
+        min_samples=10):
+    """
+    High-Uncertainty Region Sampling
+
+    Step1:
+        Top 20% uncertainty
+
+    Step2:
+        DBSCAN clustering
+
+    Step3:
+        Select cluster with highest mean uncertainty
+
+    Step4:
+        Select top 10% samples from that cluster
+
+    Returns
+    -------
+    selected_df
+    """
+
+    df = df.copy().reset_index(drop=True)
+
+    total_samples = len(df)
+
+    select_num = max(
+        int(total_samples * sample_ratio),
+        1
+    )
+
+    # =====================================
+    # Top uncertainty candidates
+    # =====================================
+
+    candidate_num = max(
+        int(total_samples * top_region_ratio),
+        select_num
+    )
+
+    df_top = df.sort_values(
+        by=uncertainty_col,
+        ascending=False
+    ).head(candidate_num).copy()
+
+    # =====================================
+    # DBSCAN
+    # =====================================
+
+    coords = df_top[
+        [lat_col, lon_col]
+    ].values
+
+    clustering = DBSCAN(
+        eps=eps,
+        min_samples=min_samples
+    )
+
+    labels = clustering.fit_predict(coords)
+
+    df_top["Cluster"] = labels
+
+    # Remove noise points
+    df_cluster = df_top[
+        df_top["Cluster"] != -1
+    ].copy()
+
+    # =====================================
+    # Fallback
+    # =====================================
+
+    if len(df_cluster) == 0:
+
+        print(
+            "[Warning] No cluster found."
+        )
+
+        return df_top.head(select_num)
+
+    # =====================================
+    # Find Best Cluster
+    # =====================================
+
+    cluster_stat = []
+
+    for cid in sorted(
+            df_cluster["Cluster"].unique()):
+
+        tmp = df_cluster[
+            df_cluster["Cluster"] == cid
+        ]
+
+        cluster_stat.append([
+            cid,
+            tmp[uncertainty_col].mean(),
+            len(tmp)
+        ])
+
+    cluster_stat = pd.DataFrame(
+        cluster_stat,
+        columns=[
+            "Cluster",
+            "MeanU",
+            "Size"
+        ]
+    )
+
+    best_cluster = (
+        cluster_stat
+        .sort_values(
+            by="MeanU",
+            ascending=False
+        )
+        .iloc[0]["Cluster"]
+    )
+
+    best_region = df_cluster[
+        df_cluster["Cluster"]
+        == best_cluster
+    ].copy()
+
+    # =====================================
+    # Select FT samples
+    # =====================================
+
+    selected_df = (
+        best_region
+        .sort_values(
+            by=uncertainty_col,
+            ascending=False
+        )
+        .head(
+            min(
+                select_num,
+                len(best_region)
+            )
+        )
+    )
+
+    # Cluster太小则补足
+    if len(selected_df) < select_num:
+
+        remain_num = (
+            select_num
+            - len(selected_df)
+        )
+
+        remaining_pool = df[
+            ~df["SampleID"].isin(
+                selected_df["SampleID"]
+            )
+        ]
+
+        additional = (
+            remaining_pool
+            .sort_values(
+                by=uncertainty_col,
+                ascending=False
+            )
+            .head(remain_num)
+        )
+
+        selected_df = pd.concat(
+            [
+                selected_df,
+                additional
+            ]
+        )
+
+    return selected_df
+
+
+
+def split_dataset_by_uncertainty_region(folderAddress,fileName="predict_RSS.csv",lat_col="Latitude",lon_col="Longitude"):
+
+    file_path = os.path.join(
+        folderAddress,
+        fileName
+    )
+
+    df = pd.read_csv(file_path)
+
+    if "SampleID" not in df.columns:
+        df["SampleID"] = np.arange(len(df))
+
+    total_samples = len(df)
+
+    p10_idx = max(
+        int(total_samples * 0.1),
+        1
+    )
+
+    # ==================================
+    # Top10%
+    # ==================================
+
+    df_sorted = df.sort_values(
+        by="Uncertainty",
+        ascending=False
+    )
+
+    high_ft = df_sorted.iloc[:p10_idx]
+
+    # ==================================
+    # Bottom10%
+    # ==================================
+
+    low_ft = df_sorted.iloc[-p10_idx:]
+
+    # ==================================
+    # Random
+    # ==================================
+
+    random_42_ft = df.sample(
+        n=p10_idx,
+        random_state=42
+    )
+
+    # ==================================
+    # High-U Region
+    # ==================================
+
+    region_ft = region_uncertainty_sampling(
+        df,
+        lat_col=lat_col,
+        lon_col=lon_col,
+        uncertainty_col="Uncertainty",
+        top_region_ratio=0.3,
+        sample_ratio=0.1,
+        eps=0.0008,
+        min_samples=20
+    )
+
+    # ==================================
+    # Save
+    # ==================================
+
+    high_ft.to_csv(
+        os.path.join(
+            folderAddress,
+            "highUncertainty_ft_10p.csv"
+        ),
+        index=False
+    )
+
+    low_ft.to_csv(
+        os.path.join(
+            folderAddress,
+            "lowUncertainty_ft_10p.csv"
+        ),
+        index=False
+    )
+
+    random_42_ft.to_csv(
+        os.path.join(
+            folderAddress,
+            "random_42_ft_10p.csv"
+        ),
+        index=False
+    )
+
+    region_ft.to_csv(
+        os.path.join(
+            folderAddress,
+            "regionUncertainty_ft_10p.csv"
+        ),
+        index=False
+    )
+
+    # ==================================
+    # Common Test
+    # ==================================
+
+    train_ids = (
+        set(high_ft["SampleID"])
+        |
+        set(low_ft["SampleID"])
+        |
+        set(random_42_ft["SampleID"])
+        |
+        set(region_ft["SampleID"])
+    )
+
+    common_test = df[
+        ~df["SampleID"].isin(train_ids)
+    ]
+
+    common_test.to_csv(
+        os.path.join(
+            folderAddress,
+            "common_test.csv"
+        ),
+        index=False
+    )
+
+    print("================================")
+    print("Finished")
+    print("================================")
+    print(
+        f"Total Samples : {total_samples}"
+    )
+    print(
+        f"FT Samples : {p10_idx}"
+    )
+    print(
+        f"Common Test : {len(common_test)}"
+    )
+    print()
+    print(
+        f"High Mean U : {high_ft['Uncertainty'].mean():.3f}"
+    )
+    print(
+        f"Low Mean U : {low_ft['Uncertainty'].mean():.3f}"
+    )
+    print(
+        f"Random Mean U : {random_42_ft['Uncertainty'].mean():.3f}"
+    )
+    print(
+        f"Region Mean U : {region_ft['Uncertainty'].mean():.3f}"
+    )
+
+
+
+
+
+
+def split_dataset_by_region_stratified_sampling(folderAddress,fileName="predict_RSS.csv",lat_col="Latitude",lon_col="Longitude"):
+
+    import os
+    import numpy as np
+    import pandas as pd
+    from sklearn.cluster import DBSCAN
+
+    # =====================================================
+    # Helper Function
+    # =====================================================
+
+    def find_best_region(
+            df_part,
+            lat_col,
+            lon_col,
+            uncertainty_col,
+            eps,
+            min_samples):
+
+        if len(df_part) == 0:
+            return pd.DataFrame()
+
+        coords = df_part[
+            [lat_col, lon_col]
+        ].values
+
+        clustering = DBSCAN(
+            eps=eps,
+            min_samples=min_samples
+        )
+
+        labels = clustering.fit_predict(coords)
+
+        df_part = df_part.copy()
+
+        df_part["Cluster"] = labels
+
+        valid_cluster = df_part[
+            df_part["Cluster"] != -1
+        ]
+
+        # No cluster found
+        if len(valid_cluster) == 0:
+            return df_part
+
+        cluster_stat = []
+
+        for cid in sorted(
+                valid_cluster["Cluster"].unique()):
+
+            tmp = valid_cluster[
+                valid_cluster["Cluster"] == cid
+            ]
+
+            cluster_stat.append([
+                cid,
+                tmp["Uncertainty"].mean(),
+                len(tmp)
+            ])
+
+        cluster_stat = pd.DataFrame(
+            cluster_stat,
+            columns=[
+                "Cluster",
+                "MeanU",
+                "Size"
+            ]
+        )
+
+        # Region Score
+        cluster_stat["Score"] = (
+            cluster_stat["MeanU"]
+            *
+            np.log1p(
+                cluster_stat["Size"]
+            )
+        )
+
+        best_cluster = (
+            cluster_stat
+            .sort_values(
+                by="Score",
+                ascending=False
+            )
+            .iloc[0]["Cluster"]
+        )
+
+        best_region = valid_cluster[
+            valid_cluster["Cluster"]
+            == best_cluster
+        ].copy()
+
+        return best_region
+
+    # =====================================================
+    # Region Stratified Sampling
+    # =====================================================
+
+    def region_stratified_sampling(
+            df,
+            lat_col='Latitude',
+            lon_col='Longitude',
+            uncertainty_col='Uncertainty',
+            sample_ratio=0.1,
+            top_ratio=0.7,
+            middle_ratio=0.2,
+            bottom_ratio=0.1,
+            eps=0.0008,
+            min_samples=20):
+
+        df = df.copy().reset_index(drop=True)
+
+        total_samples = len(df)
+
+        select_num = max(
+            int(total_samples * sample_ratio),
+            1
+        )
+
+        # =====================================
+        # Split U Distribution
+        # =====================================
+
+        df_sorted = df.sort_values(
+            by=uncertainty_col,
+            ascending=False
+        ).reset_index(drop=True)
+
+        top_num = int(total_samples * 0.2)
+        bottom_num = int(total_samples * 0.2)
+
+        top_df = df_sorted.iloc[:top_num].copy()
+
+        middle_df = df_sorted.iloc[
+            top_num:-bottom_num
+        ].copy()
+
+        bottom_df = df_sorted.iloc[
+            -bottom_num:
+        ].copy()
+
+        # =====================================
+        # Find Regions
+        # =====================================
+
+        top_region = find_best_region(
+            top_df,
+            lat_col,
+            lon_col,
+            uncertainty_col,
+            eps,
+            min_samples
+        )
+
+        middle_region = find_best_region(
+            middle_df,
+            lat_col,
+            lon_col,
+            uncertainty_col,
+            eps,
+            min_samples
+        )
+
+        bottom_region = find_best_region(
+            bottom_df,
+            lat_col,
+            lon_col,
+            uncertainty_col,
+            eps,
+            min_samples
+        )
+
+        # =====================================
+        # Allocation
+        # =====================================
+
+        n_top = int(
+            select_num * top_ratio
+        )
+
+        n_middle = int(
+            select_num * middle_ratio
+        )
+
+        n_bottom = (
+            select_num
+            - n_top
+            - n_middle
+        )
+
+        top_ft = (
+            top_region
+            .sort_values(
+                by=uncertainty_col,
+                ascending=False
+            )
+            .head(
+                min(
+                    n_top,
+                    len(top_region)
+                )
+            )
+        )
+
+        if len(middle_region) > 0:
+
+            middle_ft = (
+                middle_region
+                .sample(
+                    n=min(
+                        n_middle,
+                        len(middle_region)
+                    ),
+                    random_state=42
+                )
+            )
+
+        else:
+
+            middle_ft = pd.DataFrame()
+
+        if len(bottom_region) > 0:
+
+            bottom_ft = (
+                bottom_region
+                .sample(
+                    n=min(
+                        n_bottom,
+                        len(bottom_region)
+                    ),
+                    random_state=42
+                )
+            )
+
+        else:
+
+            bottom_ft = pd.DataFrame()
+
+        selected_df = pd.concat(
+            [
+                top_ft,
+                middle_ft,
+                bottom_ft
+            ]
+        )
+
+        # =====================================
+        # Fill Missing
+        # =====================================
+
+        if len(selected_df) < select_num:
+
+            remain_num = (
+                select_num
+                - len(selected_df)
+            )
+
+            remain_pool = df[
+                ~df["SampleID"].isin(
+                    selected_df["SampleID"]
+                )
+            ]
+
+            additional = (
+                remain_pool
+                .sort_values(
+                    by=uncertainty_col,
+                    ascending=False
+                )
+                .head(remain_num)
+            )
+
+            selected_df = pd.concat(
+                [
+                    selected_df,
+                    additional
+                ]
+            )
+
+        print(str(min(top_ft['Uncertainty'])) + " < top_ft < " + str(max(top_ft['Uncertainty'])))
+        print(str(min(middle_ft['Uncertainty'])) + " < middle_ft < " + str(max(middle_ft['Uncertainty'])))
+        print(str(min(bottom_ft['Uncertainty'])) + " < bottom_ft < " + str(max(bottom_ft['Uncertainty'])))
+        return selected_df
+
+    # =====================================================
+    # Load Dataset
+    # =====================================================
+
+    file_path = os.path.join(
+        folderAddress,
+        fileName
+    )
+
+    df = pd.read_csv(file_path)
+
+    if "SampleID" not in df.columns:
+
+        df["SampleID"] = np.arange(
+            len(df)
+        )
+
+    total_samples = len(df)
+
+    p10_idx = max(
+        int(total_samples * 0.1),
+        1
+    )
+
+    # =====================================================
+    # Top10%
+    # =====================================================
+
+    df_sorted = df.sort_values(
+        by="Uncertainty",
+        ascending=False
+    )
+
+    high_ft = df_sorted.iloc[:p10_idx]
+
+    # =====================================================
+    # Bottom10%
+    # =====================================================
+
+    low_ft = df_sorted.iloc[-p10_idx:]
+
+    # =====================================================
+    # Random
+    # =====================================================
+
+    random_42_ft = df.sample(
+        n=p10_idx,
+        random_state=42
+    )
+
+    # =====================================================
+    # Region Stratified Sampling
+    # =====================================================
+
+    region_ft = region_stratified_sampling(
+        df,
+        lat_col=lat_col,
+        lon_col=lon_col,
+        uncertainty_col="Uncertainty",
+
+        sample_ratio=0.1,
+
+        top_ratio=0.7,
+        middle_ratio=0.2,
+        bottom_ratio=0.1,
+
+        eps=0.0008,
+        min_samples=20
+    )
+
+    # =====================================================
+    # Save FT Dataset
+    # =====================================================
+
+    high_ft.to_csv(
+        os.path.join(
+            folderAddress,
+            "highUncertainty_ft_10p.csv"
+        ),
+        index=False
+    )
+
+    low_ft.to_csv(
+        os.path.join(
+            folderAddress,
+            "lowUncertainty_ft_10p.csv"
+        ),
+        index=False
+    )
+
+    random_42_ft.to_csv(
+        os.path.join(
+            folderAddress,
+            "random_42_ft_10p.csv"
+        ),
+        index=False
+    )
+
+    region_ft.to_csv(
+        os.path.join(
+            folderAddress,
+            "proposal_ft_10p.csv"
+        ),
+        index=False
+    )
+
+    # =====================================================
+    # Common Test
+    # =====================================================
+
+    train_ids = (
+        set(high_ft["SampleID"])
+        |
+        set(low_ft["SampleID"])
+        |
+        set(random_42_ft["SampleID"])
+        |
+        set(region_ft["SampleID"])
+    )
+
+    common_test = df[
+        ~df["SampleID"].isin(
+            train_ids
+        )
+    ]
+
+    common_test.to_csv(
+        os.path.join(
+            folderAddress,
+            "common_test.csv"
+        ),
+        index=False
+    )
+
+    # =====================================================
+    # Report
+    # =====================================================
+
+    print("================================")
+    print("Finished")
+    print("================================")
+    print(f"Total Samples : {total_samples}")
+    print(f"FT Samples    : {p10_idx}")
+    print(f"Common Test   : {len(common_test)}")
+    print()
+
+    print(
+        f"High Mean U   : "
+        f"{high_ft['Uncertainty'].mean():.3f}"
+    )
+
+    print(
+        f"Low Mean U    : "
+        f"{low_ft['Uncertainty'].mean():.3f}"
+    )
+
+    print(
+        f"Random Mean U : "
+        f"{random_42_ft['Uncertainty'].mean():.3f}"
+    )
+
+    print(
+        f"Region Mean U : "
+        f"{region_ft['Uncertainty'].mean():.3f}"
+    )
+
 
 
 
@@ -1539,7 +3087,7 @@ def main():
     targetFileAddress = "/Users/zhaoou/Desktop/課題1_TL拡張/TL検証/920MHz/predict_RSS_FT30.csv"
     referenceFileAddress = "/Users/zhaoou/Desktop/課題1_TL拡張/TL検証/920MHz/predict_RSS_M0_test_30.csv"
     outputFileAddress = "/Users/zhaoou/Downloads/"
-    folderAddress = "/Users/zhaoou/Desktop/課題1_TL拡張/TL検証/1_Uncertainty_vs_Error/unseen1"
+    folderAddress = "/Users/zhaoou/Desktop/課題1_TL拡張/不確実性検証/unseen1"
 
     #plot_MAE_CDF(outputFileAddress, targetFileAddress, referenceFileAddress, needPNG=True, needSVG=False)
     #plot_dynamic_clustering_high_error_heatmap(outputFileAddress, targetFileAddress, fix_longitude, fix_latitude, mae_threshold=4.79, n_clusters=3, needPNG=True, needSVG=False)
@@ -1550,7 +3098,13 @@ def main():
     #plot_Quantile_High_Error_Rate(folderAddress, 10, needPNG=False, needSVG=False)
     #plot_Top_Quantile_High_Error_Trend(folderAddress, 10, needPNG=False, needSVG=False)
     #plot_Uncertainty_High_Error_Distribution(folderAddress, needPNG=False, needSVG=False)
-    split_dataset_by_uncertainty(folderAddress, fileName="predict_RSS.csv")
+    #split_dataset_by_uncertainty(folderAddress, fileName="predict_RSS.csv")
+    #plot_Four_Scenarios_Error_CDF(folderAddress, needPNG=True, needSVG=False)
+    #plot_Normalized_Uncertainty_CDF(folderAddress + "/predict_RSS.csv", needPNG=True, needSVG=False)
+    #plot_Uncertainty_QQ_Plot(folderAddress + "/predict_RSS.csv", use_standardized=False, needPNG=True, needSVG=False)
+    #split_dataset_by_uncertainty_v2(folderAddress, fileName="predict_RSS.csv", lat_col='Latitude', lon_col='Longitude')
+    #split_dataset_by_uncertainty_region(folderAddress, fileName="predict_RSS.csv", lat_col="Latitude", lon_col="Longitude")
+    #split_dataset_by_region_stratified_sampling(folderAddress,fileName="predict_RSS.csv",lat_col="Latitude",lon_col="Longitude")
     return
 
 
