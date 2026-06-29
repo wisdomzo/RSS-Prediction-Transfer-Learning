@@ -10,6 +10,7 @@ from scipy.stats import norm
 import scipy.stats as stats
 from scipy.spatial.distance import cdist
 from sklearn.cluster import DBSCAN
+from math import radians, sin, cos, sqrt, atan2
 
 
 def compute_cdf(data):
@@ -1526,7 +1527,7 @@ def plot_Four_Scenarios_Error_CDF(folderAddress, needPNG, needSVG):
     plt.rcParams['axes.titlesize'] = 7
     plt.rcParams['xtick.labelsize'] = 7
     plt.rcParams['ytick.labelsize'] = 7
-    plt.rcParams['legend.fontsize'] = 5 
+    plt.rcParams['legend.fontsize'] = 7
 
     # 设定精确的物理画布尺寸 (mm 转换为 inch) -> 标准单栏微型图
     width_inch = 80 / 25.4
@@ -1539,31 +1540,31 @@ def plot_Four_Scenarios_Error_CDF(folderAddress, needPNG, needSVG):
     file_configs = [
         {
             'filename': 'predict_RSS_beforeFT.csv',
-            'label': 'Before FT (Base)',
+            'label': 'Baseline',
             'color': "#000000",       # 黑基准线
             'linestyle': '--'         # 虚线代表未微调
         },
         {
             'filename': 'predict_RSS_low.csv',
-            'label': 'After FT (Low)',
+            'label': 'Bottom-U',
             'color': '#002FA7',       # 浅绿
             'linestyle': '-'
         },
         {
             'filename': 'predict_RSS_random_42.csv',
-            'label': 'After FT (Random 42)',
+            'label': 'Random',
             'color': '#6ECC54',       # 橙色
             'linestyle': '-'
         },
         {
             'filename': 'predict_RSS_hight.csv',
-            'label': 'After FT (High)',
+            'label': 'Top-U',
             'color': '#EB5C20',       # 沉稳学术蓝（期望中最优的曲线）
             'linestyle': '-'
         },
         {
             'filename': 'predict_RSS_proposal.csv',
-            'label': 'After FT (Proposal)',
+            'label': 'URAS (proposed)',
             'color': '#C8161D',
             'linestyle': '-'
         }
@@ -1628,6 +1629,7 @@ def plot_Four_Scenarios_Error_CDF(folderAddress, needPNG, needSVG):
     # 严谨的 CDF 坐标范围控制（从0到1）
     ax.set_ylim(0, 1.02)
     ax.set_xlim(0, None)  # 误差从0开始，右边界自适应
+    #ax.set_xlim(0, 30) 
     
     # 细化网格参考线
     ax.grid(axis='both', linestyle='--', linewidth=0.5, alpha=0.4)
@@ -3042,6 +3044,213 @@ def split_dataset_by_region_stratified_sampling(folderAddress,fileName="predict_
 
 
 
+
+
+
+def plot_Travel_Distance(folderAddress,
+                         start_lat,
+                         start_lon,
+                         needPNG=True,
+                         needSVG=False):
+    """
+    计算四种采样方法的总移动距离（Nearest Neighbor）
+    并绘制柱状图。
+
+    Parameters
+    ----------
+    folderAddress : str
+        CSV所在文件夹
+
+    start_lat : float
+        起点纬度
+
+    start_lon : float
+        起点经度
+    """
+
+    # ==========================================================
+    # 字体配置（与你CDF保持一致）
+    # ==========================================================
+    plt.rcParams['font.family'] = 'sans-serif'
+    plt.rcParams['font.sans-serif'] = ['Helvetica', 'Arial', 'DejaVu Sans']
+
+    plt.rcParams['font.size'] = 7
+    plt.rcParams['axes.labelsize'] = 7
+    plt.rcParams['xtick.labelsize'] = 7
+    plt.rcParams['ytick.labelsize'] = 7
+
+    width_inch = 80 / 25.4
+    height_inch = 56.56 / 25.4
+
+    plt.rcParams['svg.fonttype'] = 'none'
+
+    # ==========================================================
+    # 文件配置
+    # ==========================================================
+    file_configs = [
+        {
+            'filename': 'random_42_ft_10p.csv',
+            'label': 'Random',
+            'color': '#6ECC54'
+        },
+        {
+            'filename': 'highUncertainty_ft_10p.csv',
+            'label': 'Top-U',
+            'color': '#EB5C20'
+        },
+        {
+            'filename': 'lowUncertainty_ft_10p.csv',
+            'label': 'Bottom-U',
+            'color': '#002FA7'
+        },
+        {
+            'filename': 'proposal_ft_10p.csv',
+            'label': 'URAS',
+            'color': '#C8161D'
+        }
+    ]
+
+    # ==========================================================
+    # Haversine距离（单位 km）
+    # ==========================================================
+    def haversine(lat1, lon1, lat2, lon2):
+
+        R = 6371.0
+
+        lat1 = radians(lat1)
+        lon1 = radians(lon1)
+        lat2 = radians(lat2)
+        lon2 = radians(lon2)
+
+        dlat = lat2 - lat1
+        dlon = lon2 - lon1
+
+        a = sin(dlat/2)**2 + cos(lat1)*cos(lat2)*sin(dlon/2)**2
+        c = 2*atan2(sqrt(a), sqrt(1-a))
+
+        return R*c
+
+    # ==========================================================
+    # Nearest Neighbor路径长度
+    # ==========================================================
+    def nearest_neighbor_distance(points,
+                                  start_lat,
+                                  start_lon):
+
+        unvisited = points.copy()
+
+        current_lat = start_lat
+        current_lon = start_lon
+
+        total_distance = 0
+
+        while len(unvisited) > 0:
+
+            distances = [
+                haversine(current_lat,
+                          current_lon,
+                          p[0],
+                          p[1])
+                for p in unvisited
+            ]
+
+            idx = np.argmin(distances)
+
+            total_distance += distances[idx]
+
+            current_lat, current_lon = unvisited.pop(idx)
+
+        return total_distance
+
+
+    labels = []
+    distances = []
+    colors = []
+
+    print("======== Travel Distance Analysis ========")
+
+    for cfg in file_configs:
+
+        file_path = os.path.join(folderAddress,
+                                 cfg['filename'])
+
+        if not os.path.exists(file_path):
+            print(f"Missing: {cfg['filename']}")
+            continue
+
+        df = pd.read_csv(file_path)
+
+        # 经纬度列名
+        lat_col = 'Latitude'
+        lon_col = 'Longitude'
+
+        points = list(zip(df[lat_col], df[lon_col]))
+
+        total_dist = nearest_neighbor_distance(points,
+                                               start_lat,
+                                               start_lon)
+
+        print(f"{cfg['label']:10s}: {total_dist:.2f} km")
+
+        labels.append(cfg['label'])
+        distances.append(total_dist)
+        colors.append(cfg['color'])
+
+    # ==========================================================
+    # 绘图
+    # ==========================================================
+    fig, ax = plt.subplots(figsize=(width_inch, height_inch),
+                           dpi=300)
+
+    bars = ax.bar(labels,
+                  distances,
+                  color=colors,
+                  width=0.7)
+
+    ax.set_ylabel('Travel Distance (km)')
+    ax.grid(axis='y',
+            linestyle='--',
+            linewidth=0.5,
+            alpha=0.4)
+
+    # 数值标注
+    for bar, d in zip(bars, distances):
+        ax.text(bar.get_x() + bar.get_width()/2,
+                bar.get_height(),
+                f"{d:.1f}",
+                ha='center',
+                va='bottom',
+                fontsize=6)
+
+    plt.subplots_adjust(left=0.16,
+                        right=0.98,
+                        top=0.96,
+                        bottom=0.16)
+
+    filename = "Travel_Distance"
+
+    if needPNG:
+        plt.savefig(os.path.join(folderAddress,
+                                 filename + ".png"),
+                    dpi=300,
+                    bbox_inches='tight',
+                    pad_inches=0.012)
+
+    if needSVG:
+        plt.savefig(os.path.join(folderAddress,
+                                 filename + ".svg"),
+                    format='svg',
+                    dpi=300,
+                    bbox_inches='tight',
+                    pad_inches=0.012)
+
+    plt.show()
+
+    print("======== Finished ========")
+
+
+
+
 def main():
     '''
     请严格按照以下【科研出版级制图规范】为我编写 Python 绘图代码，并读取指定的数据文件运行生成图表：
@@ -3087,7 +3296,7 @@ def main():
     targetFileAddress = "/Users/zhaoou/Desktop/課題1_TL拡張/TL検証/920MHz/predict_RSS_FT30.csv"
     referenceFileAddress = "/Users/zhaoou/Desktop/課題1_TL拡張/TL検証/920MHz/predict_RSS_M0_test_30.csv"
     outputFileAddress = "/Users/zhaoou/Downloads/"
-    folderAddress = "/Users/zhaoou/Desktop/課題1_TL拡張/不確実性検証/unseen1"
+    #folderAddress = "/Users/zhaoou/Desktop/課題1_TL拡張/不確実性検証/unseen1011"
 
     #plot_MAE_CDF(outputFileAddress, targetFileAddress, referenceFileAddress, needPNG=True, needSVG=False)
     #plot_dynamic_clustering_high_error_heatmap(outputFileAddress, targetFileAddress, fix_longitude, fix_latitude, mae_threshold=4.79, n_clusters=3, needPNG=True, needSVG=False)
@@ -3099,12 +3308,34 @@ def main():
     #plot_Top_Quantile_High_Error_Trend(folderAddress, 10, needPNG=False, needSVG=False)
     #plot_Uncertainty_High_Error_Distribution(folderAddress, needPNG=False, needSVG=False)
     #split_dataset_by_uncertainty(folderAddress, fileName="predict_RSS.csv")
-    #plot_Four_Scenarios_Error_CDF(folderAddress, needPNG=True, needSVG=False)
     #plot_Normalized_Uncertainty_CDF(folderAddress + "/predict_RSS.csv", needPNG=True, needSVG=False)
     #plot_Uncertainty_QQ_Plot(folderAddress + "/predict_RSS.csv", use_standardized=False, needPNG=True, needSVG=False)
     #split_dataset_by_uncertainty_v2(folderAddress, fileName="predict_RSS.csv", lat_col='Latitude', lon_col='Longitude')
     #split_dataset_by_uncertainty_region(folderAddress, fileName="predict_RSS.csv", lat_col="Latitude", lon_col="Longitude")
     #split_dataset_by_region_stratified_sampling(folderAddress,fileName="predict_RSS.csv",lat_col="Latitude",lon_col="Longitude")
+    
+    folderAddress = "/Users/zhaoou/Desktop/課題1_TL拡張/不確実性検証/unseen1"
+    folderAddress1 = "/Users/zhaoou/Desktop/課題1_TL拡張/不確実性検証/unseen1011"
+    folderAddress2 = "/Users/zhaoou/Desktop/課題1_TL拡張/不確実性検証/unseen1213"
+    folderAddress3 = "/Users/zhaoou/Desktop/課題1_TL拡張/不確実性検証/unseen1"
+    start_lat_unseen1011 = 26.61895
+    start_lon_unseen1011 = 127.984681
+    start_lat_unseen1 = 35.27004166
+    start_lon_unseen1 = 137.7153306
+    start_lat_unseen1213 = 33.62094
+    start_lon_unseen1213 = 133.718148
+    start_lat_unseen45 = 33.1848442
+    start_lon_unseen45 = 133.0474619
+    start_lat_unseen14 = 36.2509355
+    start_lon_unseen14 = 137.9773808
+    start_lat_unseen67 = 26.2477756
+    start_lon_unseen67 = 127.7739396
+
+    # RCC函数
+    #plot_Four_Scenarios_Error_CDF(folderAddress, needPNG=False, needSVG=True)
+    #split_dataset_by_region_stratified_sampling(folderAddress,fileName="predict_RSS.csv",lat_col="Latitude",lon_col="Longitude")
+    plot_Travel_Distance(folderAddress, start_lat = start_lat_unseen1, start_lon = start_lon_unseen1, needPNG=True, needSVG=False)
+    
     return
 
 
