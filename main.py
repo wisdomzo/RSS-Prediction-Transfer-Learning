@@ -744,10 +744,10 @@ def reset_temp_data(prefix_to_keep=None):
         # 调用 subFun 执行逻辑
         subFun.clean_folder_except(selected_folder_csv, target_prefix) 
         
-        print(f"清理完成。保留前缀: {target_prefix}, 路径: {selected_folder_csv}")
+        print(f"Cleanup complete. Prefix retained: {target_prefix}, path: {selected_folder_csv}")
         return True
     except Exception as e:
-        print(f"清理临时文件夹失败: {e}")
+        print(f"Failed to clean the temporary folder: {e}")
         return False
 
 
@@ -771,9 +771,11 @@ def start_logic():
     # 重定向标准输出
     sys.stdout = WebviewLogger(window)
     # 执行初始化
+    # 定义 ANSI 颜色转义字符
+    print("Initializing Application...")
     reset_temp_data()
-    print("系统环境检查完成...") # 这句会自动出现在前端终端框里
-    print("等待用户操作...")
+    print("System environment check complete...")
+    print("Waiting for user operation...")
 
 
 window = None
@@ -786,7 +788,7 @@ def main():
     
     # 配置PyWebView窗口（可自定义大小、标题、是否可缩放等）
     window = webview.create_window(
-        title="RSS推測アプリ ver1.0",  # 窗口标题
+        title="ASSET Framework",  # 窗口标题
         url=html_path,               # 加载你的HTML文件
         js_api=api,
         width=1024,                   # 窗口宽度

@@ -857,14 +857,14 @@ def clean_folder_except(folder_path, prefix_to_keep):
     
     # 2. 安全检查：确保路径存在且是一个文件夹
     if not folder.exists():
-        print(f"跳过清理：路径不存在 -> {folder_path}")
+        print(f"Skipping cleanup: path does not exist. -> {folder_path}")
         return
     if not folder.is_dir():
-        print(f"跳过清理：指定路径不是文件夹 -> {folder_path}")
+        print(f"Skipping cleanup: specified path is not a directory -> {folder_path}")
         return
 
-    print(f"正在清理文件夹: {folder.absolute()}")
-    print(f"保留前缀为 '{prefix_to_keep}' 的文件...")
+    print(f"Cleaning folder: {folder.absolute()}")
+    print(f"Retaining prefix as: '{prefix_to_keep}' file(s)...")
 
     count = 0
     # 3. 遍历文件夹
@@ -878,9 +878,9 @@ def clean_folder_except(folder_path, prefix_to_keep):
                     # print(f"  [已删除]: {file_path.name}")
                     count += 1
                 except Exception as e:
-                    print(f"  [错误] 无法删除 {file_path.name}: {e}")
+                    print(f"  [Error] Failed to delete {file_path.name}: {e}")
     
-    print(f"清理完成，共删除 {count} 个文件。")
+    print(f"Cleanup complete. Deleted {count} file(s).")
 
 
 
@@ -925,10 +925,10 @@ def runFineTuning(args, modelToBeFineTuned):
             data_index = list(range(1,len(contentReadDataIndex)+1)),
             content_data_index = contentReadDataIndex
         )
-        print("微調整完成！")
+        print("Fine-tuning complete!")
         clean_folder_except(selected_folder_csv, "TL_model_")
     except Exception as e:
-        print(f"微調整失敗: {e}")
+        print(f"Fine-tuning process failed: {e}")
         raise e
     
     return True
