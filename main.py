@@ -768,6 +768,8 @@ def get_help_pdf():
     
 
 def start_logic():
+    # 启动后最大化普通窗口，而不是进入系统全屏模式。
+    window.maximize()
     # 重定向标准输出
     sys.stdout = WebviewLogger(window)
     # 执行初始化
@@ -783,19 +785,17 @@ def main():
     global window
     api = Api()
 
-    # 获取你HTML文件的绝对路径（适配打包前后）
-    html_path = get_resource_path("web/index.html")
+    # 获取HTML入口文件的绝对路径（适配打包前后）。
+    # 默认使用新版产品套件；需要回退旧界面时可设置 ASSET_UI_ENTRY=web/index.html。
+    ui_entry = os.environ.get("ASSET_UI_ENTRY", "web/app-suite.html")
+    html_path = get_resource_path(ui_entry)
     
     # 配置PyWebView窗口（可自定义大小、标题、是否可缩放等）
     window = webview.create_window(
         title="ASSET Framework",  # 窗口标题
         url=html_path,               # 加载你的HTML文件
         js_api=api,
-        width=1024,                   # 窗口宽度
-        height=768,                  # 窗口高度
-        resizable=True,              # 是否允许缩放
-        fullscreen=False,             # 是否全屏
-        min_size=(1024, 768)        # 关键：设置最小尺寸为1024×768
+        resizable=True               # 是否允许缩放
     )
 
     # 暴露Python函数给前端JS（关键！）
