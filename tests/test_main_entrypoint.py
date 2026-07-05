@@ -6,6 +6,7 @@ ROOT = Path(__file__).resolve().parents[1]
 MAIN = ROOT / "main.py"
 SUBFUN = ROOT / "subFun.py"
 SUBFUN_TL = ROOT / "subFun_TL.py"
+TRANSFER_LEARNING_MAIN = ROOT / "transfer_learning_main.py"
 
 
 class MainEntrypointTests(unittest.TestCase):
@@ -93,6 +94,18 @@ class MainEntrypointTests(unittest.TestCase):
         source = SUBFUN.read_text(encoding="utf-8")
         self.assertIn("def is_picklable", source)
         self.assertIn("except Exception:", source)
+
+    def test_transfer_learning_judge_training_is_optional(self):
+        main_source = MAIN.read_text(encoding="utf-8")
+        transfer_source = TRANSFER_LEARNING_MAIN.read_text(encoding="utf-8")
+        self.assertIn("train_judge_model = bool(coords.get('trainJudgeModel', False))", main_source)
+        self.assertIn("train_judge_model = train_judge_model", main_source)
+        self.assertIn("train_judge_model=False", transfer_source)
+        self.assertIn('should_train_judge = learning_type == "type_TL" and train_judge_model', transfer_source)
+        self.assertIn("if should_train_judge:", transfer_source)
+        self.assertIn("subFun.barrier_and_cleanup(futures_to_wait=predictRSSI_TL)", transfer_source)
+        self.assertIn("subFun_TL.trainJudgeModel_cnn", transfer_source)
+        self.assertIn('print("训练裁判...Skipped.")', transfer_source)
 
 
 if __name__ == "__main__":

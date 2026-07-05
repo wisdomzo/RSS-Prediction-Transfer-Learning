@@ -505,6 +505,7 @@ def worker_thread_modelGen(api_instance, coords, auto_download=True):
         if coords['model'] == "customized_model":
             selected_predict_model = coords.get("custom_model_path")
         contentReadDataIndex = subFun.get_ML_files(selected_folder_csv, "ML_myTempExp_*")
+        train_judge_model = bool(coords.get('trainJudgeModel', False))
         window.evaluate_js("updateProgress(10, '時間かかりますが、転移学習によるモデル生成を実行中...')")
         try:
             transfer_learning_main.run_transfer_learning(
@@ -517,7 +518,8 @@ def worker_thread_modelGen(api_instance, coords, auto_download=True):
                 learning_type = coords['learningType'],
                 api_instance = api_instance,
                 freeze_layer = int(coords['freezeLayer']),
-                learning_rate = float(coords['learningRate'])
+                learning_rate = float(coords['learningRate']),
+                train_judge_model = train_judge_model
             )
             print("迁移学习任务已完成")
             subFun.clean_folder_except(selected_folder_csv, "TL_model_")

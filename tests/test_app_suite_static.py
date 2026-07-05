@@ -303,6 +303,7 @@ class AppSuiteStaticTests(unittest.TestCase):
             "m-model",
             "m-numCore1",
             "m-learningType",
+            "m-trainJudgeModel",
             "m-freezeLayer",
             "m-learningRate",
             "d-frequency",
@@ -347,12 +348,24 @@ class AppSuiteStaticTests(unittest.TestCase):
     def test_base_model_choice_locks_training_controls_by_mode(self):
         html = self.read_app()
         self.assertIn('id="m-model" onchange="toggleModelTrainingControls()"', html)
+        self.assertIn('id="m-learningType" onchange="toggleModelTrainingControls()"', html)
         self.assertIn("function toggleModelTrainingControls", html)
         self.assertIn('const isNewModel = document.getElementById("m-model").value === "noModel"', html)
+        self.assertIn('const isTransferLearning = document.getElementById("m-learningType").value === "type_TL"', html)
         self.assertIn('document.getElementById("m-learningType").disabled = modelTrainingLocked || isNewModel', html)
         self.assertIn('document.getElementById("m-freezeLayer").disabled = modelTrainingLocked || isNewModel', html)
         self.assertIn('document.getElementById("m-numCore1").disabled = modelTrainingLocked || !isNewModel', html)
         self.assertIn('document.getElementById("m-learningRate").disabled = modelTrainingLocked || !isNewModel', html)
+        self.assertIn('id="m-trainJudgeModel"', html)
+        self.assertIn('type="checkbox"', html)
+        self.assertIn('document.getElementById("m-trainJudgeModel").checked = false', html)
+        self.assertIn('document.getElementById("m-trainJudgeModel").disabled = !canTrainJudge', html)
+        self.assertIn('const canTrainJudge = !modelTrainingLocked && !isNewModel && isTransferLearning', html)
+        self.assertIn('trainJudgeModel: document.getElementById("m-trainJudgeModel").checked', html)
+        self.assertIn(".switch-input", html)
+        self.assertIn("width: 1px;", html)
+        self.assertIn("height: 1px;", html)
+        self.assertIn("margin: 0;", html)
         self.assertIn("toggleModelTrainingControls();", html)
 
     def test_model_training_stays_locked_after_generation_until_reset(self):

@@ -69,7 +69,7 @@ def train_and_predict_by_judge_model(judgeModelInfo, testData_TL, rxData_Altitud
         rxData_Altitude_TL[model_n]：模型在测试数据上的预测值，n=0,1,...,29。
     """
 
-    save_oof_to_csv(judgeModelInfo['df_oof'], "/Users/zhaoou/Downloads/oof_analysis.csv")
+    # save_oof_to_csv(judgeModelInfo['df_oof'], "/Users/zhaoou/Downloads/oof_analysis.csv")
     correctedPredictionValue = algo_FV_randomForestRegressor_residuals(judgeModelInfo, testData_TL, rxData_Altitude_TL)
     # correctedPredictionValue = algo_disDN_mapping_sign(judgeModelInfo, testData_TL, rxData_Altitude_TL)
 

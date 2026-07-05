@@ -29,7 +29,7 @@ if APP_ROOT not in sys.path:
 
 
 
-def run_transfer_learning(selected_folder_csv, num_test_per, user_input, model_path, data_index, content_data_index, learning_type=None, api_instance=None, freeze_layer=9, learning_rate=1e-4):
+def run_transfer_learning(selected_folder_csv, num_test_per, user_input, model_path, data_index, content_data_index, learning_type=None, api_instance=None, freeze_layer=9, learning_rate=1e-4, train_judge_model=False):
     #读取数据
     # region
     numTestPer_TL = float(num_test_per)
@@ -126,14 +126,16 @@ def run_transfer_learning(selected_folder_csv, num_test_per, user_input, model_p
         predictRSSI_TL = subFun_TL.run_in_parallel_TL_adaptive(predictRSSI_TL, numNetworks, machineLearningData_TL, historyModels, numCore1, numCore2, numCore3, learning_type=learning_type, api_instance=api_instance, freeze_layer=freeze_layer, learning_rate=learning_rate)
         print("深度网络预测...Done.")
 
-        """
-        # 中场休息，等待所有专家训练完成并清理资源
-        subFun.barrier_and_cleanup(futures_to_wait=predictRSSI_TL)
-        # --- 第二阶段：训练裁判 ---
-        print("训练裁判...Start.")
-        judge_model = subFun_TL.trainJudgeModel_cnn(numNetworks, historyModels, FV_forTraining_TL, TV_forTraining_TL, rxData_Altitude_forTraining_TL, numCore1, numCore2, numCore3, learning_type, freeze_layer, learning_rate)
-        print("训练裁判...Done.")
-        """
+        should_train_judge = learning_type == "type_TL" and train_judge_model
+        if should_train_judge:
+            # 中场休息，等待所有专家训练完成并清理资源
+            subFun.barrier_and_cleanup(futures_to_wait=predictRSSI_TL)
+            # --- 第二阶段：训练裁判 ---
+            print("训练裁判...Start.")
+            judge_model = subFun_TL.trainJudgeModel_cnn(numNetworks, historyModels, FV_forTraining_TL, TV_forTraining_TL, rxData_Altitude_forTraining_TL, numCore1, numCore2, numCore3, learning_type, freeze_layer, learning_rate)
+            print("训练裁判...Done.")
+        else:
+            print("训练裁判...Skipped.")
 
         print("\n保存模型...Start.")
         save_file_path = os.path.join(selected_folder_csv, f'TL_model_for_{data_index_for_TL}.pkl.xz')
