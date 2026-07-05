@@ -45,7 +45,7 @@ class AppSuiteStaticTests(unittest.TestCase):
         for label in [
             "Prediction Workspace",
             "Model Training",
-            "Dataset Prep",
+            "Feature Generation",
             "Results Explorer",
             "Log Console",
             "Acknowledgements",
@@ -253,14 +253,68 @@ class AppSuiteStaticTests(unittest.TestCase):
         self.assertNotIn('document.getElementById("feature-vector-panel").classList.toggle("locked-panel", shouldLock)', html)
         self.assertIn('document.getElementById("feature-vector-select-btn").disabled = shouldLock', html)
         self.assertIn("showView('dataset')", html)
-        self.assertIn("Generate feature vectors in Dataset Prep first.", html)
+        self.assertIn("Generate feature vectors in Feature Generation first.", html)
 
     def test_generate_feature_vectors_locks_generate_model_and_controls_dataset_prep_access(self):
         html = self.read_app()
         self.assertIn('id="generate-model-btn"', html)
         self.assertIn('document.getElementById("generate-model-btn").disabled = shouldLock', html)
-        self.assertIn('<button class="ghost-btn" id="open-dataset-prep-btn" onclick="showView(\'dataset\')">Open Dataset Prep</button>', html)
+        self.assertIn('<button class="ghost-btn" id="open-dataset-prep-btn" onclick="showView(\'dataset\')">Open Feature Generation</button>', html)
         self.assertIn('document.getElementById("open-dataset-prep-btn").disabled = !shouldLock', html)
+
+    def test_model_training_has_animated_training_visual(self):
+        html = self.read_app()
+        self.assertIn('id="training-visual"', html)
+        self.assertIn('class="training-visual idle"', html)
+        self.assertIn("Neural Training Flow", html)
+        self.assertIn("training-flow-line", html)
+        self.assertNotIn("Loss trend", html)
+        self.assertNotIn("training-loss-line", html)
+        self.assertIn("@keyframes trainingPulse", html)
+        self.assertIn("@keyframes signalPacket", html)
+        self.assertIn("setTrainingVisualState", html)
+        self.assertIn('document.getElementById("training-visual").className = `training-visual ${state}`', html)
+        self.assertIn('setTrainingVisualState(isLocked ? "active" : "idle")', html)
+        self.assertIn('setTrainingVisualState("complete")', html)
+
+    def test_visible_parameters_have_hover_help_documentation(self):
+        html = self.read_app()
+        self.assertIn("parameter-help", html)
+        self.assertIn("help-tooltip", html)
+        self.assertIn('[role="tooltip"]', html)
+        self.assertIn(".parameter-help:hover .help-tooltip", html)
+        self.assertIn(".parameter-help:focus .help-tooltip", html)
+        for field_id in [
+            "p-model",
+            "p-database",
+            "p-predictDataSelect",
+            "p-mesh-lng",
+            "p-mesh-lat",
+            "p-frequency",
+            "p-SF",
+            "p-EIRP",
+            "p-fixAntenna_alt",
+            "p-fixAntenna_lng",
+            "p-fixAntenna_lat",
+            "p-fixAntenna_height",
+            "p-moveAntenna_height",
+            "m-isGenFV",
+            "m-scheduler",
+            "m-model",
+            "m-numCore1",
+            "m-learningType",
+            "m-freezeLayer",
+            "m-learningRate",
+            "d-frequency",
+            "d-SF",
+            "d-EIRP",
+            "d-fixAntenna_lng",
+            "d-fixAntenna_lat",
+            "d-fixAntenna_alt",
+            "d-fixAntenna_height",
+            "d-moveAntenna_height",
+        ]:
+            self.assertIn(f'data-help-for="{field_id}"', html)
 
     def test_base_model_choice_locks_training_controls_by_mode(self):
         html = self.read_app()

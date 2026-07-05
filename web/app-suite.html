@@ -242,7 +242,7 @@
       border-radius: 8px;
       background: rgba(16, 23, 34, 0.92);
       box-shadow: 0 12px 42px rgba(0, 0, 0, 0.22);
-      overflow: hidden;
+      overflow: visible;
     }
 
     .panel-header {
@@ -271,6 +271,161 @@
       gap: 14px;
     }
 
+    .training-visual {
+      min-height: 220px;
+      margin-top: 18px;
+      position: relative;
+      overflow: hidden;
+      border: 1px solid rgba(79, 213, 231, 0.18);
+      border-radius: 8px;
+      background:
+        linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+        linear-gradient(0deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+        #080d14;
+      background-size: 32px 32px, 32px 32px, auto;
+      box-shadow: inset 0 0 36px rgba(79, 213, 231, 0.06);
+    }
+
+    .training-visual-head {
+      min-height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 14px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(6, 11, 18, 0.62);
+    }
+
+    .training-visual-head h3 {
+      margin: 2px 0 0;
+      font-size: 13px;
+      font-weight: 760;
+    }
+
+    .training-visual-stage {
+      min-height: 160px;
+      display: grid;
+      grid-template-columns: 112px minmax(54px, 1fr) 132px minmax(54px, 1fr) 112px;
+      align-items: center;
+      gap: 10px;
+      padding: 20px 16px;
+    }
+
+    .training-node {
+      min-height: 88px;
+      display: grid;
+      place-items: center;
+      gap: 4px;
+      text-align: center;
+      border: 1px solid rgba(79, 213, 231, 0.2);
+      border-radius: 8px;
+      background: rgba(16, 23, 34, 0.86);
+    }
+
+    .training-node span {
+      width: 38px;
+      height: 38px;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      color: #061018;
+      font-size: 12px;
+      font-weight: 840;
+      background: linear-gradient(135deg, var(--cyan), var(--blue));
+    }
+
+    .training-node small {
+      max-width: 88px;
+      color: var(--muted);
+      font-size: 10px;
+      font-weight: 700;
+      line-height: 1.3;
+    }
+
+    .training-stack {
+      min-height: 100px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    .training-layer {
+      width: 10px;
+      height: 70px;
+      border-radius: 999px;
+      background: rgba(79, 213, 231, 0.22);
+      box-shadow: 0 0 16px rgba(79, 213, 231, 0.12);
+      animation: trainingPulse 2.6s ease-in-out infinite;
+    }
+
+    .training-layer:nth-child(2) { animation-delay: 0.18s; }
+    .training-layer:nth-child(3) { animation-delay: 0.36s; }
+    .training-layer:nth-child(4) { animation-delay: 0.54s; }
+    .training-layer:nth-child(5) { animation-delay: 0.72s; }
+
+    .training-flow-line {
+      height: 3px;
+      position: relative;
+      overflow: hidden;
+      border-radius: 999px;
+      background: rgba(79, 213, 231, 0.16);
+    }
+
+    .training-flow-line::before {
+      content: "";
+      width: 42%;
+      height: 100%;
+      position: absolute;
+      left: -45%;
+      top: 0;
+      border-radius: inherit;
+      background: linear-gradient(90deg, transparent, var(--cyan), var(--blue));
+      animation: signalPacket 3s linear infinite;
+    }
+
+    .training-visual.active {
+      border-color: rgba(79, 213, 231, 0.42);
+      box-shadow: inset 0 0 42px rgba(79, 213, 231, 0.1), 0 0 28px rgba(79, 213, 231, 0.08);
+    }
+
+    .training-visual.active .training-layer {
+      animation-duration: 1.1s;
+      background: rgba(79, 213, 231, 0.42);
+    }
+
+    .training-visual.active .training-flow-line::before {
+      animation-duration: 1s;
+    }
+
+    .training-visual.complete {
+      border-color: rgba(111, 211, 140, 0.42);
+      box-shadow: inset 0 0 42px rgba(111, 211, 140, 0.08);
+    }
+
+    .training-visual.complete .training-node span {
+      background: linear-gradient(135deg, #6fd38c, var(--cyan));
+    }
+
+    .training-visual.complete .training-layer {
+      background: rgba(111, 211, 140, 0.44);
+      box-shadow: 0 0 18px rgba(111, 211, 140, 0.2);
+    }
+
+    @keyframes trainingPulse {
+      0%, 100% { transform: scaleY(0.62); opacity: 0.45; }
+      50% { transform: scaleY(1); opacity: 1; }
+    }
+
+    @keyframes signalPacket {
+      0% { transform: translateX(0); }
+      100% { transform: translateX(345%); }
+    }
+
     .wide-grid {
       display: grid;
       grid-template-columns: minmax(0, 1fr) 360px;
@@ -284,9 +439,76 @@
     }
 
     label {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
       color: var(--muted);
       font-size: 12px;
       font-weight: 700;
+    }
+
+    .parameter-help {
+      width: 17px;
+      height: 17px;
+      display: inline-grid;
+      place-items: center;
+      position: relative;
+      border: 1px solid rgba(79, 213, 231, 0.34);
+      border-radius: 50%;
+      color: var(--cyan);
+      background: rgba(79, 213, 231, 0.08);
+      font-size: 11px;
+      line-height: 1;
+      cursor: help;
+      outline: none;
+      z-index: 8;
+    }
+
+    .parameter-help:focus {
+      box-shadow: 0 0 0 3px rgba(79, 213, 231, 0.16);
+    }
+
+    .help-tooltip {
+      width: 260px;
+      position: absolute;
+      left: 50%;
+      bottom: calc(100% + 10px);
+      transform: translate(-50%, 4px);
+      padding: 11px 12px;
+      border: 1px solid rgba(79, 213, 231, 0.28);
+      border-radius: 8px;
+      background: rgba(8, 13, 20, 0.98);
+      box-shadow: var(--shadow);
+      color: #c4d4e3;
+      font-size: 11px;
+      font-weight: 620;
+      line-height: 1.45;
+      text-transform: none;
+      letter-spacing: 0;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 140ms ease, transform 140ms ease;
+      z-index: 90;
+    }
+
+    .parameter-help [role="tooltip"] {
+      pointer-events: none;
+    }
+
+    .help-tooltip::after {
+      content: "";
+      position: absolute;
+      left: 50%;
+      top: 100%;
+      transform: translateX(-50%);
+      border: 6px solid transparent;
+      border-top-color: rgba(8, 13, 20, 0.98);
+    }
+
+    .parameter-help:hover .help-tooltip,
+    .parameter-help:focus .help-tooltip {
+      opacity: 1;
+      transform: translate(-50%, 0);
     }
 
     input, select {
@@ -685,7 +907,7 @@
           <div>
             <div class="eyebrow">Prediction Workspace</div>
             <h2>Run RSS prediction from map bounds or a CSV source.</h2>
-            <p class="lead">Configure the prediction model, source data, radio parameters, antenna settings, and map bounds for RSS estimation.</p>
+            <p class="lead">Configure the prediction model, source data, radio parameters, antenna settings, and map bounds for RSS prediction.</p>
           </div>
           <div class="toolbar">
             <button class="ghost-btn" data-keep-unlocked onclick="resetPrediction()">Reset</button>
@@ -712,14 +934,14 @@
             </div>
             <div class="panel-body">
               <div class="field">
-                <label>Base Model</label>
+                <label>Base Model <span class="parameter-help" tabindex="0" data-help-for="p-model">?<span class="help-tooltip" role="tooltip">Select the trained RSS model used for prediction. Use the NICT general model for standard runs or a custom model for site-specific prediction.</span></span></label>
                 <select id="p-model">
                   <option value="NICT_latest_model">General Model M0 (NICT 202605)</option>
                   <option value="customized_model">Custom Model</option>
                 </select>
               </div>
               <div class="field">
-                <label>Database</label>
+                <label>Database <span class="parameter-help" tabindex="0" data-help-for="p-database">?<span class="help-tooltip" role="tooltip">Choose the regional reference database. This also centers the map and determines the default geographic context for RSS prediction.</span></span></label>
                 <select id="p-database" onchange="setDatabaseCenter()">
                   <option value="DB_matumotoCity">Nagano Matsumoto</option>
                   <option value="DB_kouchi_kamishi">Kochi Kami</option>
@@ -731,23 +953,23 @@
                 </select>
               </div>
               <div class="field">
-                <label>Prediction Data</label>
+                <label>Prediction Data <span class="parameter-help" tabindex="0" data-help-for="p-predictDataSelect">?<span class="help-tooltip" role="tooltip">Choose whether prediction points come from a map-bounds area or from a CSV file selected through the native file dialog.</span></span></label>
                 <select id="p-predictDataSelect" onchange="togglePredictionArea()">
                   <option value="predictData_map">Map bounds</option>
                   <option value="predictData_file">CSV file selected by native dialog</option>
                 </select>
               </div>
               <div class="grid">
-                <div class="field"><label>Mesh Longitude</label><input id="p-mesh-lng" type="number" value="30" min="1" /></div>
-                <div class="field"><label>Mesh Latitude</label><input id="p-mesh-lat" type="number" value="30" min="1" /></div>
-                <div class="field"><label>Frequency MHz</label><input id="p-frequency" type="number" value="920" min="200" /></div>
-                <div class="field"><label>SF</label><select id="p-SF"><option value="0">None</option><option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="10">10</option><option value="11">11</option><option value="12">12</option></select></div>
-                <div class="field"><label>EIRP dBm</label><input id="p-EIRP" type="number" value="20" /></div>
-                <div class="field"><label>Fixed Altitude m</label><input id="p-fixAntenna_alt" type="number" value="640.7" /></div>
-                <div class="field"><label>Fixed Longitude</label><input id="p-fixAntenna_lng" type="number" value="137.9775489" step="0.000001" /></div>
-                <div class="field"><label>Fixed Latitude</label><input id="p-fixAntenna_lat" type="number" value="36.2508738" step="0.000001" /></div>
-                <div class="field"><label>Fixed Height m</label><input id="p-fixAntenna_height" type="number" value="1.5" step="0.1" /></div>
-                <div class="field"><label>Mobile Height m</label><input id="p-moveAntenna_height" type="number" value="1.8" step="0.1" /></div>
+                <div class="field"><label>Mesh Longitude <span class="parameter-help" tabindex="0" data-help-for="p-mesh-lng">?<span class="help-tooltip" role="tooltip">Number of longitude divisions used to generate prediction mesh points inside the selected map bounds. Higher values increase spatial density and runtime.</span></span></label><input id="p-mesh-lng" type="number" value="30" min="1" /></div>
+                <div class="field"><label>Mesh Latitude <span class="parameter-help" tabindex="0" data-help-for="p-mesh-lat">?<span class="help-tooltip" role="tooltip">Number of latitude divisions used to generate prediction mesh points inside the selected map bounds. Higher values increase spatial density and runtime.</span></span></label><input id="p-mesh-lat" type="number" value="30" min="1" /></div>
+                <div class="field"><label>Frequency in MHz <span class="parameter-help" tabindex="0" data-help-for="p-frequency">?<span class="help-tooltip" role="tooltip">Radio frequency in MHz used for propagation and RSS prediction. Keep it aligned with the measurement system and regulatory band.</span></span></label><input id="p-frequency" type="number" value="920" min="200" /></div>
+                <div class="field"><label>SF <span class="parameter-help" tabindex="0" data-help-for="p-SF">?<span class="help-tooltip" role="tooltip">LoRa spreading factor. Select None when SF is not part of the model input; otherwise choose the SF used during measurement or simulation.</span></span></label><select id="p-SF"><option value="0">None</option><option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="10">10</option><option value="11">11</option><option value="12">12</option></select></div>
+                <div class="field"><label>EIRP in dBm <span class="parameter-help" tabindex="0" data-help-for="p-EIRP">?<span class="help-tooltip" role="tooltip">Effective isotropic radiated power in dBm. This should match the transmitter power and antenna gain configuration used for the target scenario.</span></span></label><input id="p-EIRP" type="number" value="20" /></div>
+                <div class="field"><label>Fixed Elevation in m <span class="parameter-help" tabindex="0" data-help-for="p-fixAntenna_alt">?<span class="help-tooltip" role="tooltip">Effective elevation of the fixed antenna site above mean sea level, calculated as the sum of the ground altitude and the supporting building height. Used together with the antenna height to estimate the transmitter elevation.</span></span></label><input id="p-fixAntenna_alt" type="number" value="640.7" /></div>
+                <div class="field"><label>Fixed Longitude <span class="parameter-help" tabindex="0" data-help-for="p-fixAntenna_lng">?<span class="help-tooltip" role="tooltip">Longitude of the fixed antenna site in decimal degrees. This defines the transmitter (or receiver) reference position for prediction.</span></span></label><input id="p-fixAntenna_lng" type="number" value="137.9775489" step="0.000001" /></div>
+                <div class="field"><label>Fixed Latitude <span class="parameter-help" tabindex="0" data-help-for="p-fixAntenna_lat">?<span class="help-tooltip" role="tooltip">Latitude of the fixed antenna site in decimal degrees. This defines the transmitter (or receiver) reference position for prediction.</span></span></label><input id="p-fixAntenna_lat" type="number" value="36.2508738" step="0.000001" /></div>
+                <div class="field"><label>Fixed Height in m <span class="parameter-help" tabindex="0" data-help-for="p-fixAntenna_height">?<span class="help-tooltip" role="tooltip">Antenna height above local ground level at the fixed site, in meters. Used to calculate the effective transmitter (or receiver) antenna elevation.</span></span></label><input id="p-fixAntenna_height" type="number" value="1.5" step="0.1" /></div>
+                <div class="field"><label>Mobile Height in m <span class="parameter-help" tabindex="0" data-help-for="p-moveAntenna_height">?<span class="help-tooltip" role="tooltip">Receiver (or transmitter) antenna height above local ground level, in meters. Use the value that matches the mobile measurement or target deployment setup.</span></span></label><input id="p-moveAntenna_height" type="number" value="1.8" step="0.1" /></div>
               </div>
               <input id="min-lng" type="hidden" />
               <input id="min-lat" type="hidden" />
@@ -767,19 +989,41 @@
       <section class="workspace" id="view-training">
         <div class="topbar"><div class="breadcrumbs">ASSET / Model Training</div><span class="pill">Transfer Learning</span></div>
         <div class="module-title">
-          <div><div class="eyebrow">Model Training</div><h2>Generate new, transfer-learned, or incremental models.</h2><p class="lead">Train new models or adapt existing models with transfer learning, incremental training, feature-vector selection, and optional cluster execution.</p></div>
+          <div><div class="eyebrow">Model Training</div><h2>Generate new, transfer-learned, or incremental models.</h2><p class="lead">Train new models or adapt existing models with transfer learning, incremental training.</p></div>
           <div class="toolbar"><button class="ghost-btn" data-training-reset onclick="resetModelTraining()">Reset</button><button class="ghost-btn" onclick="loadAndShowPdf()">Open Guide</button><button class="primary-btn" id="generate-model-btn" onclick="generateModel()">Generate Model</button></div>
         </div>
         <div class="wide-grid">
           <div class="panel"><div class="panel-header"><h3>Model Settings</h3><span class="pill">Real API</span></div><div class="panel-body">
             <div class="grid">
-              <div class="field"><label>Feature Vector Mode</label><select id="m-isGenFV" onchange="toggleFeatureVectorFiles()"><option value="yes">Generate feature vectors</option><option value="no">Use existing feature vectors</option></select></div>
-              <div class="field"><label>Scheduler</label><input id="m-scheduler" placeholder="tcp://host:8786" /></div>
-              <div class="field"><label>Base Model</label><select id="m-model" onchange="toggleModelTrainingControls()"><option value="noModel">New model</option><option value="NICT_latest_model">General Model M0</option><option value="customized_model">Custom model for transfer</option></select></div>
-              <div class="field"><label>Kernel Count</label><select id="m-numCore1"><option>2</option><option>4</option><option>8</option><option>16</option><option selected>64</option><option>128</option></select></div>
-              <div class="field"><label>Learning Type</label><select id="m-learningType"><option value="type_None">None</option><option value="type_TL" selected>Transfer Learning</option><option value="type_IT">Incremental Training</option></select></div>
-              <div class="field"><label>Freeze Layer</label><select id="m-freezeLayer"><option value="9">Up to 2nd conv. and BatchNorm.</option></select></div>
-              <div class="field"><label>Learning Rate</label><input id="m-learningRate" type="number" value="0.0001" step="0.000001" /></div>
+              <div class="field"><label>Feature Vector Mode <span class="parameter-help" tabindex="0" data-help-for="m-isGenFV">?<span class="help-tooltip" role="tooltip">Choose whether feature vectors should be generated through Feature Generation or loaded from existing .xz feature vector files.</span></span></label><select id="m-isGenFV" onchange="toggleFeatureVectorFiles()"><option value="yes">Generate feature vectors</option><option value="no">Use existing feature vectors</option></select></div>
+              <div class="field"><label>Scheduler <span class="parameter-help" tabindex="0" data-help-for="m-scheduler">?<span class="help-tooltip" role="tooltip">Optional Dask scheduler address, such as tcp://host:8786. Leave blank to run model training in local single-machine mode.</span></span></label><input id="m-scheduler" placeholder="tcp://host:8786" /></div>
+              <div class="field"><label>Base Model <span class="parameter-help" tabindex="0" data-help-for="m-model">?<span class="help-tooltip" role="tooltip">Select New model for training from scratch, General Model M0 for transfer learning, or a custom model for site-specific adaptation.</span></span></label><select id="m-model" onchange="toggleModelTrainingControls()"><option value="noModel">New model</option><option value="NICT_latest_model">General Model M0</option><option value="customized_model">Custom model for transfer</option></select></div>
+              <div class="field"><label>Kernel Count <span class="parameter-help" tabindex="0" data-help-for="m-numCore1">?<span class="help-tooltip" role="tooltip">Number of worker kernels used for local training workloads. Larger values can speed computation but require more CPU and memory.</span></span></label><select id="m-numCore1"><option>2</option><option>4</option><option>8</option><option>16</option><option selected>64</option><option>128</option></select></div>
+              <div class="field"><label>Learning Type <span class="parameter-help" tabindex="0" data-help-for="m-learningType">?<span class="help-tooltip" role="tooltip">Training strategy for adapting an existing model. Transfer Learning updates selected layers; Incremental Training continues learning from new data.</span></span></label><select id="m-learningType"><option value="type_None">None</option><option value="type_TL" selected>Transfer Learning</option><option value="type_IT">Incremental Training</option></select></div>
+              <div class="field"><label>Freeze Layer <span class="parameter-help" tabindex="0" data-help-for="m-freezeLayer">?<span class="help-tooltip" role="tooltip">Controls which early neural-network layers remain fixed during transfer learning, preserving lower-level representations from the base model.</span></span></label><select id="m-freezeLayer"><option value="9">Up to 2nd conv. and BatchNorm.</option></select></div>
+              <div class="field"><label>Learning Rate <span class="parameter-help" tabindex="0" data-help-for="m-learningRate">?<span class="help-tooltip" role="tooltip">Optimizer step size used during model training. Smaller values are more stable; larger values can learn faster but may diverge.</span></span></label><input id="m-learningRate" type="number" value="0.0001" step="0.000001" /></div>
+            </div>
+            <div class="training-visual idle" id="training-visual" aria-label="Model training animation">
+              <div class="training-visual-head">
+                <div>
+                  <div class="eyebrow">Neural Training Flow</div>
+                  <h3>Feature vectors become deployable RSS models.</h3>
+                </div>
+                <span class="pill" id="training-visual-state">Idle</span>
+              </div>
+              <div class="training-visual-stage">
+                <div class="training-node"><span>FV</span><small>Feature vectors</small></div>
+                <div class="training-flow-line"></div>
+                <div class="training-stack">
+                  <span class="training-layer"></span>
+                  <span class="training-layer"></span>
+                  <span class="training-layer"></span>
+                  <span class="training-layer"></span>
+                  <span class="training-layer"></span>
+                </div>
+                <div class="training-flow-line"></div>
+                <div class="training-node"><span>M1</span><small>Generated model</small></div>
+              </div>
             </div>
           </div></div>
           <div class="panel" id="feature-vector-panel"><div class="panel-header"><h3>Feature Vector Files</h3><span class="pill" id="fv-status">None selected</span></div><div class="panel-body">
@@ -814,14 +1058,14 @@
           </div>
           <div class="panel-body">
             <div class="grid">
-              <div class="field"><label>Frequency MHz</label><input id="d-frequency" type="number" value="920" min="200" /></div>
-              <div class="field"><label>SF</label><select id="d-SF"><option value="0">None</option><option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="10">10</option><option value="11">11</option><option value="12">12</option></select></div>
-              <div class="field"><label>EIRP dBm</label><input id="d-EIRP" type="number" value="20" /></div>
-              <div class="field"><label>Fixed Longitude</label><input id="d-fixAntenna_lng" type="number" value="137.9775489" step="0.000001" /></div>
-              <div class="field"><label>Fixed Latitude</label><input id="d-fixAntenna_lat" type="number" value="36.2508738" step="0.000001" /></div>
-              <div class="field"><label>Fixed Altitude m</label><input id="d-fixAntenna_alt" type="number" value="640.7" /></div>
-              <div class="field"><label>Fixed Height m</label><input id="d-fixAntenna_height" type="number" value="1.5" step="0.1" /></div>
-              <div class="field"><label>Mobile Height m</label><input id="d-moveAntenna_height" type="number" value="1.8" step="0.1" /></div>
+              <div class="field"><label>Frequency in MHz <span class="parameter-help" tabindex="0" data-help-for="d-frequency">?<span class="help-tooltip" role="tooltip">Radio frequency in MHz to embed in generated feature vectors. Match this to the measurement campaign or target radio band.</span></span></label><input id="d-frequency" type="number" value="920" min="200" /></div>
+              <div class="field"><label>SF <span class="parameter-help" tabindex="0" data-help-for="d-SF">?<span class="help-tooltip" role="tooltip">LoRa spreading factor used when generating feature vectors. Select None if SF should not be included as a feature.</span></span></label><select id="d-SF"><option value="0">None</option><option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="10">10</option><option value="11">11</option><option value="12">12</option></select></div>
+              <div class="field"><label>EIRP in dBm <span class="parameter-help" tabindex="0" data-help-for="d-EIRP">?<span class="help-tooltip" role="tooltip">Transmit EIRP in dBm stored with the generated feature vectors. Use the same power setting as the source measurements.</span></span></label><input id="d-EIRP" type="number" value="20" /></div>
+              <div class="field"><label>Fixed Longitude <span class="parameter-help" tabindex="0" data-help-for="d-fixAntenna_lng">?<span class="help-tooltip" role="tooltip">Longitude of the fixed antenna used when preparing feature vectors, in decimal degrees.</span></span></label><input id="d-fixAntenna_lng" type="number" value="137.9775489" step="0.000001" /></div>
+              <div class="field"><label>Fixed Latitude <span class="parameter-help" tabindex="0" data-help-for="d-fixAntenna_lat">?<span class="help-tooltip" role="tooltip">Latitude of the fixed antenna used when preparing feature vectors, in decimal degrees.</span></span></label><input id="d-fixAntenna_lat" type="number" value="36.2508738" step="0.000001" /></div>
+              <div class="field"><label>Fixed Elevation in m <span class="parameter-help" tabindex="0" data-help-for="d-fixAntenna_alt">?<span class="help-tooltip" role="tooltip">Effective elevation of the fixed antenna site above mean sea level, calculated as the sum of the ground altitude and the supporting building height. Used for terrain-aware feature generation.</span></span></label><input id="d-fixAntenna_alt" type="number" value="640.7" /></div>
+              <div class="field"><label>Fixed Height in m <span class="parameter-help" tabindex="0" data-help-for="d-fixAntenna_height">?<span class="help-tooltip" role="tooltip">Fixed antenna height above local ground level, in meters. Combined with altitude for effective transmitter (or receiver) elevation.</span></span></label><input id="d-fixAntenna_height" type="number" value="1.5" step="0.1" /></div>
+              <div class="field"><label>Mobile Height in m <span class="parameter-help" tabindex="0" data-help-for="d-moveAntenna_height">?<span class="help-tooltip" role="tooltip">Mobile receiver (or transmitter) antenna height above ground level, in meters. Use the value corresponding to the training measurements.</span></span></label><input id="d-moveAntenna_height" type="number" value="1.8" step="0.1" /></div>
             </div>
           </div>
         </div>
@@ -829,8 +1073,8 @@
           <div class="grid">
             <button class="ghost-btn" onclick="chooseFiles('csv')">Training CSV</button>
             <button class="ghost-btn" onclick="chooseFiles('altitude')">Altitude TIFF</button>
-            <button class="ghost-btn" onclick="chooseFiles('building')">Building GPKG</button>
-            <button class="ghost-btn" onclick="chooseFiles('landuse')">Land-use GPKG</button>
+            <button class="ghost-btn" onclick="chooseFiles('building')">Building GPKG (Optional)</button>
+            <button class="ghost-btn" onclick="chooseFiles('landuse')">Land-use GPKG (Optional)</button>
           </div>
           <table class="table"><thead><tr><th>Type</th><th>Selected paths</th></tr></thead><tbody id="dataset-table"></tbody></table>
         </div></div>
@@ -1001,8 +1245,17 @@
       if (!datasetProcessing) toggleFeatureVectorFiles();
     }
 
+    function setTrainingVisualState(state) {
+      const visual = document.getElementById("training-visual");
+      const label = document.getElementById("training-visual-state");
+      if (!visual || !label) return;
+      document.getElementById("training-visual").className = `training-visual ${state}`;
+      label.textContent = state === "active" ? "Training" : state === "complete" ? "Complete" : "Idle";
+    }
+
     function setModelTrainingLocked(isLocked) {
       modelTrainingLocked = isLocked;
+      setTrainingVisualState(isLocked ? "active" : "idle");
       document.querySelectorAll(".nav-item").forEach((button) => {
         button.disabled = modelTrainingLocked && !allowedViewsDuringTraining.has(button.dataset.view);
       });
@@ -1473,11 +1726,13 @@
 
     function updateProgress(percent, status) {
       const normalized = Math.max(0, Math.min(100, Number(percent) || 0));
+      const wasTrainingLocked = modelTrainingLocked;
       document.getElementById("runtime-bar").style.width = `${normalized}%`;
       document.getElementById("runtime-pill").textContent = `${percent}%`;
       document.getElementById("runtime-title").textContent = status;
       if (predictionRunning && (Number(percent) >= 100 || Number(percent) < 0)) setPredictionRunning(false);
       if (modelTrainingLocked && Number(percent) >= 100) setModelTrainingLocked(false);
+      if (wasTrainingLocked && Number(percent) >= 100) setTrainingVisualState("complete");
     }
 
     function updateTerminal(message) {
