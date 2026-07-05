@@ -316,6 +316,34 @@ class AppSuiteStaticTests(unittest.TestCase):
         ]:
             self.assertIn(f'data-help-for="{field_id}"', html)
 
+    def test_open_guide_shows_distributed_learning_guide(self):
+        html = self.read_app()
+        self.assertIn('onclick="openDistributedGuide()"', html)
+        self.assertIn('id="distributed-guide-modal"', html)
+        self.assertIn("Distributed Learning Guide", html)
+        self.assertIn("ulimit -n 10000", html)
+        self.assertIn("dask scheduler --host 192.168.1.200", html)
+        self.assertIn("dask worker tcp://192.168.199.1:8786 --nworkers 12 --nthreads 1 --name MacPro_alpha --memory-limit 14GB", html)
+        self.assertIn("dask worker tcp://192.168.199.1:8786 --nworkers 12 --nthreads 1 --name MacPro_beta --memory-limit 14GB", html)
+        self.assertIn("dask worker tcp://192.168.199.1:8786 --nworkers 6 --nthreads 1 --name MacPro_shan --memory-limit 14GB", html)
+        self.assertIn("tcp://192.168.199.1:8786", html)
+        self.assertIn("Paste the scheduler address into Model Training / Scheduler", html)
+        for explanation in [
+            "--host",
+            "--nworkers",
+            "--nthreads",
+            "--name",
+            "--memory-limit",
+            "worker count",
+            "scheduler address",
+        ]:
+            self.assertIn(explanation, html)
+        self.assertIn("function openDistributedGuide", html)
+        self.assertIn("function closeDistributedGuide", html)
+        self.assertIn("function loadAndShowPdf", html)
+        self.assertNotIn("Open PDF Guide", html)
+        self.assertNotIn('onclick="loadAndShowPdf()"', html)
+
     def test_base_model_choice_locks_training_controls_by_mode(self):
         html = self.read_app()
         self.assertIn('id="m-model" onchange="toggleModelTrainingControls()"', html)

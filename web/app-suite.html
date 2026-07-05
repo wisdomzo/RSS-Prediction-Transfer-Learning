@@ -734,6 +734,76 @@
       transform: translateY(0);
     }
 
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 900;
+      display: grid;
+      place-items: center;
+      padding: 28px;
+      background: rgba(3, 6, 10, 0.74);
+      backdrop-filter: blur(10px);
+    }
+
+    .guide-modal {
+      width: min(760px, calc(100vw - 56px));
+      max-height: calc(100vh - 56px);
+      overflow: auto;
+      border: 1px solid rgba(79, 213, 231, 0.28);
+      border-radius: 8px;
+      background: rgba(10, 15, 23, 0.98);
+      box-shadow: var(--shadow);
+    }
+
+    .guide-modal-body {
+      display: grid;
+      gap: 16px;
+      padding: 18px;
+    }
+
+    .guide-steps {
+      display: grid;
+      gap: 12px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .guide-steps li {
+      display: grid;
+      gap: 7px;
+      padding: 13px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(21, 31, 45, 0.72);
+    }
+
+    .guide-steps b {
+      font-size: 12px;
+      color: var(--text);
+    }
+
+    .guide-steps p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .command-line {
+      margin: 0;
+      overflow-x: auto;
+      padding: 10px 11px;
+      border: 1px solid rgba(79, 213, 231, 0.18);
+      border-radius: 8px;
+      background: #05080d;
+      color: #9fc7d2;
+      font-family: "SFMono-Regular", Consolas, monospace;
+      font-size: 11px;
+      line-height: 1.55;
+      white-space: pre;
+    }
+
     .table {
       width: 100%;
       border-collapse: collapse;
@@ -870,6 +940,55 @@
       <p class="splash-copy">Adaptive Signal Strength Estimation and Tracking. Preparing RSS prediction, model training, result analysis, and operational monitoring.</p>
     </div>
   </div>
+  <div class="modal-backdrop hidden" id="distributed-guide-modal" onclick="closeDistributedGuide()">
+    <div class="guide-modal" onclick="event.stopPropagation()" role="dialog" aria-modal="true" aria-labelledby="distributed-guide-title">
+      <div class="panel-header">
+        <div>
+          <div class="eyebrow">Distributed Learning Guide</div>
+          <h3 id="distributed-guide-title">Run model training with a Dask scheduler and workers.</h3>
+        </div>
+        <button class="ghost-btn" onclick="closeDistributedGuide()">Close</button>
+      </div>
+      <div class="guide-modal-body">
+        <p class="lead">Use this setup when model training needs multiple workers. Start the scheduler on the master machine, then start workers on one or more worker machines before running Generate Model.</p>
+        <ul class="guide-steps">
+          <li>
+            <b>1. Increase the open-file limit on the master machine.</b>
+            <p>Run this before starting Dask so many files and worker connections can stay open during training.</p>
+            <pre class="command-line">ulimit -n 10000</pre>
+          </li>
+          <li>
+            <b>2. Start the scheduler on the master machine.</b>
+            <p>Replace the IP address if your master machine uses a different LAN address.</p>
+            <pre class="command-line">dask scheduler --host 192.168.199.1</pre>
+          </li>
+          <li>
+            <b>3. Start workers after the scheduler is running.</b>
+            <p>Run one command per worker group. Adjust worker count and memory limit to match the available CPU and memory on each machine.</p>
+            <pre class="command-line">dask worker tcp://192.168.199.1:8786 --nworkers 12 --nthreads 1 --name MacPro_alpha --memory-limit 14GB
+dask worker tcp://192.168.199.2:8786 --nworkers 12 --nthreads 1 --name MacPro_beta --memory-limit 14GB
+dask worker tcp://192.168.199.3:8786 --nworkers 6 --nthreads 1 --name MacPro_shan --memory-limit 14GB</pre>
+          </li>
+          <li>
+            <b>4. Run training from ASSET.</b>
+            <p>Paste the scheduler address into Model Training / Scheduler, select feature vectors, then click Generate Model.</p>
+            <pre class="command-line">192.168.199.1:8786</pre>
+          </li>
+          <li>
+            <b>5. Parameter reference.</b>
+            <p><b>--host</b> sets the scheduler bind IP on the master machine. The scheduler address is the tcp://IP:8786 endpoint that ASSET and all workers connect to.</p>
+            <p><b>--nworkers</b> is the worker count launched by that command. Higher worker count increases parallel jobs but also increases memory and file-handle pressure.</p>
+            <p><b>--nthreads</b> sets threads per worker. For CPU-bound training, 1 thread per worker is usually stable and predictable.</p>
+            <p><b>--name</b> gives each worker group a readable label, such as MacPro_alpha, so logs and Dask diagnostics can identify the machine.</p>
+            <p><b>--memory-limit</b> caps memory per worker process. Use it to avoid a single machine exhausting RAM during model training.</p>
+          </li>
+        </ul>
+        <div class="toolbar">
+          <button class="primary-btn" onclick="closeDistributedGuide()">Got it</button>
+        </div>
+      </div>
+    </div>
+  </div>
   <div class="app">
     <aside class="sidebar">
       <div class="brand">
@@ -990,13 +1109,13 @@
         <div class="topbar"><div class="breadcrumbs">ASSET / Model Training</div><span class="pill">Transfer Learning</span></div>
         <div class="module-title">
           <div><div class="eyebrow">Model Training</div><h2>Generate new, transfer-learned, or incremental models.</h2><p class="lead">Train new models or adapt existing models with transfer learning, incremental training.</p></div>
-          <div class="toolbar"><button class="ghost-btn" data-training-reset onclick="resetModelTraining()">Reset</button><button class="ghost-btn" onclick="loadAndShowPdf()">Open Guide</button><button class="primary-btn" id="generate-model-btn" onclick="generateModel()">Generate Model</button></div>
+          <div class="toolbar"><button class="ghost-btn" data-training-reset onclick="resetModelTraining()">Reset</button><button class="ghost-btn" onclick="openDistributedGuide()">Open Guide</button><button class="primary-btn" id="generate-model-btn" onclick="generateModel()">Generate Model</button></div>
         </div>
         <div class="wide-grid">
           <div class="panel"><div class="panel-header"><h3>Model Settings</h3><span class="pill">Real API</span></div><div class="panel-body">
             <div class="grid">
               <div class="field"><label>Feature Vector Mode <span class="parameter-help" tabindex="0" data-help-for="m-isGenFV">?<span class="help-tooltip" role="tooltip">Choose whether feature vectors should be generated through Feature Generation or loaded from existing .xz feature vector files.</span></span></label><select id="m-isGenFV" onchange="toggleFeatureVectorFiles()"><option value="yes">Generate feature vectors</option><option value="no">Use existing feature vectors</option></select></div>
-              <div class="field"><label>Scheduler <span class="parameter-help" tabindex="0" data-help-for="m-scheduler">?<span class="help-tooltip" role="tooltip">Optional Dask scheduler address, such as tcp://host:8786. Leave blank to run model training in local single-machine mode.</span></span></label><input id="m-scheduler" placeholder="tcp://host:8786" /></div>
+              <div class="field"><label>Scheduler <span class="parameter-help" tabindex="0" data-help-for="m-scheduler">?<span class="help-tooltip" role="tooltip">Optional Dask scheduler address, such as tcp://host:8786. Leave blank to run model training in local single-machine mode.</span></span></label><input id="m-scheduler" placeholder="host_ip:8786" /></div>
               <div class="field"><label>Base Model <span class="parameter-help" tabindex="0" data-help-for="m-model">?<span class="help-tooltip" role="tooltip">Select New model for training from scratch, General Model M0 for transfer learning, or a custom model for site-specific adaptation.</span></span></label><select id="m-model" onchange="toggleModelTrainingControls()"><option value="noModel">New model</option><option value="NICT_latest_model">General Model M0</option><option value="customized_model">Custom model for transfer</option></select></div>
               <div class="field"><label>Kernel Count <span class="parameter-help" tabindex="0" data-help-for="m-numCore1">?<span class="help-tooltip" role="tooltip">Number of worker kernels used for local training workloads. Larger values can speed computation but require more CPU and memory.</span></span></label><select id="m-numCore1"><option>2</option><option>4</option><option>8</option><option>16</option><option selected>64</option><option>128</option></select></div>
               <div class="field"><label>Learning Type <span class="parameter-help" tabindex="0" data-help-for="m-learningType">?<span class="help-tooltip" role="tooltip">Training strategy for adapting an existing model. Transfer Learning updates selected layers; Incremental Training continues learning from new data.</span></span></label><select id="m-learningType"><option value="type_None">None</option><option value="type_TL" selected>Transfer Learning</option><option value="type_IT">Incremental Training</option></select></div>
@@ -1722,6 +1841,14 @@
       } else {
         showToast(response.message || "Unable to load guide.");
       }
+    }
+
+    function openDistributedGuide() {
+      document.getElementById("distributed-guide-modal").classList.remove("hidden");
+    }
+
+    function closeDistributedGuide() {
+      document.getElementById("distributed-guide-modal").classList.add("hidden");
     }
 
     function updateProgress(percent, status) {
