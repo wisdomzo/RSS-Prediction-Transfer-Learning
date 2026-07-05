@@ -23,6 +23,11 @@ import multiprocessing
 from dask.distributed import Client, get_client, Queue
 
 
+current_prediction_process = None
+current_prediction_queue = None
+prediction_monitor_thread = None
+
+
 def connect_to_existing_cluster(coords):
     """
     稳健版 Dask 连接函数：
@@ -111,6 +116,69 @@ class QueueLogger:
             self.queue.put(message)
     def flush(self):
         pass
+
+
+class ProcessWindowProxy:
+    def __init__(self, queue):
+        self.queue = queue
+
+    def evaluate_js(self, script):
+        self.queue.put({"type": "js", "payload": script})
+
+    def create_file_dialog(self, *args, **kwargs):
+        return None
+
+
+def _prediction_process_entry(coords, progress_queue):
+    global window
+    window = ProcessWindowProxy(progress_queue)
+    sys.stdout = QueueLogger(progress_queue)
+    sys.stderr = QueueLogger(progress_queue)
+    worker_thread(coords)
+    progress_queue.put({"type": "done", "payload": True})
+
+
+def _monitor_prediction_process(process, progress_queue):
+    global current_prediction_process, current_prediction_queue
+    while True:
+        try:
+            event = progress_queue.get(timeout=0.2)
+        except Exception:
+            if not process.is_alive():
+                break
+            continue
+
+        event_type = event.get("type") if isinstance(event, dict) else "log"
+        payload = event.get("payload") if isinstance(event, dict) else event
+
+        if event_type == "js" and window:
+            window.evaluate_js(payload)
+        elif event_type == "done":
+            break
+        else:
+            print(payload)
+
+    process.join(timeout=0.2)
+    if current_prediction_process is process:
+        current_prediction_process = None
+        current_prediction_queue = None
+
+
+def terminate_current_prediction():
+    global current_prediction_process, current_prediction_queue
+    process = current_prediction_process
+    if not process:
+        return False
+    if process.is_alive():
+        print("Stopping active RSS prediction process...")
+        process.terminate()
+        process.join(timeout=2)
+        if process.is_alive():
+            process.kill()
+            process.join(timeout=1)
+    current_prediction_process = None
+    current_prediction_queue = None
+    return True
 
 class Api:
     def __init__(self):
@@ -275,7 +343,7 @@ def worker_thread(coords):
         
         # 准备参数列表
         if coords['predictDataSelectValue'] == "predictData_file":
-            select_prediction_file_path = select_prediction_file(window)
+            select_prediction_file_path = coords.get("prediction_file_path") or select_prediction_file(window)
         else:
             select_prediction_file_path = ""
         args = [
@@ -290,7 +358,7 @@ def worker_thread(coords):
         if coords['model'] == "NICT_latest_model":
             baseModel = subFun.get_gpkg_files(os.path.join(APP_ROOT, "models"), "*NICT*")
         elif coords['model'] == "customized_model":
-            baseModel = select_custom_model_file(window)
+            baseModel = coords.get("custom_model_path") or select_custom_model_file(window)
         selected_predict_model = baseModel
 
         window.evaluate_js("updateProgress(30, '予測エリアを生成中...')")
@@ -474,8 +542,33 @@ def select_prediction_file(window):
 
 
 def executeRssPrediction(coords):
-    """JS 接口：启动后台线程"""
-    threading.Thread(target=worker_thread, args=(coords,), daemon=True).start()
+    """JS 接口：启动可被 Reset 终止的后台预测进程。"""
+    global current_prediction_process, current_prediction_queue, prediction_monitor_thread
+    terminate_current_prediction()
+    coords = dict(coords)
+    if coords.get("predictDataSelectValue") == "predictData_file":
+        prediction_file_path = select_prediction_file(window)
+        if not prediction_file_path:
+            return False
+        coords["prediction_file_path"] = prediction_file_path
+    if coords.get("model") == "customized_model":
+        custom_model_path = select_custom_model_file(window)
+        if not custom_model_path:
+            return False
+        coords["custom_model_path"] = custom_model_path
+    current_prediction_queue = multiprocessing.Queue()
+    current_prediction_process = multiprocessing.Process(
+        target=_prediction_process_entry,
+        args=(coords, current_prediction_queue),
+        daemon=True
+    )
+    current_prediction_process.start()
+    prediction_monitor_thread = threading.Thread(
+        target=_monitor_prediction_process,
+        args=(current_prediction_process, current_prediction_queue),
+        daemon=True
+    )
+    prediction_monitor_thread.start()
     return True
 
 
@@ -567,6 +660,11 @@ def download_csv():
     except Exception as e:
         print(f"保存失败: {e}")
         return False
+
+
+def download_dataset_output():
+    """Save the latest generated feature-vector output from Dataset Prep."""
+    return download_model("ML_")
     
 
 def download_model(file_head):
@@ -736,6 +834,7 @@ def reset_temp_data(prefix_to_keep=None):
     :param prefix_to_keep: 需要保留的文件前缀。如果不传，默认清理所有。
     """
     try:
+        terminate_current_prediction()
         # 如果 JS 调用时没传参数，prefix_to_keep 会是 None
         target_prefix = prefix_to_keep if prefix_to_keep is not None else "KEEP_NOTHING"
         
@@ -802,6 +901,7 @@ def main():
     window.expose(executeRssPrediction)
     window.expose(get_prediction_data)
     window.expose(download_csv)
+    window.expose(download_dataset_output)
     window.expose(upload_csv_files)
     window.expose(reset_temp_data)
     window.expose(executeDataProcessing)

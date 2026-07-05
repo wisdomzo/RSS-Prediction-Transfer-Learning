@@ -22,6 +22,21 @@ class MainEntrypointTests(unittest.TestCase):
         self.assertNotIn("height=768", window_call)
         self.assertNotIn("min_size=(1024, 768)", window_call)
 
+    def test_prediction_reset_terminates_active_prediction_process(self):
+        source = MAIN.read_text(encoding="utf-8")
+        self.assertIn("current_prediction_process", source)
+        self.assertIn("def terminate_current_prediction", source)
+        self.assertIn("multiprocessing.Process", source)
+        self.assertIn(".terminate()", source)
+        self.assertIn(".kill()", source)
+        self.assertIn("terminate_current_prediction()", source)
+
+    def test_dataset_output_download_is_exposed(self):
+        source = MAIN.read_text(encoding="utf-8")
+        self.assertIn("def download_dataset_output", source)
+        self.assertIn('download_model("ML_")', source)
+        self.assertIn("window.expose(download_dataset_output)", source)
+
 
 if __name__ == "__main__":
     unittest.main()

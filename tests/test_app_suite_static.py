@@ -24,6 +24,7 @@ class AppSuiteStaticTests(unittest.TestCase):
             "executeDataProcessing",
             "get_prediction_data",
             "download_csv",
+            "download_dataset_output",
             "reset_temp_data",
             "get_help_pdf",
             "select_files_native",
@@ -132,6 +133,159 @@ class AppSuiteStaticTests(unittest.TestCase):
         self.assertIn("clearPredictionResults()", html)
         self.assertIn('document.getElementById("result-status").textContent = "No result loaded"', html)
         self.assertIn("if (!layer._url) resultMap.removeLayer(layer)", html)
+
+    def test_reset_stops_backend_and_clears_inputs_and_logs(self):
+        html = self.read_app()
+        self.assertIn("async function resetPrediction", html)
+        self.assertIn("await window.pywebview.api.reset_temp_data()", html)
+        self.assertIn("resetPredictionInputs()", html)
+        self.assertIn("clearTerminal()", html)
+        self.assertIn('document.getElementById("p-predictDataSelect").value = "predictData_map"', html)
+        self.assertIn('document.getElementById("terminal-content-main").textContent = "> ASSET suite initialized"', html)
+
+    def test_csv_prediction_mode_locks_mesh_dimensions(self):
+        html = self.read_app()
+        self.assertIn("function setMeshControlsLocked", html)
+        self.assertIn('document.getElementById("p-mesh-lng").disabled = locked', html)
+        self.assertIn('document.getElementById("p-mesh-lat").disabled = locked', html)
+        self.assertIn('predictMode === "predictData_file"', html)
+
+    def test_app_suite_has_professional_splash_animation(self):
+        html = self.read_app()
+        self.assertIn('id="splash-screen"', html)
+        self.assertIn("ASSET Framework", html)
+        self.assertIn("splashExitMs = 3800", html)
+        self.assertIn("function dismissSplash", html)
+        self.assertIn("setTimeout(dismissSplash, splashExitMs)", html)
+        self.assertIn("@keyframes signalSweep", html)
+
+    def test_results_map_hidden_until_results_are_loaded(self):
+        html = self.read_app()
+        self.assertIn('id="result-empty-state"', html)
+        self.assertIn('class="panel hidden" id="result-map-panel"', html)
+        self.assertIn('document.getElementById("result-map-panel").classList.remove("hidden")', html)
+        self.assertIn('document.getElementById("result-empty-state").classList.add("hidden")', html)
+        self.assertIn('document.getElementById("result-map-panel").classList.add("hidden")', html)
+
+    def test_prediction_parameters_can_be_temporarily_saved_and_reloaded_after_reset(self):
+        html = self.read_app()
+        self.assertIn("Save Params", html)
+        self.assertIn("Reload Params", html)
+        self.assertIn("let savedPredictionParams = null", html)
+        self.assertIn("const predictionParamIds", html)
+        self.assertIn("function savePredictionParams", html)
+        self.assertIn("function reloadPredictionParams", html)
+        self.assertIn("savedPredictionParams = capturePredictionParams()", html)
+        self.assertIn("applyPredictionParams(savedPredictionParams)", html)
+        self.assertIn('"min-lng"', html)
+        self.assertIn('"max-lat"', html)
+
+    def test_dataset_prep_has_own_parameters_and_temporary_save_reload(self):
+        html = self.read_app()
+        self.assertIn("<h3>Dataset Parameters</h3>", html)
+        self.assertIn('id="dataset-param-cache-status"', html)
+        self.assertIn('onclick="saveDatasetParams()"', html)
+        self.assertIn('onclick="reloadDatasetParams()"', html)
+        self.assertIn("let savedDatasetParams = null", html)
+        self.assertIn("const datasetParamIds", html)
+        for field_id in [
+            "d-frequency",
+            "d-SF",
+            "d-EIRP",
+            "d-fixAntenna_lng",
+            "d-fixAntenna_lat",
+            "d-fixAntenna_alt",
+            "d-fixAntenna_height",
+            "d-moveAntenna_height",
+        ]:
+            self.assertIn(f'id="{field_id}"', html)
+            self.assertIn(f'"{field_id}"', html)
+        self.assertIn("function saveDatasetParams", html)
+        self.assertIn("function reloadDatasetParams", html)
+        self.assertIn("savedDatasetParams = captureDatasetParams()", html)
+        self.assertIn("applyDatasetParams(savedDatasetParams)", html)
+        self.assertIn('frequency: document.getElementById("d-frequency").value', html)
+        self.assertIn('moveAntenna_height: document.getElementById("d-moveAntenna_height").value', html)
+
+    def test_model_training_and_dataset_prep_have_reset_defaults(self):
+        html = self.read_app()
+        self.assertIn('onclick="resetModelTraining()"', html)
+        self.assertIn('onclick="resetDatasetPrep()"', html)
+        self.assertIn("async function resetModelTraining", html)
+        self.assertIn("async function resetDatasetPrep", html)
+        self.assertIn('document.getElementById("m-isGenFV").value = "yes"', html)
+        self.assertIn('document.getElementById("m-model").value = "noModel"', html)
+        self.assertIn("selectedPaths.fv = []", html)
+        self.assertIn("selectedPaths.csv = []", html)
+        self.assertIn("selectedPaths.altitude = []", html)
+        self.assertIn("selectedPaths.building = []", html)
+        self.assertIn("selectedPaths.landuse = []", html)
+        self.assertIn('document.getElementById("dataset-status").textContent = "Waiting for files"', html)
+        self.assertIn('document.getElementById("d-frequency").value = "920"', html)
+        self.assertIn('document.getElementById("d-SF").value = "0"', html)
+        self.assertIn('document.getElementById("dataset-param-cache-status").textContent = "Not saved"', html)
+        self.assertIn('document.getElementById("fv-status").textContent = "None selected"', html)
+        self.assertGreaterEqual(html.count("await window.pywebview.api.reset_temp_data()"), 3)
+
+    def test_generate_feature_vectors_locks_feature_vector_files_and_guides_to_dataset_prep(self):
+        html = self.read_app()
+        self.assertIn('onchange="toggleFeatureVectorFiles()"', html)
+        self.assertIn('id="feature-vector-panel"', html)
+        self.assertIn('id="feature-vector-guidance"', html)
+        self.assertIn("function toggleFeatureVectorFiles", html)
+        self.assertIn('const shouldLock = mode === "yes"', html)
+        self.assertIn('document.getElementById("feature-vector-panel").classList.toggle("locked-panel", shouldLock)', html)
+        self.assertIn('document.getElementById("feature-vector-select-btn").disabled = shouldLock', html)
+        self.assertIn("showView('dataset')", html)
+        self.assertIn("Generate feature vectors in Dataset Prep first.", html)
+
+    def test_generate_feature_vectors_locks_generate_model_and_controls_dataset_prep_access(self):
+        html = self.read_app()
+        self.assertIn('id="generate-model-btn"', html)
+        self.assertIn('document.getElementById("generate-model-btn").disabled = shouldLock', html)
+        self.assertIn('<button class="ghost-btn" id="open-dataset-prep-btn" onclick="showView(\'dataset\')">Open Dataset Prep</button>', html)
+        self.assertIn('document.getElementById("open-dataset-prep-btn").disabled = !shouldLock', html)
+
+    def test_base_model_choice_locks_training_controls_by_mode(self):
+        html = self.read_app()
+        self.assertIn('id="m-model" onchange="toggleModelTrainingControls()"', html)
+        self.assertIn("function toggleModelTrainingControls", html)
+        self.assertIn('const isNewModel = document.getElementById("m-model").value === "noModel"', html)
+        self.assertIn('document.getElementById("m-learningType").disabled = modelTrainingLocked || isNewModel', html)
+        self.assertIn('document.getElementById("m-freezeLayer").disabled = modelTrainingLocked || isNewModel', html)
+        self.assertIn('document.getElementById("m-numCore1").disabled = modelTrainingLocked || !isNewModel', html)
+        self.assertIn('document.getElementById("m-learningRate").disabled = modelTrainingLocked || !isNewModel', html)
+        self.assertIn("toggleModelTrainingControls();", html)
+
+    def test_model_training_stays_locked_after_generation_until_reset(self):
+        html = self.read_app()
+        self.assertIn("let modelTrainingLocked = false", html)
+        self.assertIn("function setModelTrainingLocked", html)
+        self.assertIn("setModelTrainingLocked(true)", html)
+        self.assertIn("setModelTrainingLocked(false)", html)
+        self.assertIn('document.querySelectorAll("#view-training input, #view-training select, #view-training button:not([data-training-reset])")', html)
+        self.assertIn("control.disabled = modelTrainingLocked", html)
+        self.assertIn("if (modelTrainingLocked) return", html)
+        self.assertIn("modelTrainingLocked || isNewModel", html)
+        self.assertIn("modelTrainingLocked || !isNewModel", html)
+
+    def test_dataset_prep_locks_workspace_while_processing_and_exposes_download(self):
+        html = self.read_app()
+        self.assertIn("let datasetProcessing = false", html)
+        self.assertIn("let datasetOutputReady = false", html)
+        self.assertIn('new Set(["dataset", "logs"])', html)
+        self.assertIn("function setDatasetProcessing", html)
+        self.assertIn("setDatasetProcessing(true)", html)
+        self.assertIn("setDatasetProcessing(false)", html)
+        self.assertIn('document.getElementById("download-dataset-output-btn").classList.remove("hidden")', html)
+        self.assertIn('id="download-dataset-output-btn"', html)
+        self.assertIn("function downloadDatasetOutput", html)
+        self.assertIn("window.pywebview.api.download_dataset_output()", html)
+        self.assertIn("if (datasetProcessing && !allowedViewsDuringDataset.has(name))", html)
+        self.assertIn('id="upload-dataset-process-btn"', html)
+        self.assertIn("datasetOutputReady = true", html)
+        self.assertIn("datasetOutputReady = false", html)
+        self.assertIn('document.getElementById("upload-dataset-process-btn").disabled = datasetProcessing || datasetOutputReady', html)
 
 
 if __name__ == "__main__":
