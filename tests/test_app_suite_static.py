@@ -76,6 +76,15 @@ class AppSuiteStaticTests(unittest.TestCase):
         self.assertIn('id="terminal-content-main"', html)
         self.assertIn("appendTerminalLine", html)
 
+    def test_app_starts_two_column_and_expands_to_three_columns_on_wide_viewports(self):
+        html = self.read_app()
+        self.assertIn("grid-template-columns: 264px minmax(0, 1fr);", html)
+        self.assertIn("display: none;", html)
+        self.assertIn("@media (min-width: 1360px)", html)
+        self.assertIn("grid-template-columns: 264px minmax(720px, 1fr) 340px;", html)
+        self.assertIn(".rightbar { display: block; }", html)
+        self.assertNotIn("Watch Runtime Monitor for progress.", html)
+
     def test_prediction_parameters_are_above_prediction_area(self):
         html = self.read_app()
         start = html.index('id="view-prediction"')
@@ -85,6 +94,21 @@ class AppSuiteStaticTests(unittest.TestCase):
             prediction.index("<h3>Parameters</h3>"),
             prediction.index("<h3>Prediction Area</h3>"),
         )
+
+    def test_model_settings_uses_same_workspace_width_as_welcome(self):
+        html = self.read_app()
+        start = html.index('id="view-training"')
+        end = html.index('id="view-dataset"')
+        training = html[start:end]
+        self.assertIn('class="panel welcome-panel workspace-width"', html)
+        self.assertIn('class="model-training-stack workspace-width"', training)
+        self.assertNotIn('class="wide-grid"', training)
+        self.assertLess(
+            training.index("<h3>Model Settings</h3>"),
+            training.index("<h3>Feature Vector Files</h3>"),
+        )
+        self.assertIn(".model-training-stack", html)
+        self.assertIn(".workspace-width", html)
 
     def test_prediction_area_is_conditional_on_map_bounds_mode(self):
         html = self.read_app()

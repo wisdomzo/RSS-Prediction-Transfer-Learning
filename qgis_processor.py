@@ -6,7 +6,7 @@ import platform
 
 
 if platform.system() == "Darwin":
-    print("检测到macOS系统")
+    print("macOS system detected.")
     # 1. 设置 QGIS 环境
     qgis_path = "/Applications/QGIS-LTR.app/Contents"
     os.environ['QGIS_PREFIX_PATH'] = f"{qgis_path}/MacOS"
@@ -32,7 +32,7 @@ if platform.system() == "Darwin":
 
 
 if platform.system() == "Linux":
-    print("检测到Linux树莓派系统")
+    print("Linux Raspberry Pi system detected.")
     # 1. 设置 QGIS 环境（树莓派路径）
     qgis_path = "/usr"  # 树莓派默认安装路径
     os.environ['QGIS_PREFIX_PATH'] = qgis_path
@@ -66,7 +66,7 @@ if platform.system() == "Linux":
 
 
 if platform.system() == "Windows":
-    print("检测到Windows系统")
+    print("Windows system detected.")
 
     # 1. 设置 QGIS 环境
     # 默认安装路径（根据你的QGIS版本调整）
@@ -106,16 +106,16 @@ def process_data(csv_path, gpkg_path, output_path):
     )
     csv_layer = QgsVectorLayer(csv_uri, "orig_CSV", "delimitedtext")
     if not csv_layer.isValid():
-        print("错误：CSV加载失败！")
+        print("Error: CSV loading failed.")
         return
 
     # 加载GPKG文件（自动加载第一个图层）
     gpkg_layer = QgsVectorLayer(gpkg_path, "open_map", "ogr")  # 不指定图层名
     if not gpkg_layer.isValid():
-        print("错误：GPKG加载失败！")
+        print("Error: GPKG loading failed.")
         return
     else:
-        print(f"成功加载GPKG图层：{gpkg_layer.name()}")
+        print(f"GPKG layer loaded successfully: {gpkg_layer.name()}")
 
 
     # 修复几何（关键步骤）
@@ -132,7 +132,7 @@ def process_data(csv_path, gpkg_path, output_path):
         processing.run("native:createspatialindex", {'INPUT': csv_layer})
         processing.run("native:createspatialindex", {'INPUT': gpkg_layer})
     except Exception as e:
-        print(f"空间索引创建失败：{str(e)}")
+        print(f"Spatial index creation failed: {str(e)}")
 
 
     # 执行按位置连接
@@ -166,14 +166,14 @@ def process_data(csv_path, gpkg_path, output_path):
         )
 
         if result[0] == QgsVectorFileWriter.NoError:
-            print(f"处理成功，结果保存到：{output_path}")
+            print(f"Processing succeeded. Results saved to: {output_path}")
             return output_path
         else:
-            print(f"导出CSV失败：{result[1]}")
+            print(f"CSV export failed: {result[1]}")
             return None
 
     except Exception as e:
-        print(f"处理失败：{str(e)}")
+        print(f"Processing failed: {str(e)}")
         return None
 
 

@@ -47,7 +47,7 @@
     .app {
       min-height: 100vh;
       display: grid;
-      grid-template-columns: 264px minmax(720px, 1fr) 340px;
+      grid-template-columns: 264px minmax(0, 1fr);
       background:
         linear-gradient(90deg, rgba(79, 213, 231, 0.04), transparent 22%),
         linear-gradient(180deg, #0a0f17, #05070b 58%);
@@ -175,6 +175,10 @@
       color: var(--muted);
       line-height: 1.5;
       font-size: 14px;
+    }
+
+    .workspace-width {
+      width: min(100%, 1180px);
     }
 
     .welcome-panel {
@@ -429,6 +433,11 @@
     .wide-grid {
       display: grid;
       grid-template-columns: minmax(0, 1fr) 360px;
+      gap: 18px;
+    }
+
+    .model-training-stack {
+      display: grid;
       gap: 18px;
     }
 
@@ -725,6 +734,7 @@
     }
 
     .rightbar {
+      display: none;
       border-left: 1px solid var(--line);
       padding: 22px 18px;
       background: rgba(10, 15, 23, 0.86);
@@ -990,9 +1000,14 @@
     }
 
     @media (max-width: 1180px) {
-      .app { grid-template-columns: 220px minmax(720px, 1fr); }
+      .app { grid-template-columns: 220px minmax(0, 1fr); }
       .rightbar { display: none; }
       .wide-grid { grid-template-columns: 1fr; }
+    }
+
+    @media (min-width: 1360px) {
+      .app { grid-template-columns: 264px minmax(720px, 1fr) 340px; }
+      .rightbar { display: block; }
     }
   </style>
 </head>
@@ -1103,7 +1118,7 @@ dask worker tcp://192.168.199.1:8786 --nworkers 6 --nthreads 1 --name MacPro_sha
             <button class="primary-btn" onclick="runPrediction()">Run RSS Prediction</button>
           </div>
         </div>
-        <div class="panel welcome-panel">
+        <div class="panel welcome-panel workspace-width">
           <div class="panel-body">
             <div class="eyebrow">Welcome</div>
             <h3>Welcome to ASSET Framework.</h3>
@@ -1180,7 +1195,7 @@ dask worker tcp://192.168.199.1:8786 --nworkers 6 --nthreads 1 --name MacPro_sha
           <div><div class="eyebrow">Model Training</div><h2>Generate new, transfer-learned, or incremental models.</h2><p class="lead">Train new models or adapt existing models with transfer learning, incremental training.</p></div>
           <div class="toolbar"><button class="ghost-btn" data-training-reset onclick="resetModelTraining()">Reset</button><button class="ghost-btn" onclick="openDistributedGuide()">Open Guide</button><button class="primary-btn" id="generate-model-btn" onclick="generateModel()">Generate Model</button></div>
         </div>
-        <div class="wide-grid">
+        <div class="model-training-stack workspace-width">
           <div class="panel"><div class="panel-header"><h3>Model Settings</h3><span class="pill">Real API</span></div><div class="panel-body">
             <div class="grid">
               <div class="field"><label>Feature Vector Mode <span class="parameter-help" tabindex="0" data-help-for="m-isGenFV">?<span class="help-tooltip" role="tooltip">Choose whether feature vectors should be generated through Feature Generation or loaded from existing .xz feature vector files.</span></span></label><select id="m-isGenFV" onchange="toggleFeatureVectorFiles()"><option value="yes">Generate feature vectors</option><option value="no">Use existing feature vectors</option></select></div>
@@ -1620,7 +1635,7 @@ dask worker tcp://192.168.199.1:8786 --nworkers 6 --nthreads 1 --name MacPro_sha
       updateProgress(5, "Prediction submitted");
       ensurePywebviewApi();
       await window.pywebview.api.executeRssPrediction(coords);
-      showToast("Prediction started. Watch Runtime Monitor for progress.");
+      showToast("Prediction started. Watch Application Log for progress.");
     }
 
     async function resetPrediction() {

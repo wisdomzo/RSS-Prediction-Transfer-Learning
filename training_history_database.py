@@ -124,17 +124,17 @@ def run_training_history_database(selected_folder_csv, numCore1, numCore2, numCo
         machineLearningData[nw]['trainRulData'] = TV_forTraining[trainIndex, :]
     # endregion
 
-    print("\n线性预测...Start.")
+    print("\nLinear prediction...Start.")
     predictRSSI_linear = [{} for _ in range(numNetworks)]
     predictRSSI_linear = subFun_TL.run_in_parallel_linear(predictRSSI_linear, numNetworks, rxData_Altitude_forTraining, machineLearningData, testDistance, testFre)
-    print("线性预测...Done.")
+    print("Linear prediction...Done.")
 
-    print("\n深度网络预测...Start.")
+    print("\nDeep neural network prediction...Start.")
     predictRSSI_TL = [{} for _ in range(numNetworks)]
     predictRSSI_TL = subFun_TL.run_in_parallel_TL_adaptive(predictRSSI_TL, numNetworks, machineLearningData, None, numCore1, numCore2, numCore3, learning_type=learning_type, api_instance=api_instance)
-    print("深度网络预测...Done.")
+    print("Deep neural network prediction...Done.")
 
-    print("\n保存模型...Start.")
+    print("\nSaving model...Start.")
     save_file_path = os.path.join(selected_folder_csv, f'history_model_from_{data_index}.pkl.xz')
     #########
     to_save = {}
@@ -157,7 +157,7 @@ def run_training_history_database(selected_folder_csv, numCore1, numCore2, numCo
     import gc
     gc.collect()
     #########
-    print("保存模型...Done.")
+    print("Saving model...Done.")
 
     return True
 

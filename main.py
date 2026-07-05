@@ -43,7 +43,7 @@ def connect_to_existing_cluster(coords):
     
     # 如果用户没填，直接返回 None，下游 get_client() 报错会触发单机逻辑
     if not raw_addr:
-        print(">>> 未指定 Scheduler 地址，将使用单机模式运行。")
+        print(">>> No scheduler address was provided. Running in single-machine mode.")
         return None
 
     # 自动处理协议头：防止用户填了 "192.168.1.1" 或重复填了 "tcp://192.168.1.1"
@@ -59,7 +59,7 @@ def connect_to_existing_cluster(coords):
             client = get_client()
             # 检查当前连接的地址是否和用户输入的一致，如果不一致则关闭旧的开新的
             if client.scheduler.address == scheduler_addr:
-                print(f">>> 已连接到目标集群: {scheduler_addr}")
+                print(f">>> Connected to target cluster: {scheduler_addr}")
                 return client
             else:
                 client.close()
@@ -87,7 +87,7 @@ def connect_to_existing_cluster(coords):
             BRIDGE_PATH = RAW_ROOT 
 
         # 3. 建立连接 (设置 5 秒超时，地址填错时能迅速返回)
-        print(f">>> 正在尝试连接集群: {scheduler_addr} ...")
+        print(f">>> Attempting to connect to cluster: {scheduler_addr} ...")
         client = Client(scheduler_addr, timeout="5s")
         
         # 4. 同步代码至远程节点
@@ -101,13 +101,13 @@ def connect_to_existing_cluster(coords):
                     # 本地 Worker 可能会因为文件占用报错，通常可以直接忽略
                     continue
         
-        print(f">>> Dask 集群接入成功并已同步代码！")
+        print(">>> Dask cluster connected and code synchronized successfully.")
         return client
 
     except Exception as e:
         # 无论是因为超时、IP 填错、还是网络不通，都统一拦截并打印
-        print(f">>> 无法接入集群 ({scheduler_addr})，错误: {e}")
-        print(">>> 降级为单机模式运行。")
+        print(f">>> Unable to connect to cluster ({scheduler_addr}). Error: {e}")
+        print(">>> Falling back to single-machine mode.")
         return None
     
 class QueueLogger:
@@ -176,7 +176,7 @@ def _model_training_process_entry(coords, progress_queue):
     client = connect_to_existing_cluster(coords)
     if client:
         start_dask_log_proxy()
-        print(">>> 远程日志链路已激活...")
+        print(">>> Remote log forwarding is active...")
     model_prefix = worker_thread_modelGen(window, coords, auto_download=False)
     if model_prefix:
         progress_queue.put({"type": "download_model", "payload": model_prefix})
@@ -317,7 +317,7 @@ class Api:
             while True:
                 try:
                     msg = self.remote_q.get() # 阻塞接收
-                    print(msg) # 触发 A 机本地的 WebviewLogger -> 发送到 GUI
+                    print(msg) # Trigger the local WebviewLogger on machine A and forward to the GUI.
                 except: break
                 
         threading.Thread(target=_listen, daemon=True).start()
@@ -432,7 +432,7 @@ def worker_thread(coords):
         if relative_path:
             selected_folder_map = os.path.join(APP_ROOT, relative_path)
         else:
-            print(f"未知数据库: {db_key}")
+            print(f"Unknown database: {db_key}")
             return False
         subFun.clean_folder_except(selected_folder_csv, "keep_nothing")  # 清理临时文件夹，保留特定前缀的文件
         
@@ -456,11 +456,11 @@ def worker_thread(coords):
             baseModel = coords.get("custom_model_path") or select_custom_model_file(window)
         selected_predict_model = baseModel
 
-        window.evaluate_js("updateProgress(30, '予測エリアを生成中...')")
+        window.evaluate_js("updateProgress(30, 'Generating prediction area...')")
         predict_area.run_prediction_process(args)
         # 获取匹配的文件列表
         contentReadDataIndex = subFun.get_ML_files(selected_folder_csv, "ML_myTempExp_*")
-        window.evaluate_js("updateProgress(40, '推測モデルのパラメータを調整している...')")
+        window.evaluate_js("updateProgress(40, 'Preparing prediction model parameters...')")
         try:
             # 直接传入参数，不再需要 python_exe 和命令行字符串化
             transfer_learning_main.run_transfer_learning(
@@ -471,24 +471,24 @@ def worker_thread(coords):
                 data_index = list(range(1,len(contentReadDataIndex)+1)),
                 content_data_index = contentReadDataIndex
             )
-            print("迁移学习任务已完成")
+            print("Transfer learning task completed.")
         except Exception as e:
-            print(f"迁移学习执行失败: {e}")
+            print(f"Transfer learning execution failed: {e}")
             raise e
         
         selected_name = subFun.get_gpkg_files(selected_folder_csv, "Predict_model_for_*")
-        window.evaluate_js("updateProgress(70, '受信電力を推測している...')")
+        window.evaluate_js("updateProgress(70, 'Predicting received signal strength...')")
         rxData_Altitude_TL, _, _ = subFun_TL.show_Predict_model(selected_name)
         time_str = datetime.now().strftime("%Y%m%d_%H%M%S")
         rxData_Altitude_TL.to_csv(os.path.join(selected_folder_csv, f'predict_RSS_{time_str}.csv'), index=False)
-        print("已生成预测结果。")
+        print("Prediction results generated.")
         subFun.clean_folder_except(selected_folder_csv, "predict_RSS_")
         #"""
-        window.evaluate_js("updateProgress(100, '完了')")
+        window.evaluate_js("updateProgress(100, 'Completed')")
         return True
     except Exception as e:
-        print(f"执行失败: {e}")
-        window.evaluate_js(f"updateProgress(-1, 'エラー: {str(e)}')")
+        print(f"Execution failed: {e}")
+        window.evaluate_js(f"updateProgress(-1, 'Error: {str(e)}')")
 
 
 
@@ -506,7 +506,7 @@ def worker_thread_modelGen(api_instance, coords, auto_download=True):
             selected_predict_model = coords.get("custom_model_path")
         contentReadDataIndex = subFun.get_ML_files(selected_folder_csv, "ML_myTempExp_*")
         train_judge_model = bool(coords.get('trainJudgeModel', False))
-        window.evaluate_js("updateProgress(10, '時間かかりますが、転移学習によるモデル生成を実行中...')")
+        window.evaluate_js("updateProgress(10, 'Generating model with transfer learning. This may take some time...')")
         try:
             transfer_learning_main.run_transfer_learning(
                 selected_folder_csv,
@@ -521,21 +521,21 @@ def worker_thread_modelGen(api_instance, coords, auto_download=True):
                 learning_rate = float(coords['learningRate']),
                 train_judge_model = train_judge_model
             )
-            print("迁移学习任务已完成")
+            print("Transfer learning task completed.")
             subFun.clean_folder_except(selected_folder_csv, "TL_model_")
-            window.evaluate_js("updateProgress(100, 'モデル生成が完了しました。')")
+            window.evaluate_js("updateProgress(100, 'Model generation completed.')")
             if auto_download:
                 download_model("TL_model_")
             return "TL_model_"
         except Exception as e:
-            print(f"迁移学习执行失败: {e}")
+            print(f"Transfer learning execution failed: {e}")
             raise e
     else:
         # 不使用迁移学习方法，直接生成模型
         contentReadDataIndex = subFun.get_ML_files(selected_folder_csv, "ML_myTempExp_*")
-        window.evaluate_js("updateProgress(10, '時間かかりますが、機械学習によるモデル生成を実行中...')")
+        window.evaluate_js("updateProgress(10, 'Generating model with machine learning. This may take some time...')")
         try:
-            print("\n开始训练历史模型...")
+            print("\nStarting historical model training...")
             training_history_database.run_training_history_database(
                 selected_folder_csv,
                 numCore1 = int(coords['numCore1']),
@@ -547,14 +547,14 @@ def worker_thread_modelGen(api_instance, coords, auto_download=True):
                 learning_type = coords['learningType'],
                 api_instance = api_instance
             )
-            print("機械学習任务已完成")
+            print("Machine learning task completed.")
             subFun.clean_folder_except(selected_folder_csv, "history_model_from_")
-            window.evaluate_js("updateProgress(100, 'モデル生成が完了しました。')")
+            window.evaluate_js("updateProgress(100, 'Model generation completed.')")
             if auto_download:
                 download_model("history_model_from_")
             return "history_model_from_"
         except Exception as e:
-            print(f"機械学習実行失败: {e}")
+            print(f"Machine learning execution failed: {e}")
             raise e
 
 
@@ -571,7 +571,7 @@ def copy_selected_files(coords, target_folder='selected_folder_csv'):
     # 1. 确保目标文件夹存在，如果不存在则创建
     if not os.path.exists(target_folder):
         os.makedirs(target_folder)
-        print(f"创建目标文件夹: {target_folder}")
+        print(f"Created target folder: {target_folder}")
 
     # 2. 获取路径列表
     selected_paths = coords.get('selectedPaths', [])
@@ -589,14 +589,14 @@ def copy_selected_files(coords, target_folder='selected_folder_csv'):
             try:
                 # 执行拷贝 (shutil.copy 会保留权限，shutil.copy2 会尽量保留元数据如修改时间)
                 shutil.copy2(source_path, dest_path)
-                print(f"成功拷贝: {file_name}")
+                print(f"Copied successfully: {file_name}")
                 copy_count += 1
             except Exception as e:
-                print(f"拷贝文件 {file_name} 时出错: {e}")
+                print(f"Error while copying file {file_name}: {e}")
         else:
-            print(f"警告: 文件不存在，跳过: {source_path}")
+            print(f"Warning: file does not exist, skipped: {source_path}")
 
-    print(f"\n任务完成！共成功拷贝 {copy_count} 个文件到 {target_folder}。")
+    print(f"\nTask completed. Copied {copy_count} file(s) to {target_folder}.")
 
 
 
@@ -604,7 +604,7 @@ def select_custom_model_file(window):
     """
     弹出文件选择对话框，返回用户选择的 .xz 文件路径
     """
-    window.evaluate_js("alert('モデルファイルを選択してください (.xz 形式)')")
+    window.evaluate_js("alert('Please select a model file (.xz format).')")
     file_types = ('Model files (*.xz)', 'All files (*.*)')
     
     # 弹出对话框
@@ -624,7 +624,7 @@ def select_prediction_file(window):
     """
     弹出文件选择对话框，返回用户选择的 .csv 文件路径
     """
-    window.evaluate_js("alert('予測CSVファイルを選択してください (.csv 形式)')")
+    window.evaluate_js("alert('Please select a prediction CSV file (.csv format).')")
     file_types = ('CSV files (*.csv)', 'All files (*.*)')
     
     # 弹出对话框
@@ -710,7 +710,7 @@ def executeDataProcessing(coords):
         }
         
     except Exception as e:
-        print(f"执行失败: {e}")
+        print(f"Execution failed: {e}")
         # 返回错误信息，让 JS 的 try-catch 能捕获到逻辑错误
         return {"status": "error", "message": str(e)}
 
@@ -730,7 +730,7 @@ def get_prediction_data():
         # 确保列名与 JS 匹配：lng, lat, Predicted_Value
         return df.to_dict(orient='records')
     except Exception as e:
-        print(f"读取数据失败: {e}")
+        print(f"Failed to read data: {e}")
         return None
 
 
@@ -759,7 +759,7 @@ def download_csv():
             return True
         return False
     except Exception as e:
-        print(f"保存失败: {e}")
+        print(f"Save failed: {e}")
         return False
 
 
@@ -782,9 +782,9 @@ def download_model(file_head):
         files = glob.glob(search_pattern)
         
         if not files:
-            print(f"未找到前缀为 {file_head} 的模型文件")
+            print(f"No model file found with prefix {file_head}")
             # 可选：通知前端
-            window.evaluate_js(f"alert('保存失败：找不到 {file_head} 开头的文件')")
+            window.evaluate_js(f"alert('Save failed: no file starting with {file_head} was found.')")
             return False
             
         # 3. 获取该类文件中最新生成的一个
@@ -806,13 +806,13 @@ def download_model(file_head):
             actual_destination = file_path[0] if isinstance(file_path, (list, tuple)) else file_path
             
             shutil.copy(latest_file, actual_destination)
-            print(f"成功将 {original_filename} 保存至: {actual_destination}")
+            print(f"Saved {original_filename} to: {actual_destination}")
             return True
             
         return False
         
     except Exception as e:
-        print(f"保存过程出错: {e}")
+        print(f"Error during save: {e}")
         return False
 
 
@@ -969,8 +969,7 @@ def get_help_pdf():
     
 
 def start_logic():
-    # 启动后最大化普通窗口，而不是进入系统全屏模式。
-    window.maximize()
+    # Start in a resizable normal window; the UI expands to a three-column layout when the user maximizes it.
     # 重定向标准输出
     sys.stdout = WebviewLogger(window)
     # 执行初始化

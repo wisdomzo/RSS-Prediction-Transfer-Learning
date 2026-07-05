@@ -37,7 +37,7 @@ def integrateExpData(exp_data_path):
             
             # 2. 检查列是否存在
             if not all(k in columns_lower for k in ['latitude', 'longitude', 'rssi']):
-                print(f"文件 {file_name} 缺少必要的列，已跳过")
+                print(f"File {file_name} is missing required columns and was skipped.")
                 continue
 
             # 3. 获取原始列名映射
@@ -71,11 +71,11 @@ def integrateExpData(exp_data_path):
                 fin_data = fin_data.drop_duplicates().reset_index(drop=True)
 
         except Exception as e:
-            print(f"处理文件 {file_name} 时出错: {str(e)}")
+            print(f"Error while processing file {file_name}: {str(e)}")
             continue
 
     if not fin_data.empty:
-        print(f"成功整合 {len(fin_data)} 条数据")
+        print(f"Successfully integrated {len(fin_data)} record(s).")
     return fin_data
 
 
@@ -346,7 +346,7 @@ def get_user_selection(ml_files):
     # 验证用户选择的有效性
     for selection in selections:
         if selection < 1 or selection > len(ml_files):
-            print(f"无效的选择: {selection}")
+            print(f"Invalid selection: {selection}")
             return None
     return selections
 
@@ -358,24 +358,24 @@ def get_folder_path():
 
         # 检查路径是否存在
         if not os.path.exists(folder_csv_path):
-            print(f"错误: 路径 '{folder_csv_path}' 不存在，请重新输入。")
+            print(f"Error: path '{folder_csv_path}' does not exist. Please enter it again.")
             continue
         if not os.path.exists(folder_map_path):
-            print(f"错误: 路径 '{folder_map_path}' 不存在，请重新输入。")
+            print(f"Error: path '{folder_map_path}' does not exist. Please enter it again.")
             continue
         if not os.path.exists(folder_fun_path):
-            print(f"错误: 路径 '{folder_fun_path}' 不存在，请重新输入。")
+            print(f"Error: path '{folder_fun_path}' does not exist. Please enter it again.")
             continue
 
         # 检查是否是文件夹
         if not os.path.isdir(folder_csv_path):
-            print(f"错误: '{folder_csv_path}' 不是文件夹，请重新输入。")
+            print(f"Error: '{folder_csv_path}' is not a folder. Please enter it again.")
             continue
         if not os.path.isdir(folder_map_path):
-            print(f"错误: '{folder_map_path}' 不是文件夹，请重新输入。")
+            print(f"Error: '{folder_map_path}' is not a folder. Please enter it again.")
             continue
         if not os.path.isdir(folder_fun_path):
-            print(f"错误: '{folder_fun_path}' 不是文件夹，请重新输入。")
+            print(f"Error: '{folder_fun_path}' is not a folder. Please enter it again.")
             continue
 
         return folder_csv_path, folder_map_path, folder_fun_path
@@ -404,17 +404,17 @@ def run_qgis_processing(csv_path, gpkg_path, output_path, fun_path):
 def select_gpkg_file(folder_path):
     # 检查文件夹是否存在
     if not os.path.isdir(folder_path):
-        print(f"错误: 文件夹 '{folder_path}' 不存在！")
+        print(f"Error: folder '{folder_path}' does not exist.")
         return None
 
     # 查找所有 .gpkg 文件
     gpkg_files = list(Path(folder_path).glob("*.gpkg"))
     if not gpkg_files:
-        print(f"在 '{folder_path}' 中未找到 .gpkg 文件！")
+        print(f"No .gpkg files were found in '{folder_path}'.")
         return None
 
     # 显示可选项
-    print("\n找到以下 .gpkg 文件:")
+    print("\nFound the following .gpkg files:")
     for i, file in enumerate(gpkg_files, 1):
         print(f"{i}. {file.name}")
 
@@ -431,9 +431,9 @@ def select_gpkg_file(folder_path):
             if 0 <= choice_idx < len(gpkg_files):
                 return str(gpkg_files[choice_idx])
             else:
-                print(f"错误: 请输入 1-{len(gpkg_files)} 之间的数字！")
+                print(f"Error: please enter a number between 1 and {len(gpkg_files)}.")
         except ValueError:
-            print("错误: 请输入有效的数字！")
+            print("Error: please enter a valid number.")
 
 def generate_grid_points(lon_min, lon_max, lat_min, lat_max, N, M, output_file):
     """
@@ -497,7 +497,7 @@ def generate_grid_points(lon_min, lon_max, lat_min, lat_max, N, M, output_file):
         # 写入数据
         writer.writerows(points)
 
-    print(f"成功生成 {len(points)} 个点并保存到 {output_file}")
+    print(f"Generated {len(points)} point(s) and saved them to {output_file}.")
     return
 
 def cal_Pr_free(Pt, lambda_value, d, eta):
@@ -522,7 +522,7 @@ def merge_csv_files(file_a, file_b, output_file):
 
     # 3. 检查两文件行数是否一致（确保可以逐行相加）
     if len(df_a) != len(df_b):
-        print("警告：两个 CSV 文件的行数不一致，可能导致计算错误！")
+        print("Warning: the two CSV files have different row counts, which may cause calculation errors.")
     else:
         # 4. 将 A 的 measuredHeight 与 B 的 DN 相加，并覆盖 B 的 DN 列
         df_b["DN"] = df_b["DN"] + df_a["measuredHeight"]
@@ -534,11 +534,11 @@ def merge_csv_files(file_a, file_b, output_file):
         try:
             os.remove(file_a)
             os.remove(file_b)
-            #print(f"已删除原文件：{file_a} 和 {file_b}")
+            #print(f"Deleted original files: {file_a} and {file_b}")
         except FileNotFoundError:
-            print("文件不存在，无法删除！")
+            print("File does not exist and cannot be deleted.")
         except PermissionError:
-            print("权限不足，无法删除文件！")
+            print("Insufficient permissions to delete the file.")
 
     return
 
@@ -552,7 +552,7 @@ def input_with_default(prompt, default):
 def get_gpkg_files(folder_path, pattern):
     # 检查文件夹是否存在
     if not os.path.isdir(folder_path):
-        print(f"错误: 文件夹 '{folder_path}' 不存在！")
+        print(f"Error: folder '{folder_path}' does not exist.")
         return []
 
     # 查找所有 .gpkg 文件
@@ -568,7 +568,7 @@ def get_gpkg_files(folder_path, pattern):
 def get_ML_files(folder_path, pattern):
     # 检查文件夹是否存在
     if not os.path.isdir(folder_path):
-        print(f"错误: 文件夹 '{folder_path}' 不存在！")
+        print(f"Error: folder '{folder_path}' does not exist.")
         return []
 
     # 查找所有 .gpkg 文件
@@ -632,7 +632,7 @@ def load_map_data(csv_path, map_path, output_path, pattern):
         import os
         use_default = False
         if not map_path or not os.path.exists(map_path):
-            print(f"警告：地图路径无效或不存在 ({map_path})，将使用默认值 {default_val}")
+            print(f"Warning: map path is invalid or missing ({map_path}); using default value {default_val}.")
             use_default = True
 
         if not use_default:
@@ -665,7 +665,7 @@ def load_map_data(csv_path, map_path, output_path, pattern):
                 df = pd.DataFrame(result_gdf.drop(columns=['geometry', 'index_right'], errors='ignore'))
                 # 新逻辑结束
             except Exception as e:
-                print(f"读取地图出错: {e}，切换至默认值模式")
+                print(f"Error while reading map: {e}. Switching to default-value mode.")
                 use_default = True
 
         if use_default:
@@ -681,7 +681,7 @@ def load_map_data(csv_path, map_path, output_path, pattern):
                 df = df.rename(columns={target_field: "Type"})
 
     elif "altitude" in pattern_lower or "dem" in pattern_lower:
-        print(f"模式：{pattern} | 极速高程采样...")
+        print(f"Mode: {pattern} | Fast altitude sampling...")
         engine = GeoQueryEngine()
         engine.load_raster(map_path)
         sampled_data = engine.sample_raster_fast(df, lon_name, lat_name)
@@ -702,16 +702,16 @@ def load_map_data(csv_path, map_path, output_path, pattern):
             # 如果整个区域都采样失败（均值为 NaN），则保底填充 0
             if pd.isna(area_avg_alt):
                 area_avg_alt = 0.0
-                print(f"警告：该区域无有效海拔数据，已全量填充 0.0")
+                print("Warning: no valid altitude data found in this area; filled all values with 0.0.")
             else:
-                print(f"检测到 {nan_count} 个采样失败点，已使用区域均值 {area_avg_alt:.2f}m 自动填充")
+                print(f"Detected {nan_count} failed sample point(s); filled them with area mean altitude {area_avg_alt:.2f} m.")
             
             # 执行填充
             df["DN"] = df["DN"].fillna(area_avg_alt)
 
     # 保存
     df.to_csv(output_path, index=False, encoding='utf-8-sig')
-    print(f"任务完成！保存至: {output_path}")
+    print(f"Task completed. Saved to: {output_path}")
     return df
 
 
@@ -773,7 +773,7 @@ def load_area_max_data(csv_path, map_path, output_path, pattern, M, visualAngle)
         else:
             with rasterio.Env(): # 确保环境清洁
                 if is_citytype:
-                    print("正在将 CityType 矢量地图转换为临时栅格以加速提取...")
+                    print("Converting CityType vector map to a temporary raster for faster extraction...")
                     # 读取矢量图层
                     map_gdf = gpd.read_file(map_path, layer="cityType")
                     if map_gdf.crs != "EPSG:6668":
@@ -795,7 +795,7 @@ def load_area_max_data(csv_path, map_path, output_path, pattern, M, visualAngle)
                     gdf_raster_crs = gdf_area # 已经在 6668
                 else:
                     # 海拔/DEM 处理逻辑保持不变
-                    print("正在处理海拔栅格...")
+                    print("Processing altitude raster...")
                     src = rasterio.open(map_path)
                     nodata = src.nodata if src.nodata is not None else -9999
                     gdf_raster_crs = gdf_area.to_crs(src.crs)
@@ -840,7 +840,7 @@ def load_area_max_data(csv_path, map_path, output_path, pattern, M, visualAngle)
 
     # 5. 保存
     df.to_csv(output_path, index=False, encoding='utf-8-sig')
-    print(f"处理完成！")
+    print("Processing completed.")
     return df
 
 
@@ -875,7 +875,7 @@ def clean_folder_except(folder_path, prefix_to_keep):
             if not file_path.name.startswith(prefix_to_keep):
                 try:
                     file_path.unlink()  # 执行删除
-                    # print(f"  [已删除]: {file_path.name}")
+                    # print(f"  [Deleted]: {file_path.name}")
                     count += 1
                 except Exception as e:
                     print(f"  [Error] Failed to delete {file_path.name}: {e}")
@@ -959,9 +959,9 @@ def genFineTuningCSV(selected_folder_csv, fine_tuning, fine_tuning_lng, fine_tun
                 
                 writer.writerow([new_lng, new_lat, rssi])
                 
-        print(f"成功生成文件: {file_path}")
+        print(f"File generated successfully: {file_path}")
     except Exception as e:
-        print(f"生成文件失败: {e}")
+        print(f"File generation failed: {e}")
 
 
 
@@ -1002,15 +1002,15 @@ def barrier_and_cleanup(futures_to_wait=None, timeout=120):
     try:
         client = get_client()
     except ValueError:
-        print(">>> 错误：未检测到活跃的 Dask Client，无法执行清理。")
+        print(">>> Error: no active Dask Client detected. Cleanup cannot be performed.")
         return
 
     print("\n" + "="*50)
-    print(">>> [中场休息] 启动资源隔离程序...")
+    print(">>> [Intermission] Starting resource isolation procedure...")
 
     # --- 步骤 1: 强制同步 ---
     if futures_to_wait is not None:
-        print(">>> 正在等待所有异步任务物理完成...")
+        print(">>> Waiting for all asynchronous tasks to finish physically...")
         # 如果是字典或列表，确保 wait 能处理
         if isinstance(futures_to_wait, dict):
             futures_to_wait = list(futures_to_wait.values())
@@ -1021,18 +1021,18 @@ def barrier_and_cleanup(futures_to_wait=None, timeout=120):
         wait(futures_to_wait)
     
     # --- 步骤 2: 主机端清理 ---
-    print(">>> 清理主进程内存与会话...")
+    print(">>> Cleaning main-process memory and session state...")
     tf.keras.backend.clear_session()
     gc.collect()
 
     # --- 步骤 3: 尝试物理重启 (Hard Reset) ---
     try:
-        print(f">>> 尝试物理重启 Worker (限时 {timeout}s)...")
+        print(f">>> Attempting physical worker restart (timeout {timeout}s)...")
         client.restart(timeout=timeout)
-        print(">>> 物理重启成功，Worker 资源已重置。")
+        print(">>> Physical restart succeeded. Worker resources have been reset.")
     except Exception as e:
-        print(f">>> 物理重启失败或超时: {e}")
-        print(">>> 正在降级执行【软清理】方案...")
+        print(f">>> Physical restart failed or timed out: {e}")
+        print(">>> Falling back to soft cleanup...")
         
         def worker_soft_cleanup():
             import tensorflow as tf
@@ -1044,12 +1044,12 @@ def barrier_and_cleanup(futures_to_wait=None, timeout=120):
 
         try:
             results = client.run(worker_soft_cleanup)
-            print(f">>> 软清理完成，响应节点数: {len(results)}")
+            print(f">>> Soft cleanup completed. Responding worker count: {len(results)}")
         except Exception as soft_e:
-            print(f">>> 软清理也遇到异常: {soft_e}")
+            print(f">>> Soft cleanup also encountered an exception: {soft_e}")
 
     # --- 步骤 4: 静默冷却 ---
-    print(">>> 执行 5 秒静默冷却以释放 TCP 端口...")
+    print(">>> Running a 5-second quiet cooldown to release TCP ports...")
     time.sleep(5)
-    print(">>> 资源隔离完成，准备进入下一阶段。")
+    print(">>> Resource isolation completed. Ready for the next stage.")
     print("="*50 + "\n")

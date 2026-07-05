@@ -1,4 +1,5 @@
 from pathlib import Path
+import re
 import unittest
 
 
@@ -7,6 +8,19 @@ MAIN = ROOT / "main.py"
 SUBFUN = ROOT / "subFun.py"
 SUBFUN_TL = ROOT / "subFun_TL.py"
 TRANSFER_LEARNING_MAIN = ROOT / "transfer_learning_main.py"
+NON_ENGLISH_LOG_RE = re.compile(r"[\u3040-\u30ff\u3400-\u9fff]")
+LOG_OUTPUT_RE = re.compile(r"(print\(|evaluate_js\(|updateProgress\(|alert\(|desc\s*=)")
+APP_LOG_OUTPUT_FILES = [
+    "main.py",
+    "subFun.py",
+    "subFun_TL.py",
+    "transfer_learning_main.py",
+    "training_history_database.py",
+    "training_judge_model.py",
+    "predict_area.py",
+    "qgis_processor.py",
+    "main_collect_data.py",
+]
 
 
 class MainEntrypointTests(unittest.TestCase):
@@ -16,10 +30,10 @@ class MainEntrypointTests(unittest.TestCase):
         self.assertIn('"web/app-suite.html"', source)
         self.assertIn("get_resource_path(ui_entry)", source)
 
-    def test_main_maximizes_window_without_fullscreen_or_fixed_size(self):
+    def test_main_starts_resizable_without_auto_maximize(self):
         source = MAIN.read_text(encoding="utf-8")
         window_call = source[source.index("webview.create_window("):source.index("window.expose(executeRssPrediction)")]
-        self.assertIn("window.maximize()", source)
+        self.assertNotIn("window.maximize()", source)
         self.assertNotIn("fullscreen=True", window_call)
         self.assertNotIn("width=1024", window_call)
         self.assertNotIn("height=768", window_call)
@@ -105,7 +119,17 @@ class MainEntrypointTests(unittest.TestCase):
         self.assertIn("if should_train_judge:", transfer_source)
         self.assertIn("subFun.barrier_and_cleanup(futures_to_wait=predictRSSI_TL)", transfer_source)
         self.assertIn("subFun_TL.trainJudgeModel_cnn", transfer_source)
-        self.assertIn('print("训练裁判...Skipped.")', transfer_source)
+        self.assertIn('print("Judge model training...Skipped.")', transfer_source)
+
+    def test_application_log_output_is_english(self):
+        offenders = []
+        for file_name in APP_LOG_OUTPUT_FILES:
+            path = ROOT / file_name
+            for line_no, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
+                if LOG_OUTPUT_RE.search(line) and NON_ENGLISH_LOG_RE.search(line):
+                    offenders.append(f"{path.name}:{line_no}:{line.strip()}")
+
+        self.assertEqual([], offenders)
 
 
 if __name__ == "__main__":
