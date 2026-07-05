@@ -26,6 +26,9 @@ from dask.distributed import Client, get_client, Queue
 current_prediction_process = None
 current_prediction_queue = None
 prediction_monitor_thread = None
+current_model_training_process = None
+current_model_training_queue = None
+model_training_monitor_thread = None
 
 
 def connect_to_existing_cluster(coords):
@@ -129,12 +132,54 @@ class ProcessWindowProxy:
         return None
 
 
+def start_dask_log_proxy():
+    remote_q = Queue("app_terminal_logs")
+
+    def _listen():
+        while True:
+            try:
+                msg = remote_q.get()
+                print(msg)
+            except Exception:
+                break
+
+    threading.Thread(target=_listen, daemon=True).start()
+    return remote_q
+
+
+def forward_process_log_to_app(payload):
+    message = str(payload).replace("\r", "").strip()
+    if not message:
+        return
+    terminal = getattr(sys, "__stdout__", None)
+    if terminal:
+        terminal.write(f"{message}\n")
+        terminal.flush()
+    if window:
+        window.evaluate_js(f"updateTerminal({json.dumps(str(payload))})")
+
+
 def _prediction_process_entry(coords, progress_queue):
     global window
     window = ProcessWindowProxy(progress_queue)
     sys.stdout = QueueLogger(progress_queue)
     sys.stderr = QueueLogger(progress_queue)
     worker_thread(coords)
+    progress_queue.put({"type": "done", "payload": True})
+
+
+def _model_training_process_entry(coords, progress_queue):
+    global window
+    window = ProcessWindowProxy(progress_queue)
+    sys.stdout = QueueLogger(progress_queue)
+    sys.stderr = QueueLogger(progress_queue)
+    client = connect_to_existing_cluster(coords)
+    if client:
+        start_dask_log_proxy()
+        print(">>> 远程日志链路已激活...")
+    model_prefix = worker_thread_modelGen(window, coords, auto_download=False)
+    if model_prefix:
+        progress_queue.put({"type": "download_model", "payload": model_prefix})
     progress_queue.put({"type": "done", "payload": True})
 
 
@@ -156,12 +201,40 @@ def _monitor_prediction_process(process, progress_queue):
         elif event_type == "done":
             break
         else:
-            print(payload)
+            forward_process_log_to_app(payload)
 
     process.join(timeout=0.2)
     if current_prediction_process is process:
         current_prediction_process = None
         current_prediction_queue = None
+
+
+def _monitor_model_training_process(process, progress_queue):
+    global current_model_training_process, current_model_training_queue
+    while True:
+        try:
+            event = progress_queue.get(timeout=0.2)
+        except Exception:
+            if not process.is_alive():
+                break
+            continue
+
+        event_type = event.get("type") if isinstance(event, dict) else "log"
+        payload = event.get("payload") if isinstance(event, dict) else event
+
+        if event_type == "js" and window:
+            window.evaluate_js(payload)
+        elif event_type == "download_model":
+            download_model(payload)
+        elif event_type == "done":
+            break
+        else:
+            forward_process_log_to_app(payload)
+
+    process.join(timeout=0.2)
+    if current_model_training_process is process:
+        current_model_training_process = None
+        current_model_training_queue = None
 
 
 def terminate_current_prediction():
@@ -178,6 +251,23 @@ def terminate_current_prediction():
             process.join(timeout=1)
     current_prediction_process = None
     current_prediction_queue = None
+    return True
+
+
+def terminate_current_model_training():
+    global current_model_training_process, current_model_training_queue
+    process = current_model_training_process
+    if not process:
+        return False
+    if process.is_alive():
+        print("Stopping active model training process...")
+        process.terminate()
+        process.join(timeout=2)
+        if process.is_alive():
+            process.kill()
+            process.join(timeout=1)
+    current_model_training_process = None
+    current_model_training_queue = None
     return True
 
 class Api:
@@ -233,22 +323,27 @@ class Api:
         threading.Thread(target=_listen, daemon=True).start()
 
     def executeModelGeneration(self, coords):
-        # 1. 确保连接到 Dask 集群
-        # 这个函数是我们之前改写的，它会返回 client 或 None
-        client = connect_to_existing_cluster(coords)  # 确保连接到集群
+        global current_model_training_process, current_model_training_queue, model_training_monitor_thread
+        terminate_current_model_training()
+        coords = dict(coords)
+        if coords.get("model") == "customized_model":
+            custom_model_path = select_custom_model_file(window)
+            if not custom_model_path:
+                return False
+            coords["custom_model_path"] = custom_model_path
 
-        if client:
-        # 2. 启动日志代理（必须在 client 产生后）
-            self.start_log_proxy() 
-            print(">>> 远程日志链路已激活...")
-
-        # 2. 启动后台线程执行耗时任务，防止前端 UI 卡死
-        # 建议将 client 也传进去，这样 worker 内部就不需要重新查找 client
-        threading.Thread(
-            target=worker_thread_modelGen, 
-            args=(self, coords), 
+        current_model_training_queue = multiprocessing.Queue()
+        current_model_training_process = multiprocessing.Process(
+            target=_model_training_process_entry,
+            args=(coords, current_model_training_queue)
+        )
+        current_model_training_process.start()
+        model_training_monitor_thread = threading.Thread(
+            target=_monitor_model_training_process,
+            args=(current_model_training_process, current_model_training_queue),
             daemon=True
-            ).start()
+        )
+        model_training_monitor_thread.start()
         return True
 
 
@@ -400,7 +495,7 @@ def worker_thread(coords):
 
 
 
-def worker_thread_modelGen(api_instance, coords):
+def worker_thread_modelGen(api_instance, coords, auto_download=True):
     selected_folder_csv = get_writable_temp_path()
     copy_selected_files(coords, selected_folder_csv)
     if coords['model'] != "noModel":
@@ -408,7 +503,7 @@ def worker_thread_modelGen(api_instance, coords):
         if coords['model'] == "NICT_latest_model":
             selected_predict_model = subFun.get_gpkg_files(os.path.join(APP_ROOT, "models"), "*NICT*")
         if coords['model'] == "customized_model":
-            selected_predict_model = select_custom_model_file(window)
+            selected_predict_model = coords.get("custom_model_path")
         contentReadDataIndex = subFun.get_ML_files(selected_folder_csv, "ML_myTempExp_*")
         window.evaluate_js("updateProgress(10, '時間かかりますが、転移学習によるモデル生成を実行中...')")
         try:
@@ -427,7 +522,9 @@ def worker_thread_modelGen(api_instance, coords):
             print("迁移学习任务已完成")
             subFun.clean_folder_except(selected_folder_csv, "TL_model_")
             window.evaluate_js("updateProgress(100, 'モデル生成が完了しました。')")
-            download_model("TL_model_")
+            if auto_download:
+                download_model("TL_model_")
+            return "TL_model_"
         except Exception as e:
             print(f"迁移学习执行失败: {e}")
             raise e
@@ -451,7 +548,9 @@ def worker_thread_modelGen(api_instance, coords):
             print("機械学習任务已完成")
             subFun.clean_folder_except(selected_folder_csv, "history_model_from_")
             window.evaluate_js("updateProgress(100, 'モデル生成が完了しました。')")
-            download_model("history_model_from_")
+            if auto_download:
+                download_model("history_model_from_")
+            return "history_model_from_"
         except Exception as e:
             print(f"機械学習実行失败: {e}")
             raise e
@@ -835,6 +934,7 @@ def reset_temp_data(prefix_to_keep=None):
     """
     try:
         terminate_current_prediction()
+        terminate_current_model_training()
         # 如果 JS 调用时没传参数，prefix_to_keep 会是 None
         target_prefix = prefix_to_keep if prefix_to_keep is not None else "KEEP_NOTHING"
         

@@ -253,7 +253,7 @@ def is_picklable(obj):
     try:
         pickle.dumps(obj)
         return True
-    except (pickle.PicklingError, TypeError):
+    except Exception:
         return False
 
 def genFeatureVector(QGIS_output, QGIS_output_cityType, M, N, numRxData, Tx_longitude, Tx_latitude, Tx_altitude, Tx_antennaHeight, rxData_Altitude, Rx_antennaHeight):

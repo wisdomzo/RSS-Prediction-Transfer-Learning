@@ -659,21 +659,18 @@
       </div>
 
       <div class="nav-section">
-        <div class="nav-title">Command</div>
+        <div class="nav-title">Prediction Command</div>
         <button class="nav-item active" data-view="prediction"><span class="nav-dot"></span>Prediction Workspace</button>
         <button class="nav-item" data-view="results"><span class="nav-dot"></span>Results Explorer</button>
       </div>
       <div class="nav-section">
         <div class="nav-title">Model Factory</div>
         <button class="nav-item" data-view="training"><span class="nav-dot"></span>Model Training</button>
-        <button class="nav-item" data-view="dataset"><span class="nav-dot"></span>Dataset Prep</button>
+        <button class="nav-item" data-view="dataset"><span class="nav-dot"></span>Feature Generation</button>
       </div>
       <div class="nav-section">
         <div class="nav-title">System</div>
         <button class="nav-item" data-view="logs"><span class="nav-dot"></span>Log Console</button>
-        <button class="nav-item" data-view="cluster"><span class="nav-dot"></span>Dask Cluster</button>
-        <button class="nav-item" data-view="registry"><span class="nav-dot"></span>Model Registry</button>
-        <button class="nav-item" data-view="exports"><span class="nav-dot"></span>Export Center</button>
         <button class="nav-item" data-view="acknowledgements"><span class="nav-dot"></span>Acknowledgements</button>
       </div>
     </aside>
@@ -786,20 +783,24 @@
             </div>
           </div></div>
           <div class="panel" id="feature-vector-panel"><div class="panel-header"><h3>Feature Vector Files</h3><span class="pill" id="fv-status">None selected</span></div><div class="panel-body">
-            <p class="inline-guidance" id="feature-vector-guidance">Generate feature vectors in Dataset Prep first.</p>
+            <p class="inline-guidance" id="feature-vector-guidance">Generate feature vectors in Feature Generation first.</p>
             <div class="toolbar" style="justify-content:flex-start;margin-bottom:14px;">
-              <button class="ghost-btn" id="open-dataset-prep-btn" onclick="showView('dataset')">Open Dataset Prep</button>
-              <button class="ghost-btn" id="feature-vector-select-btn" onclick="chooseFiles('fv')">Select *.xz Feature Vectors</button>
+              <button class="ghost-btn" id="open-dataset-prep-btn" onclick="showView('dataset')">Open Feature Generation</button>
             </div>
-            <table class="table"><tbody id="fv-table"></tbody></table>
+            <div id="feature-vector-file-assets">
+              <div class="toolbar" style="justify-content:flex-start;margin-bottom:14px;">
+                <button class="ghost-btn" id="feature-vector-select-btn" onclick="chooseFiles('fv')">Select *.xz Feature Vectors</button>
+              </div>
+              <table class="table"><tbody id="fv-table"></tbody></table>
+            </div>
           </div></div>
         </div>
       </section>
 
       <section class="workspace" id="view-dataset">
-        <div class="topbar"><div class="breadcrumbs">ASSET / Dataset Prep</div><span class="pill">Native file picker</span></div>
+        <div class="topbar"><div class="breadcrumbs">ASSET / Feature Generation</div><span class="pill">Native file picker</span></div>
         <div class="module-title">
-          <div><div class="eyebrow">Dataset Prep</div><h2>Prepare CSV, altitude, building, and land-use inputs.</h2><p class="lead">Prepare measurement CSV, terrain, building, and land-use inputs for feature generation and model training.</p></div>
+          <div><div class="eyebrow">Feature Generation</div><h2>Prepare CSV, altitude, building, and land-use inputs.</h2><p class="lead">Prepare measurement CSV, terrain, building, and land-use inputs for feature generation and model training.</p></div>
           <div class="toolbar"><button class="ghost-btn" onclick="resetDatasetPrep()">Reset</button><button class="ghost-btn hidden" id="download-dataset-output-btn" onclick="downloadDatasetOutput()">Download Output</button><button class="primary-btn" id="upload-dataset-process-btn" onclick="uploadAndProcessDataset()">Upload and Process</button></div>
         </div>
         <div class="panel" style="margin-bottom:18px;">
@@ -859,23 +860,6 @@
           <div class="panel-header"><h3>Application Log</h3><span class="pill" id="log-count">1 line</span></div>
           <div class="panel-body"><div class="log" id="terminal-content-main" style="min-height:560px;max-height:calc(100vh - 260px);">&gt; ASSET suite initialized</div></div>
         </div>
-      </section>
-
-      <section class="workspace" id="view-cluster">
-        <div class="topbar"><div class="breadcrumbs">ASSET / Dask Cluster</div><span class="pill">Scheduler optional</span></div>
-        <div class="module-title"><div><div class="eyebrow">Dask Cluster</div><h2>Runtime status and fallback behavior.</h2><p class="lead">Monitor scheduler configuration, local fallback behavior, worker readiness, and execution status.</p></div></div>
-        <div class="metrics"><div class="metric"><span>Mode</span><b id="cluster-mode">Local</b></div><div class="metric"><span>Scheduler</span><b id="cluster-scheduler">Optional</b></div><div class="metric"><span>Progress</span><b id="progress-percent">0%</b></div><div class="metric"><span>Status</span><b id="progress-status">Ready</b></div></div>
-      </section>
-
-      <section class="workspace" id="view-registry">
-        <div class="topbar"><div class="breadcrumbs">ASSET / Model Registry</div><span class="pill">Model choices</span></div>
-        <div class="module-title"><div><div class="eyebrow">Model Registry</div><h2>Choose built-in or custom prediction models.</h2><p class="lead">Review available base models and custom models before selecting them for prediction or training workflows.</p></div></div>
-        <div class="metrics"><div class="metric"><span>Default</span><b>M0</b></div><div class="metric"><span>Custom</span><b>Native</b></div><div class="metric"><span>920 MHz</span><b>Ready</b></div><div class="metric"><span>429 MHz</span><b>Planned</b></div></div>
-      </section>
-
-      <section class="workspace" id="view-exports">
-        <div class="topbar"><div class="breadcrumbs">ASSET / Export Center</div><span class="pill">CSV and model saves</span></div>
-        <div class="module-title"><div><div class="eyebrow">Export Center</div><h2>Save prediction CSVs and generated models.</h2><p class="lead">Save prediction outputs and generated deliverables for reporting, archival, and downstream analysis.</p></div><button class="primary-btn" onclick="downloadCsv()">Download Latest CSV</button></div>
       </section>
 
       <section class="workspace" id="view-acknowledgements">
@@ -938,6 +922,7 @@
     const selectedPaths = { csv: [], altitude: [], building: [], landuse: [], fv: [] };
     const allowedViewsDuringPrediction = new Set(["prediction", "logs"]);
     const allowedViewsDuringDataset = new Set(["dataset", "logs"]);
+    const allowedViewsDuringTraining = new Set(["training", "logs"]);
     const splashExitMs = 3800;
     const predictionParamIds = [
       "p-model",
@@ -1018,7 +1003,10 @@
 
     function setModelTrainingLocked(isLocked) {
       modelTrainingLocked = isLocked;
-      document.querySelectorAll("#view-training input, #view-training select, #view-training button:not([data-training-reset])").forEach((control) => {
+      document.querySelectorAll(".nav-item").forEach((button) => {
+        button.disabled = modelTrainingLocked && !allowedViewsDuringTraining.has(button.dataset.view);
+      });
+      document.querySelectorAll("#view-training input, #view-training select, #view-training button").forEach((control) => {
         control.disabled = modelTrainingLocked;
       });
       if (!modelTrainingLocked) {
@@ -1037,7 +1025,11 @@
         return;
       }
       if (datasetProcessing && !allowedViewsDuringDataset.has(name)) {
-        showToast("Dataset processing is running. Only Dataset Prep and Log Console remain available.");
+        showToast("Dataset processing is running. Only Feature Generation and Log Console remain available.");
+        return;
+      }
+      if (modelTrainingLocked && !allowedViewsDuringTraining.has(name)) {
+        showToast("Model training is running. Only Model Training and Log Console remain available.");
         return;
       }
       document.querySelectorAll(".workspace").forEach((view) => view.classList.remove("active"));
@@ -1254,6 +1246,7 @@
       toggleModelTrainingControls();
       ensurePywebviewApi();
       await window.pywebview.api.reset_temp_data();
+      updateProgress(0, "Ready");
       showToast("Model Training reset to defaults.");
     }
 
@@ -1261,12 +1254,12 @@
       if (modelTrainingLocked) return;
       const mode = document.getElementById("m-isGenFV").value;
       const shouldLock = mode === "yes";
-      document.getElementById("feature-vector-panel").classList.toggle("locked-panel", shouldLock);
+      document.getElementById("feature-vector-file-assets").classList.toggle("locked-panel", shouldLock);
       document.getElementById("feature-vector-select-btn").disabled = shouldLock;
       document.getElementById("generate-model-btn").disabled = shouldLock;
       document.getElementById("open-dataset-prep-btn").disabled = !shouldLock;
       document.getElementById("feature-vector-guidance").classList.toggle("hidden", !shouldLock);
-      if (shouldLock) document.getElementById("fv-status").textContent = "Generate in Dataset Prep";
+      if (shouldLock) document.getElementById("fv-status").textContent = "Generate in Feature Generation";
       if (!shouldLock && selectedPaths.fv.length === 0) document.getElementById("fv-status").textContent = "None selected";
     }
 
@@ -1332,7 +1325,8 @@
       document.getElementById("upload-dataset-process-btn").disabled = datasetProcessing || datasetOutputReady;
       ensurePywebviewApi();
       await window.pywebview.api.reset_temp_data();
-      showToast("Dataset Prep reset to defaults.");
+      updateProgress(0, "Ready");
+      showToast("Feature Generation reset to defaults.");
     }
 
     function getDatasetCoords() {
@@ -1380,6 +1374,10 @@
     }
 
     async function generateModel() {
+      if (selectedPaths.fv.length === 0) {
+        showToast("Select feature vector files before generating a model.");
+        return;
+      }
       const coords = {
         model: document.getElementById("m-model").value,
         numCore1: document.getElementById("m-numCore1").value,
@@ -1478,9 +1476,8 @@
       document.getElementById("runtime-bar").style.width = `${normalized}%`;
       document.getElementById("runtime-pill").textContent = `${percent}%`;
       document.getElementById("runtime-title").textContent = status;
-      document.getElementById("progress-percent").textContent = `${percent}%`;
-      document.getElementById("progress-status").textContent = status;
       if (predictionRunning && (Number(percent) >= 100 || Number(percent) < 0)) setPredictionRunning(false);
+      if (modelTrainingLocked && Number(percent) >= 100) setModelTrainingLocked(false);
     }
 
     function updateTerminal(message) {

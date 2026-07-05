@@ -48,12 +48,25 @@ class AppSuiteStaticTests(unittest.TestCase):
             "Dataset Prep",
             "Results Explorer",
             "Log Console",
-            "Dask Cluster",
-            "Model Registry",
-            "Export Center",
             "Acknowledgements",
         ]:
             self.assertIn(label, html)
+        for removed_label in [
+            "Dask Cluster",
+            "Model Registry",
+            "Export Center",
+            'data-view="cluster"',
+            'data-view="registry"',
+            'data-view="exports"',
+            'id="view-cluster"',
+            'id="view-registry"',
+            'id="view-exports"',
+        ]:
+            self.assertNotIn(removed_label, html)
+        self.assertIn('id="runtime-pill"', html)
+        self.assertIn('id="runtime-title"', html)
+        self.assertNotIn('id="progress-percent"', html)
+        self.assertNotIn('id="progress-status"', html)
 
     def test_app_suite_log_console_is_primary_workspace_not_only_rightbar(self):
         html = self.read_app()
@@ -225,16 +238,19 @@ class AppSuiteStaticTests(unittest.TestCase):
         self.assertIn('document.getElementById("d-SF").value = "0"', html)
         self.assertIn('document.getElementById("dataset-param-cache-status").textContent = "Not saved"', html)
         self.assertIn('document.getElementById("fv-status").textContent = "None selected"', html)
+        self.assertGreaterEqual(html.count('updateProgress(0, "Ready")'), 4)
         self.assertGreaterEqual(html.count("await window.pywebview.api.reset_temp_data()"), 3)
 
     def test_generate_feature_vectors_locks_feature_vector_files_and_guides_to_dataset_prep(self):
         html = self.read_app()
         self.assertIn('onchange="toggleFeatureVectorFiles()"', html)
         self.assertIn('id="feature-vector-panel"', html)
+        self.assertIn('id="feature-vector-file-assets"', html)
         self.assertIn('id="feature-vector-guidance"', html)
         self.assertIn("function toggleFeatureVectorFiles", html)
         self.assertIn('const shouldLock = mode === "yes"', html)
-        self.assertIn('document.getElementById("feature-vector-panel").classList.toggle("locked-panel", shouldLock)', html)
+        self.assertIn('document.getElementById("feature-vector-file-assets").classList.toggle("locked-panel", shouldLock)', html)
+        self.assertNotIn('document.getElementById("feature-vector-panel").classList.toggle("locked-panel", shouldLock)', html)
         self.assertIn('document.getElementById("feature-vector-select-btn").disabled = shouldLock', html)
         self.assertIn("showView('dataset')", html)
         self.assertIn("Generate feature vectors in Dataset Prep first.", html)
@@ -260,11 +276,18 @@ class AppSuiteStaticTests(unittest.TestCase):
     def test_model_training_stays_locked_after_generation_until_reset(self):
         html = self.read_app()
         self.assertIn("let modelTrainingLocked = false", html)
+        self.assertIn('const allowedViewsDuringTraining = new Set(["training", "logs"])', html)
         self.assertIn("function setModelTrainingLocked", html)
         self.assertIn("setModelTrainingLocked(true)", html)
         self.assertIn("setModelTrainingLocked(false)", html)
-        self.assertIn('document.querySelectorAll("#view-training input, #view-training select, #view-training button:not([data-training-reset])")', html)
+        self.assertIn("button.disabled = modelTrainingLocked && !allowedViewsDuringTraining.has(button.dataset.view)", html)
+        self.assertIn("Model training is running. Only Model Training and Log Console remain available.", html)
+        self.assertIn('document.querySelectorAll("#view-training input, #view-training select, #view-training button")', html)
+        self.assertNotIn('button:not([data-training-reset])', html)
         self.assertIn("control.disabled = modelTrainingLocked", html)
+        self.assertIn('if (modelTrainingLocked && Number(percent) >= 100) setModelTrainingLocked(false)', html)
+        self.assertIn("if (selectedPaths.fv.length === 0)", html)
+        self.assertIn("Select feature vector files before generating a model.", html)
         self.assertIn("if (modelTrainingLocked) return", html)
         self.assertIn("modelTrainingLocked || isNewModel", html)
         self.assertIn("modelTrainingLocked || !isNewModel", html)

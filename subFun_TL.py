@@ -30,6 +30,25 @@ import training_judge_model
 import gc
 import pandas as pd
 
+class QueueStream:
+    def __init__(self, log_queue):
+        self.log_queue = log_queue
+
+    def write(self, message):
+        if self.log_queue and message.strip():
+            self.log_queue.put(message)
+
+    def flush(self):
+        pass
+
+
+def init_local_training_worker_logging(log_queue):
+    if not log_queue:
+        return
+    sys.stdout = QueueStream(log_queue)
+    sys.stderr = QueueStream(log_queue)
+
+
 class ProgressBarWithPID(tf.keras.callbacks.Callback):
     def on_train_begin(self, logs=None):
         # 获取进程ID
@@ -153,7 +172,8 @@ def run_in_parallel_linear(predictRSSI_linear, numNetworks, rxData_Altitude_forT
 
 def run_in_parallel_TL(predictRSSI_TL, numNetworks, machineLearningData, historyModels, numCore1, numCore2, numCore3, learning_type=None, api_instance=None, freeze_layer=None, learning_rate=None):
     # 创建共享队列
-    with concurrent.futures.ProcessPoolExecutor() as executor:
+    log_queue = getattr(api_instance, "queue", None)
+    with concurrent.futures.ProcessPoolExecutor(initializer=init_local_training_worker_logging, initargs=(log_queue,)) as executor:
         if historyModels is not None:
             # 200: 2个batch_size
             repNum = int(np.ceil( 200 / (machineLearningData[0]['trainRulData'].shape[0] + machineLearningData[0]['valRulData'].shape[0]) ))
