@@ -67,18 +67,18 @@ def start_collect_logic(expDataPath, map_path, fun_path, frequency_MHz, SF, Pt_d
             else:
                 # 把building高度算进海拔，看作新的海拔
                 csv_path = expDataPath + "/rxData_" + expName + "_SF" + str(SF) + ".csv"
-                print("\n使用<building>地图生成TxRx空间距离。")
+                print("\nGenerating Tx-Rx spatial distance with the building map.")
                 gpkg_path_building = subFun.get_gpkg_files(map_path, "*_building.gpkg")
                 if not gpkg_path_building:
-                    print("忽略building地图！")
-                    print("\n使用<海拔>地图生成TxRx空间距离。")
+                    print("Building map ignored.")
+                    print("\nGenerating Tx-Rx spatial distance with the altitude map.")
                     gpkg_path_altitude = subFun.get_gpkg_files(map_path, "*_altitude.tif")
                     output_path_altitude = expDataPath + "/rxData_" + expName + "_SF" + str(SF) + "_altitude.csv"
                     subFun.load_map_data(csv_path, gpkg_path_altitude, output_path_altitude, "altitude")
                 else:
                     output_path_building = expDataPath + "/rxData_" + expName + "_SF" + str(SF) + "_building.csv"
                     subFun.load_map_data(csv_path, gpkg_path_building, output_path_building, "building")
-                    print("\n使用<海拔>地图生成TxRx空间距离。")
+                    print("\nGenerating Tx-Rx spatial distance with the altitude map.")
                     gpkg_path_altitude = subFun.get_gpkg_files(map_path, "*_altitude.tif")
                     output_path_altitude = expDataPath + "/rxData_" + expName + "_SF" + str(SF) + "_altitude_no_building.csv"
                     subFun.load_map_data(csv_path, gpkg_path_altitude, output_path_altitude, "altitude")
@@ -180,14 +180,14 @@ def start_collect_logic(expDataPath, map_path, fun_path, frequency_MHz, SF, Pt_d
                 pickle.dump(all_vars, saveFile)
             #####
             csv_path = expDataPath + "/inputQGISforML_" + expName + "_SF" + str(SF) + ".csv"
-            print("\n使用<building>地图生成meshgrid。")
+            print("\nGenerating meshgrid with the building map.")
             gpkg_path_bd = subFun.get_gpkg_files(map_path, "*_building.gpkg")
-            print("\n使用<标高>地图生成meshgrid。")
+            print("\nGenerating meshgrid with the altitude map.")
             gpkg_path_al = subFun.get_gpkg_files(map_path, "*_altitude.tif")
-            print("\n使用<城市类型>地图生成meshgrid。")
+            print("\nGenerating meshgrid with the city-type map.")
             gpkg_path_cityType = subFun.get_gpkg_files(map_path, "*_cityType.gpkg")
             if not gpkg_path_bd:
-                print("忽略building地图！")
+                print("Building map ignored.")
                 subFun.load_area_max_data(csv_path, gpkg_path_al, outputQGISFilesPath, "altitude", M, visualAngle['H'])
             else:
                 outputQGISFilesPath_building = expDataPath + "/outputQGISforML_" + expName + "_SF" + str(SF) + "_building.csv"
@@ -213,7 +213,7 @@ def start_collect_logic(expDataPath, map_path, fun_path, frequency_MHz, SF, Pt_d
         Tx_antennaHeight, Rx_antennaHeight
     )
 
-    print("正在保存数据...")
+    print("Saving data...")
     time_str = datetime.now().strftime("%Y%m%d_%H%M%S")
     save_file_path = os.path.join(expDataPath, f'ML_{expName}_SF{SF}_{time_str}.pkl.xz')
     ######

@@ -30,6 +30,25 @@ import training_judge_model
 import gc
 import pandas as pd
 
+class QueueStream:
+    def __init__(self, log_queue):
+        self.log_queue = log_queue
+
+    def write(self, message):
+        if self.log_queue and message.strip():
+            self.log_queue.put(message)
+
+    def flush(self):
+        pass
+
+
+def init_local_training_worker_logging(log_queue):
+    if not log_queue:
+        return
+    sys.stdout = QueueStream(log_queue)
+    sys.stderr = QueueStream(log_queue)
+
+
 class ProgressBarWithPID(tf.keras.callbacks.Callback):
     def on_train_begin(self, logs=None):
         # 获取进程ID
@@ -153,7 +172,8 @@ def run_in_parallel_linear(predictRSSI_linear, numNetworks, rxData_Altitude_forT
 
 def run_in_parallel_TL(predictRSSI_TL, numNetworks, machineLearningData, historyModels, numCore1, numCore2, numCore3, learning_type=None, api_instance=None, freeze_layer=None, learning_rate=None):
     # 创建共享队列
-    with concurrent.futures.ProcessPoolExecutor() as executor:
+    log_queue = getattr(api_instance, "queue", None)
+    with concurrent.futures.ProcessPoolExecutor(initializer=init_local_training_worker_logging, initargs=(log_queue,)) as executor:
         if historyModels is not None:
             # 200: 2个batch_size
             repNum = int(np.ceil( 200 / (machineLearningData[0]['trainRulData'].shape[0] + machineLearningData[0]['valRulData'].shape[0]) ))
@@ -351,7 +371,7 @@ def finalize_finetune_config(model, freeze_layer, learning_rate):
     for layer in model.layers:
         if "InputPreprocessor" in layer.name:
             layer.trainable = True
-            print("已特赦开启：InputPreprocessor (用于学习新 Landuse Embedding)")
+            print("InputPreprocessor has been unfrozen to learn the new Landuse Embedding.")
     """
 
     # 4. 重新编译：必须使用微小的学习率
@@ -595,7 +615,7 @@ def show_Predict_model(dataPath):
 
 def get_top_k_prediction_judge_model(judge_model, FV, yPredTestMatrix_DL):
 
-    print("正在使用 judge_model 进行预测修正...")
+    print("Applying prediction correction with judge_model...")
     X_input = np.transpose(FV, (3, 0, 1, 2)) 
     N_samples = X_input.shape[0]
     X_flat = X_input.reshape(N_samples, -1) # 展平特征，供随机森林使用
@@ -604,7 +624,7 @@ def get_top_k_prediction_judge_model(judge_model, FV, yPredTestMatrix_DL):
     current_median = np.median(yPredTestMatrix_DL, axis=1)
     final_rssi = current_median + correction
 
-    print("预测修正完成。")
+    print("Prediction correction completed.")
     return np.array(final_rssi)
 
 
@@ -615,7 +635,7 @@ def get_final_rssi_prediction(Pr_free, judge_model, expert_group_map, experts_li
     experts_list: 包含30个微调后的专家模型 predictRSSI_TL
     test_data_tl: 测试集地图特征 (N, 31, 36, 5)
     """
-    print(">>> 启动裁判引导的混合专家推理 (MoE Inference)...")
+    print(">>> Starting judge-guided mixture-of-experts inference (MoE Inference)...")
     
     # 1. 裁判给出每个样本点属于各个专家组的概率 P(g)
     # 输入形状调整为 (N, 31, 36, 5)
@@ -627,7 +647,7 @@ def get_final_rssi_prediction(Pr_free, judge_model, expert_group_map, experts_li
 
     # 2. 预先获取所有 30 个专家的原始预测值
     # 形状为 (30, N)
-    print(">>> 正在汇总 30 位专家的原始意见...")
+    print(">>> Aggregating raw predictions from 30 experts...")
     all_expert_preds = []
     for nw in range(len(experts_list)):
         # 执行你给出的预测循环
@@ -639,7 +659,7 @@ def get_final_rssi_prediction(Pr_free, judge_model, expert_group_map, experts_li
     G = 1  # 设定你想取的前 G 个组，比如取前 2 名或前 3 名
     final_rssi = np.zeros(num_samples)
     
-    print(f">>> 正在执行 Top-{G} 概率融合...")
+    print(f">>> Executing Top-{G} probability fusion...")
     for i in range(num_samples):
         # 1. 获取当前样本各组的概率
         current_probs = group_probs[i]
@@ -667,7 +687,7 @@ def get_final_rssi_prediction(Pr_free, judge_model, expert_group_map, experts_li
             
         final_rssi[i] = weighted_sample_res
 
-    print(">>> 预测完成。")
+    print(">>> Prediction completed.")
     return final_rssi + Pr_free
 
 
@@ -755,7 +775,7 @@ def remote_train_wrapper(trainData, trainRulData, valData, valRulData,
     if current_dir not in sys.path:
         sys.path.insert(0, current_dir)
 
-    print(f">>> [Worker] 开始处理训练任务，类型: {l_type}")
+    print(f">>> [Worker] Starting training task. Type: {l_type}")
 
     # 2. 预备模型对象
     # 无论是否是迁移学习，我们先在远程节点构建基础结构
@@ -808,7 +828,7 @@ def run_in_parallel_TL_adaptive(predictRSSI_TL, numNetworks, machineLearningData
         is_distributed = False
 
     if is_distributed:
-        print(f">>> [分布式模式] 正在启动自适应任务管理器，总数: {numNetworks}")
+        print(f">>> [Distributed mode] Starting adaptive task manager. Total tasks: {numNetworks}")
         
         # 建立 任务句柄(Future) 到 索引(nw) 的映射表，方便失败时知道是谁坏了
         future_to_nw = {}
@@ -851,7 +871,7 @@ def run_in_parallel_TL_adaptive(predictRSSI_TL, numNetworks, machineLearningData
         seq = as_completed(futures_list)
         completed_count = 0
 
-        print(">>> 监控器已就绪，正在实时回收计算结果...")
+        print(">>> Monitor is ready and collecting computation results in real time...")
 
         for future in seq:
             nw_index = future_to_nw.pop(future) # 取出该任务对应的索引
@@ -866,12 +886,12 @@ def run_in_parallel_TL_adaptive(predictRSSI_TL, numNetworks, machineLearningData
                 predictRSSI_TL[nw_index]['model'] = model
                 
                 completed_count += 1
-                print(f"--- [进度] 任务 {nw_index} 完成 ({completed_count}/{numNetworks}) ---")
+                print(f"--- [Progress] Task {nw_index} completed ({completed_count}/{numNetworks}) ---")
 
             except Exception as e:
                 # 如果 retries=10 都没救回来，走到了这里
-                print(f"!!! [严重错误] 任务 {nw_index} 彻底失败: {str(e)}")
-                print(f"!!! 正在为索引 {nw_index} 重新生成新任务并放回队列...")
+                print(f"!!! [Critical error] Task {nw_index} failed completely: {str(e)}")
+                print(f"!!! Regenerating a new task for index {nw_index} and returning it to the queue...")
                 
                 # 重新提交任务
                 new_f = submit_task(nw_index)
@@ -880,7 +900,7 @@ def run_in_parallel_TL_adaptive(predictRSSI_TL, numNetworks, machineLearningData
 
     else:
         # --- 保险丝：如果没连上，走你最稳的原生并行逻辑 ---
-        print(">>> [单机模式] 远程机未就绪，使用本机 ProcessPoolExecutor...")
+        print(">>> [Single-machine mode] Remote workers are not ready. Using local ProcessPoolExecutor...")
         predictRSSI_TL = subFun_TL.run_in_parallel_TL(
             predictRSSI_TL, numNetworks, machineLearningData, 
             historyModels, numCore1, numCore2, numCore3, 
@@ -935,7 +955,7 @@ def trainJudgeModel(numNetworks, AIcommittee, FV, TV):
 
     # 2. 获取 30 个专家在这些微调数据上的预测结果
     predictedMatrix = np.zeros((N_samples, numNetworks), dtype=float)
-    print("正在收集专家预测结果...")
+    print("Collecting expert prediction results...")
     for nw in range(numNetworks):
         # 预测并填入矩阵
         preds = AIcommittee[nw]['model'].predict(X_input, verbose=0)
@@ -949,7 +969,7 @@ def trainJudgeModel(numNetworks, AIcommittee, FV, TV):
     residuals = y_true - median_predictions
 
     # 4. 训练随机森林回归器 (Regressor)
-    print("正在训练残差修正模型 (Random Forest Regressor)...")
+    print("Training residual correction model (Random Forest Regressor)...")
 
     # 这里的参数可以沿用之前的 get_adaptive_params 逻辑，但模型换成 Regressor
     # 对于回归，max_depth 可以稍微设深一点点，或者不设
@@ -967,9 +987,9 @@ def trainJudgeModel(numNetworks, AIcommittee, FV, TV):
     new_mae = np.mean(np.abs(final_train_preds - y_true))
     old_mae = np.mean(np.abs(median_predictions - y_true))
     
-    print(f"修正模型训练完成。")
-    print(f"微调集原始中位数 MAE: {old_mae:.4f}")
-    print(f"微调集修正后 MAE: {new_mae:.4f}")
+    print("Correction model training completed.")
+    print(f"Fine-tuning set original median MAE: {old_mae:.4f}")
+    print(f"Fine-tuning set corrected MAE: {new_mae:.4f}")
 
 
     '''
@@ -1002,9 +1022,9 @@ def trainJudgeModel_cnn(numNetworks, historyModels, FV, TV, optionalParams,
         from dask.distributed import get_client, as_completed
         client = get_client()
         is_distributed = True
-        print(">>> [分布式模式] 已连接到 Dask 集群，开始分发并行任务...")
+        print(">>> [Distributed mode] Connected to Dask cluster. Dispatching parallel tasks...")
     except (ImportError, ValueError, Exception):
-        print(">>> [单机模式] 未检测到 Dask 集群，将按顺序执行微调...")
+        print(">>> [Single-machine mode] No Dask cluster detected. Running fine-tuning sequentially...")
 
     # 1. 数据准备
     # X_all: (N, 31, 36, 5), y_all: (N,)
@@ -1021,7 +1041,7 @@ def trainJudgeModel_cnn(numNetworks, historyModels, FV, TV, optionalParams,
 
     # 2. 外层循环：顺序处理每一折 (Fold)
     for fold_idx, (train_idx, val_idx) in enumerate(kf.split(X_all)):
-        print(f"\n>>> 正在处理第 {fold_idx+1}/5 折交叉验证...")
+        print(f"\n>>> Processing cross-validation fold {fold_idx+1}/5...")
         
         X_train_fold = X_all[train_idx]
         y_train_fold = y_all[train_idx]
@@ -1056,9 +1076,9 @@ def trainJudgeModel_cnn(numNetworks, historyModels, FV, TV, optionalParams,
                     oof_predict_matrix[val_idx, nw_index] = preds.flatten()
                     completed_fold_count += 1
                     if completed_fold_count % 10 == 0:
-                        print(f"    Fold {fold_idx+1}: 专家 {completed_fold_count}/{numNetworks} 已交卷")
+                        print(f"    Fold {fold_idx+1}: expert {completed_fold_count}/{numNetworks} completed")
                 except Exception as e:
-                    print(f"    !!! Fold {fold_idx+1} 专家 {nw_index} 任务失败: {e}")
+                    print(f"    !!! Fold {fold_idx+1} expert {nw_index} task failed: {e}")
         else:
             # --- 路径 B：单机顺序执行 ---
             for nw in range(numNetworks):
@@ -1071,10 +1091,10 @@ def trainJudgeModel_cnn(numNetworks, historyModels, FV, TV, optionalParams,
                 )
                 oof_predict_matrix[val_idx, nw] = preds.flatten()
                 if (nw + 1) % 5 == 0:
-                    print(f"    单机进度: Fold {fold_idx+1}, 专家 {nw+1}/{numNetworks} 已完成")
+                    print(f"    Single-machine progress: Fold {fold_idx+1}, expert {nw+1}/{numNetworks} completed")
 
     # 4. 训练 CNN 裁判 (识别地形 -> 选出最强专家)
-    print("\n>>> [教材整理完毕] 正在训练 CNN 裁判模型...")
+    print("\n>>> [Training dataset prepared] Training CNN judge model...")
 
     debug_data = {
         "FV": FV,

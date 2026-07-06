@@ -28,7 +28,7 @@ def copy_prediction_data(source_path, target_folder='selected_folder_csv'):
     
     # 1. 预检查：如果路径为空字符串、None 或者全是空格，直接跳过
     if not source_path or not str(source_path).strip():
-        print("源路径为空，跳过拷贝任务。")
+        print("Source path is empty. Copy task skipped.")
         return False
 
     # 2. 检查物理文件是否存在
@@ -43,14 +43,14 @@ def copy_prediction_data(source_path, target_folder='selected_folder_csv'):
             dest_path = os.path.join(target_folder, file_name)
             
             shutil.copy2(source_path, dest_path)
-            print(f"成功拷贝文件: {file_name} -> {target_folder}")
+            print(f"Copied file successfully: {file_name} -> {target_folder}")
             return True
             
         except Exception as e:
-            print(f"拷贝过程中发生错误: {e}")
+            print(f"Error during copy: {e}")
             return False
     else:
-        print(f"文件不存在或路径无效: {source_path}")
+        print(f"File does not exist or path is invalid: {source_path}")
         return False
 
 
@@ -100,7 +100,7 @@ def run_prediction_process(args_list):
             moveAntenna_height
         )
     except Exception as e:
-        print(f"数据采集失败: {e}")
+        print(f"Data collection failed: {e}")
         sys.exit(1)
 
 

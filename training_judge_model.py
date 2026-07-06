@@ -30,7 +30,7 @@ def run_main_judge_cnn():
 def save_oof_to_csv(df_oof, filename="oof_analysis.csv"):
     # 保存
     df_oof.to_csv(filename, index=False)
-    print(f">>> OOF 分析文件已保存至: {filename}")
+    print(f">>> OOF analysis file saved to: {filename}")
     return
 
 
@@ -69,7 +69,7 @@ def train_and_predict_by_judge_model(judgeModelInfo, testData_TL, rxData_Altitud
         rxData_Altitude_TL[model_n]：模型在测试数据上的预测值，n=0,1,...,29。
     """
 
-    save_oof_to_csv(judgeModelInfo['df_oof'], "/Users/zhaoou/Downloads/oof_analysis.csv")
+    # save_oof_to_csv(judgeModelInfo['df_oof'], "/Users/zhaoou/Downloads/oof_analysis.csv")
     correctedPredictionValue = algo_FV_randomForestRegressor_residuals(judgeModelInfo, testData_TL, rxData_Altitude_TL)
     # correctedPredictionValue = algo_disDN_mapping_sign(judgeModelInfo, testData_TL, rxData_Altitude_TL)
 
@@ -206,7 +206,7 @@ def algo_FV_randomForestRegressor_residuals(judgeModelInfo, testData, rxData_Alt
     residuals = y_true - median_predictions
 
     # 4. 训练随机森林回归器 (Regressor)
-    print("正在训练残差修正模型 (Random Forest Regressor)...")
+    print("Training residual correction model (Random Forest Regressor)...")
 
     # 这里的参数可以沿用之前的 get_adaptive_params 逻辑，但模型换成 Regressor
     # 对于回归，max_depth 可以稍微设深一点点，或者不设
@@ -224,19 +224,19 @@ def algo_FV_randomForestRegressor_residuals(judgeModelInfo, testData, rxData_Alt
     new_mae = np.mean(np.abs(final_train_preds - y_true))
     old_mae = np.mean(np.abs(median_predictions - y_true))
     
-    print(f"修正模型训练完成。")
-    print(f"微调集原始中位数 MAE: {old_mae:.4f}")
-    print(f"微调集修正后 MAE: {new_mae:.4f}")
+    print("Correction model training completed.")
+    print(f"Fine-tuning set original median MAE: {old_mae:.4f}")
+    print(f"Fine-tuning set corrected MAE: {new_mae:.4f}")
 
 
-    print("正在使用 judge_model 进行预测修正...")
+    print("Applying prediction correction with judge_model...")
     test_input = np.transpose(testData, (3, 0, 1, 2)) 
     test_N_samples = test_input.shape[0]
     test_input_flat = test_input.reshape(test_N_samples, -1) # 展平特征，供随机森林使用
     correction = judge_model.predict(test_input_flat)
     current_median = np.median(predictValues, axis=1)
     final_rssi = current_median + correction
-    print("预测修正完成。")
+    print("Prediction correction completed.")
 
     return np.array(final_rssi)
 

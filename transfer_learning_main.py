@@ -29,7 +29,7 @@ if APP_ROOT not in sys.path:
 
 
 
-def run_transfer_learning(selected_folder_csv, num_test_per, user_input, model_path, data_index, content_data_index, learning_type=None, api_instance=None, freeze_layer=9, learning_rate=1e-4):
+def run_transfer_learning(selected_folder_csv, num_test_per, user_input, model_path, data_index, content_data_index, learning_type=None, api_instance=None, freeze_layer=9, learning_rate=1e-4, train_judge_model=False):
     #读取数据
     # region
     numTestPer_TL = float(num_test_per)
@@ -112,30 +112,32 @@ def run_transfer_learning(selected_folder_csv, num_test_per, user_input, model_p
 
     # region
     if numTestPer_TL < 1:
-        print("\n线性预测...Start.")
+        print("\nLinear prediction...Start.")
         predictRSSI_linear_TL = [{} for _ in range(numNetworks)]
         predictRSSI_linear_TL = subFun_TL.run_in_parallel_linear(
             predictRSSI_linear_TL, numNetworks, rxData_Altitude_forTraining_TL, machineLearningData_TL, testDistance_TL, testFre_TL
         )
-        print("线性预测...Done.")
+        print("Linear prediction...Done.")
 
         # --- 第一阶段：训练 numNetworks 个专家 ---
-        print("\n深度网络预测...Start.")
+        print("\nDeep neural network prediction...Start.")
         # predictRSSI_TL is model
         predictRSSI_TL = [{} for _ in range(numNetworks)]
         predictRSSI_TL = subFun_TL.run_in_parallel_TL_adaptive(predictRSSI_TL, numNetworks, machineLearningData_TL, historyModels, numCore1, numCore2, numCore3, learning_type=learning_type, api_instance=api_instance, freeze_layer=freeze_layer, learning_rate=learning_rate)
-        print("深度网络预测...Done.")
+        print("Deep neural network prediction...Done.")
 
-        """
-        # 中场休息，等待所有专家训练完成并清理资源
-        subFun.barrier_and_cleanup(futures_to_wait=predictRSSI_TL)
-        # --- 第二阶段：训练裁判 ---
-        print("训练裁判...Start.")
-        judge_model = subFun_TL.trainJudgeModel_cnn(numNetworks, historyModels, FV_forTraining_TL, TV_forTraining_TL, rxData_Altitude_forTraining_TL, numCore1, numCore2, numCore3, learning_type, freeze_layer, learning_rate)
-        print("训练裁判...Done.")
-        """
+        should_train_judge = learning_type == "type_TL" and train_judge_model
+        if should_train_judge:
+            # 中场休息，等待所有专家训练完成并清理资源
+            subFun.barrier_and_cleanup(futures_to_wait=predictRSSI_TL)
+            # --- 第二阶段：训练裁判 ---
+            print("Judge model training...Start.")
+            judge_model = subFun_TL.trainJudgeModel_cnn(numNetworks, historyModels, FV_forTraining_TL, TV_forTraining_TL, rxData_Altitude_forTraining_TL, numCore1, numCore2, numCore3, learning_type, freeze_layer, learning_rate)
+            print("Judge model training...Done.")
+        else:
+            print("Judge model training...Skipped.")
 
-        print("\n保存模型...Start.")
+        print("\nSaving model...Start.")
         save_file_path = os.path.join(selected_folder_csv, f'TL_model_for_{data_index_for_TL}.pkl.xz')
         #########
         to_save = {}
@@ -158,12 +160,12 @@ def run_transfer_learning(selected_folder_csv, num_test_per, user_input, model_p
         import gc
         gc.collect()
         #########
-        print("\n保存模型...Done.")
+        print("\nSaving model...Done.")
     elif numTestPer_TL == 1:
         #TBD追缴n系列空间渐衰预测
         predictRSSI_TL = historyModels
         judge_model = judge_model
-        print("\n保存模型...Start.")
+        print("\nSaving model...Start.")
         save_file_path = os.path.join(selected_folder_csv, f'Predict_model_for_{data_index_for_TL}.pkl.xz')
         #########
         to_save = {}
@@ -192,7 +194,7 @@ def run_transfer_learning(selected_folder_csv, num_test_per, user_input, model_p
         import gc
         gc.collect()
         #########
-        print("\n保存模型...Done.")
+        print("\nSaving model...Done.")
     # endregion
 
     return True
