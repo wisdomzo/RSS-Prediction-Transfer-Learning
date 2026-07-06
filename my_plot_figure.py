@@ -2,6 +2,8 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
+from matplotlib.backends.backend_agg import FigureCanvasAgg
+from matplotlib.figure import Figure
 from matplotlib.colors import Normalize
 from sklearn.cluster import KMeans
 from sklearn.preprocessing import StandardScaler
@@ -11,6 +13,8 @@ import scipy.stats as stats
 from scipy.spatial.distance import cdist
 from sklearn.cluster import DBSCAN
 from math import radians, sin, cos, sqrt, atan2
+import os
+import re
 
 
 def compute_cdf(data):
@@ -21,6 +25,17 @@ def compute_cdf(data):
     cdf = np.arange(1, len(sorted_data) + 1) / len(sorted_data)
 
     return sorted_data, cdf
+
+
+def normalize_matplotlib_color(color_value):
+    color = str(color_value or "").strip()
+    if re.fullmatch(r"#[0-9a-fA-F]{6}", color):
+        return color
+    rgb_match = re.fullmatch(r"rgb\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*\)", color)
+    if rgb_match:
+        channels = [max(0, min(255, int(value))) / 255 for value in rgb_match.groups()]
+        return tuple(channels)
+    return None
 
 
 def plot(*args):
@@ -3249,6 +3264,177 @@ def plot_Travel_Distance(folderAddress,
     print("======== Finished ========")
 
 
+
+
+def plot_Model_Aggregation_Error_CDF(csv_paths, output_folder, needPNG=True, needSVG=True, display_mode="both", file_colors=None):
+    """
+    Validate one or more prediction CSV files, compute ensemble median/mean RSSI
+    estimates from Model_* columns, and plot their absolute-error CDF curves.
+    """
+    if isinstance(csv_paths, (str, os.PathLike)):
+        csv_paths = [csv_paths]
+
+    if display_mode not in {"both", "mean", "median"}:
+        display_mode = "both"
+
+    color_lookup = {}
+    if isinstance(file_colors, dict):
+        color_lookup = {str(key): value for key, value in file_colors.items() if value}
+
+    os.makedirs(output_folder, exist_ok=True)
+    model_column_pattern = re.compile(r"^Model_(\d+)$")
+    valid_results = []
+    skipped_files = []
+
+    for csv_path in csv_paths or []:
+        file_name = os.path.basename(str(csv_path))
+        try:
+            df = pd.read_csv(csv_path)
+        except Exception as exc:
+            skipped_files.append({"file": file_name, "reason": f"Could not read CSV: {exc}"})
+            continue
+
+        rssi_column = next((col for col in df.columns if col.lower() == "rssi"), None)
+        model_columns = [col for col in df.columns if model_column_pattern.match(str(col))]
+        model_columns = sorted(
+            model_columns,
+            key=lambda col: int(model_column_pattern.match(str(col)).group(1))
+        )
+
+        if not rssi_column:
+            skipped_files.append({"file": file_name, "reason": "Missing RSSI or rssi column."})
+            continue
+        if not model_columns:
+            skipped_files.append({"file": file_name, "reason": "Missing Model_* columns such as Model_0, Model_1, ..."})
+            continue
+
+        numeric = df[[rssi_column] + model_columns].apply(pd.to_numeric, errors="coerce")
+        rssi = numeric[rssi_column]
+        model_values = numeric[model_columns]
+        ensemble_median = model_values.median(axis=1, skipna=True)
+        ensemble_mean = model_values.mean(axis=1, skipna=True)
+        valid_rows = pd.DataFrame({
+            "RSSI": rssi,
+            "Median": ensemble_median,
+            "Mean": ensemble_mean
+        }).dropna()
+
+        if valid_rows.empty:
+            skipped_files.append({"file": file_name, "reason": "No valid numeric rows after cleaning RSSI and Model_* values."})
+            continue
+
+        median_abs_error = (valid_rows["Median"] - valid_rows["RSSI"]).abs().to_numpy()
+        mean_abs_error = (valid_rows["Mean"] - valid_rows["RSSI"]).abs().to_numpy()
+        selected_color = color_lookup.get(str(csv_path)) or color_lookup.get(file_name)
+        valid_results.append({
+            "file": file_name,
+            "color": selected_color,
+            "sample_count": int(len(valid_rows)),
+            "model_columns": model_columns,
+            "median_abs_error": median_abs_error,
+            "mean_abs_error": mean_abs_error,
+            "median_absolute_error_mean": float(np.mean(median_abs_error)),
+            "mean_absolute_error_mean": float(np.mean(mean_abs_error)),
+            "median_absolute_error_median": float(np.median(median_abs_error)),
+            "mean_absolute_error_median": float(np.median(mean_abs_error)),
+        })
+
+    if not valid_results:
+        return {
+            "status": "error",
+            "message": "No valid CSV files were available for data analysis.",
+            "files": [],
+            "skipped_files": skipped_files,
+        }
+
+    plt.rcParams['font.family'] = 'sans-serif'
+    plt.rcParams['font.sans-serif'] = ['Helvetica', 'Arial', 'DejaVu Sans']
+    plt.rcParams['font.size'] = 7
+    plt.rcParams['axes.labelsize'] = 7
+    plt.rcParams['axes.titlesize'] = 7
+    plt.rcParams['xtick.labelsize'] = 7
+    plt.rcParams['ytick.labelsize'] = 7
+    plt.rcParams['legend.fontsize'] = 6
+    plt.rcParams['svg.fonttype'] = 'none'
+
+    width_inch = 80 / 25.4
+    height_inch = 56.56 / 25.4
+    fig = Figure(figsize=(width_inch, height_inch), dpi=300)
+    FigureCanvasAgg(fig)
+    ax = fig.subplots()
+    default_colors = [
+        "#1f77b4", "#d62728", "#2ca02c", "#9467bd", "#ff7f0e",
+        "#17becf", "#8c564b", "#e377c2", "#7f7f7f", "#bcbd22",
+        "#003f5c", "#bc5090", "#ffa600", "#58508d", "#00876c",
+    ]
+
+    for index, result in enumerate(valid_results):
+        color = normalize_matplotlib_color(result.get("color")) or default_colors[index % len(default_colors)]
+        sorted_mean, mean_cdf = compute_cdf(result["mean_abs_error"])
+        sorted_median, median_cdf = compute_cdf(result["median_abs_error"])
+        label_prefix = os.path.splitext(result["file"])[0]
+        if display_mode in {"both", "median"}:
+            ax.plot(
+                sorted_median,
+                median_cdf,
+                label=f"{label_prefix} median",
+                color=color,
+                linestyle="-",
+                linewidth=1.0,
+            )
+        if display_mode in {"both", "mean"}:
+            ax.plot(
+                sorted_mean,
+                mean_cdf,
+                label=f"{label_prefix} mean",
+                color=color,
+                linestyle=":",
+                linewidth=1.0,
+            )
+
+    ax.set_xlabel('Absolute Error in dB', labelpad=2)
+    ax.set_ylabel('CDF', labelpad=2)
+    ax.set_ylim(0, 1.02)
+    ax.set_xlim(0, None)
+    ax.grid(axis='both', linestyle='--', linewidth=0.5, alpha=0.4)
+    ax.legend(
+        loc='lower right',
+        frameon=True,
+        edgecolor='#e0e0e0',
+        fancybox=False,
+        borderpad=0.3,
+        labelspacing=0.25
+    )
+    fig.subplots_adjust(left=0.12, right=0.97, top=0.96, bottom=0.14)
+
+    filename = 'Model_Aggregation_Error_CDF'
+    svg_output = os.path.join(output_folder, f'{filename}.svg')
+    png_output = os.path.join(output_folder, f'{filename}.png')
+    save_props = {'dpi': 300, 'bbox_inches': 'tight', 'pad_inches': 0.012}
+
+    if needSVG:
+        fig.savefig(svg_output, format='svg', **save_props)
+    if needPNG:
+        fig.savefig(png_output, **save_props)
+    fig.clear()
+
+    return {
+        "status": "success",
+        "message": f"Generated CDF analysis for {len(valid_results)} valid CSV file(s).",
+        "display_mode": display_mode,
+        "valid_file_count": len(valid_results),
+        "files": [
+            {
+                key: value
+                for key, value in result.items()
+                if key not in {"median_abs_error", "mean_abs_error"}
+            }
+            for result in valid_results
+        ],
+        "skipped_files": skipped_files,
+        "svg_path": svg_output if needSVG else "",
+        "png_path": png_output if needPNG else "",
+    }
 
 
 def main():

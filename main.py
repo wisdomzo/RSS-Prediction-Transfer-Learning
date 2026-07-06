@@ -16,6 +16,7 @@ import pandas as pd
 import predict_area
 import training_history_database
 import transfer_learning_main
+import my_plot_figure
 import base64
 import io
 import json
@@ -306,6 +307,25 @@ class Api:
             return result
         except Exception as e:
             print(f"Dialog Error: {e}")
+            return None
+
+    def select_folder_native(self):
+        try:
+            folder_dialog = getattr(webview.FileDialog, "FOLDER", None)
+            if folder_dialog is None:
+                folder_dialog = getattr(webview, "FOLDER_DIALOG", None)
+            if folder_dialog is None:
+                print("Folder dialog is not available in this pywebview version.")
+                return None
+            result = window.create_file_dialog(
+                folder_dialog,
+                allow_multiple=False
+            )
+            if not result:
+                return None
+            return result[0] if isinstance(result, (list, tuple)) else result
+        except Exception as e:
+            print(f"Folder dialog error: {e}")
             return None
     
     def start_log_proxy(self):
@@ -966,6 +986,138 @@ def get_help_pdf():
             return {"status": "success", "data": encoded_pdf}
     except Exception as e:
         return {"status": "error", "message": str(e)}
+
+
+def get_data_analysis_output_folder():
+    output_folder = os.path.join(get_writable_temp_path(), "data_analysis")
+    os.makedirs(output_folder, exist_ok=True)
+    return output_folder
+
+
+def list_analysis_csv_files(folder_path):
+    try:
+        if not folder_path or not os.path.isdir(folder_path):
+            return {"status": "error", "message": "Select a valid folder before listing CSV files.", "files": []}
+        csv_files = sorted(glob.glob(os.path.join(folder_path, "*.csv")))
+        return {
+            "status": "success",
+            "message": f"Found {len(csv_files)} CSV file(s).",
+            "files": [
+                {
+                    "path": path,
+                    "name": os.path.basename(path),
+                    "size": os.path.getsize(path),
+                }
+                for path in csv_files
+            ],
+        }
+    except Exception as e:
+        print(f"Failed to list analysis CSV files: {e}")
+        return {"status": "error", "message": str(e), "files": []}
+
+
+def executeDataAnalysis(analysis_request):
+    try:
+        display_mode = "both"
+        file_colors = {}
+        if isinstance(analysis_request, dict):
+            display_mode = analysis_request.get("displayMode", "both")
+            file_entries = analysis_request.get("files", [])
+            csv_paths = []
+            for entry in file_entries:
+                if isinstance(entry, dict):
+                    path = entry.get("path")
+                    if path:
+                        csv_paths.append(path)
+                        if entry.get("color"):
+                            file_colors[path] = entry.get("color")
+                elif entry:
+                    csv_paths.append(entry)
+        else:
+            csv_paths = analysis_request
+
+        if not csv_paths:
+            return {"status": "error", "message": "Select one or more CSV files before running data analysis."}
+
+        output_folder = get_data_analysis_output_folder()
+        result = my_plot_figure.plot_Model_Aggregation_Error_CDF(
+            csv_paths,
+            output_folder,
+            needPNG=True,
+            needSVG=True,
+            display_mode=display_mode,
+            file_colors=file_colors,
+        )
+
+        if result.get("status") != "success":
+            print(result.get("message", "Data analysis failed."))
+            return result
+
+        png_path = result.get("png_path")
+        if png_path and os.path.exists(png_path):
+            with open(png_path, "rb") as f:
+                result["png_data_uri"] = "data:image/png;base64," + base64.b64encode(f.read()).decode("utf-8")
+
+        print(result.get("message", "Data analysis completed."))
+        for skipped in result.get("skipped_files", []):
+            print(f"Skipped {skipped.get('file')}: {skipped.get('reason')}")
+        return result
+    except Exception as e:
+        print(f"Data analysis failed: {e}")
+        return {"status": "error", "message": str(e)}
+
+
+def reset_data_analysis_outputs():
+    try:
+        output_folder = get_data_analysis_output_folder()
+        for path in glob.glob(os.path.join(output_folder, "*")):
+            if os.path.isdir(path):
+                shutil.rmtree(path)
+            else:
+                os.remove(path)
+        print("Data analysis outputs reset.")
+        return True
+    except Exception as e:
+        print(f"Failed to reset data analysis outputs: {e}")
+        return False
+
+
+def download_analysis_output(extension):
+    try:
+        output_folder = get_data_analysis_output_folder()
+        file_path = os.path.join(output_folder, f"Model_Aggregation_Error_CDF.{extension}")
+        if not os.path.exists(file_path):
+            window.evaluate_js(f"alert('Save failed: no {extension.upper()} analysis output was found.')")
+            return False
+
+        file_types = (
+            'SVG files (*.svg)' if extension == "svg" else 'PNG files (*.png)',
+            'All files (*.*)'
+        )
+        save_path = window.create_file_dialog(
+            webview.FileDialog.SAVE,
+            directory=os.path.expanduser("~"),
+            save_filename=os.path.basename(file_path),
+            file_types=file_types
+        )
+        if not save_path:
+            return False
+
+        actual_destination = save_path[0] if isinstance(save_path, (list, tuple)) else save_path
+        shutil.copy(file_path, actual_destination)
+        print(f"Saved data analysis {extension.upper()} to: {actual_destination}")
+        return True
+    except Exception as e:
+        print(f"Data analysis save failed: {e}")
+        return False
+
+
+def download_data_analysis_svg():
+    return download_analysis_output("svg")
+
+
+def download_data_analysis_png():
+    return download_analysis_output("png")
     
 
 def start_logic():
@@ -1007,6 +1159,11 @@ def main():
     window.expose(reset_temp_data)
     window.expose(executeDataProcessing)
     window.expose(get_help_pdf)
+    window.expose(list_analysis_csv_files)
+    window.expose(executeDataAnalysis)
+    window.expose(reset_data_analysis_outputs)
+    window.expose(download_data_analysis_svg)
+    window.expose(download_data_analysis_png)
 
     # 启动窗口（Mac下用webkit引擎）
     webview.start(start_logic, debug=False, gui='webkit2')

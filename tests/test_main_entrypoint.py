@@ -104,6 +104,19 @@ class MainEntrypointTests(unittest.TestCase):
         self.assertIn('download_model("ML_")', source)
         self.assertIn("window.expose(download_dataset_output)", source)
 
+    def test_data_analysis_api_is_exposed(self):
+        source = MAIN.read_text(encoding="utf-8")
+        self.assertIn("def list_analysis_csv_files", source)
+        self.assertIn("def executeDataAnalysis", source)
+        self.assertIn("def reset_data_analysis_outputs", source)
+        self.assertIn("def download_data_analysis_svg", source)
+        self.assertIn("def download_data_analysis_png", source)
+        self.assertIn("window.expose(list_analysis_csv_files)", source)
+        self.assertIn("window.expose(executeDataAnalysis)", source)
+        self.assertIn("window.expose(reset_data_analysis_outputs)", source)
+        self.assertIn("window.expose(download_data_analysis_svg)", source)
+        self.assertIn("window.expose(download_data_analysis_png)", source)
+
     def test_picklable_filter_skips_multiprocessing_queue_runtime_error(self):
         source = SUBFUN.read_text(encoding="utf-8")
         self.assertIn("def is_picklable", source)

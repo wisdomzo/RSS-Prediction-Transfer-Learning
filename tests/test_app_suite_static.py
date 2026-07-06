@@ -28,6 +28,12 @@ class AppSuiteStaticTests(unittest.TestCase):
             "reset_temp_data",
             "get_help_pdf",
             "select_files_native",
+            "select_folder_native",
+            "list_analysis_csv_files",
+            "executeDataAnalysis",
+            "reset_data_analysis_outputs",
+            "download_data_analysis_svg",
+            "download_data_analysis_png",
         ]
         for call in required_calls:
             self.assertTrue(
@@ -48,6 +54,7 @@ class AppSuiteStaticTests(unittest.TestCase):
             "Feature Generation",
             "Results Explorer",
             "Log Console",
+            "Data Analysis",
             "Acknowledgements",
         ]:
             self.assertIn(label, html)
@@ -67,6 +74,40 @@ class AppSuiteStaticTests(unittest.TestCase):
         self.assertIn('id="runtime-title"', html)
         self.assertNotIn('id="progress-percent"', html)
         self.assertNotIn('id="progress-status"', html)
+
+    def test_system_data_analysis_view_supports_cdf_plot_and_downloads(self):
+        html = self.read_app()
+        self.assertIn('data-view="analysis"', html)
+        self.assertIn('id="view-analysis"', html)
+        self.assertIn('id="analysis-cdf-preview"', html)
+        self.assertIn('id="analysis-csv-table"', html)
+        self.assertIn('id="analysis-display-mode"', html)
+        self.assertIn('id="analysis-empty-preview"', html)
+        self.assertIn('data-analysis-tab="ensemble-cdf"', html)
+        self.assertIn('id="analysis-panel-ensemble-cdf"', html)
+        self.assertIn("resetDataAnalysis()", html)
+        self.assertIn('id="download-analysis-svg-btn"', html)
+        self.assertIn('id="download-analysis-png-btn"', html)
+        self.assertIn("function selectAnalysisFolder", html)
+        self.assertIn("function renderAnalysisCsvFiles", html)
+        self.assertIn("function resetDataAnalysis", html)
+        self.assertIn("function showAnalysisPanel", html)
+        self.assertIn("function runDataAnalysis", html)
+        self.assertIn('class="analysis-csv-checkbox" data-index="${index}" />', html)
+        self.assertIn('class="analysis-color-input"', html)
+        self.assertIn('class="analysis-color-text"', html)
+        self.assertIn('displayMode: document.getElementById("analysis-display-mode").value', html)
+        self.assertIn("getSelectedAnalysisFileOptions", html)
+        self.assertIn("renderAnalysisSummary(result, result.display_mode", html)
+        self.assertIn('mode === "both" || mode === "mean"', html)
+        self.assertIn('mode === "both" || mode === "median"', html)
+        self.assertIn("window.pywebview.api.select_folder_native()", html)
+        self.assertIn("window.pywebview.api.list_analysis_csv_files", html)
+        self.assertIn("window.pywebview.api.executeDataAnalysis", html)
+        self.assertIn("window.pywebview.api.reset_data_analysis_outputs()", html)
+        self.assertIn("window.pywebview.api.download_data_analysis_svg()", html)
+        self.assertIn("window.pywebview.api.download_data_analysis_png()", html)
+        self.assertIn("Additional analysis functions will be added here in future releases.", html)
 
     def test_app_suite_log_console_is_primary_workspace_not_only_rightbar(self):
         html = self.read_app()
