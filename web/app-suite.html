@@ -662,6 +662,48 @@
       min-height: 560px;
     }
 
+    .result-map-wrap {
+      position: relative;
+    }
+
+    .result-legend {
+      width: min(292px, calc(100% - 32px));
+      position: absolute;
+      right: 16px;
+      bottom: 16px;
+      z-index: 500;
+      display: grid;
+      gap: 9px;
+      padding: 13px;
+      border: 1px solid rgba(148, 163, 184, 0.22);
+      border-radius: 8px;
+      background: rgba(7, 10, 15, 0.88);
+      box-shadow: 0 18px 44px rgba(0, 0, 0, 0.34);
+      backdrop-filter: blur(10px);
+    }
+
+    .result-legend-title {
+      color: var(--text);
+      font-size: 12px;
+      font-weight: 780;
+    }
+
+    .result-legend-gradient {
+      height: 11px;
+      border-radius: 999px;
+      background: linear-gradient(90deg, rgb(0, 0, 255), rgb(0, 255, 255), rgb(0, 255, 0), rgb(255, 255, 0), rgb(255, 0, 0));
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.16);
+    }
+
+    .result-legend-labels {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 680;
+    }
+
     .metrics {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
@@ -1364,7 +1406,7 @@ dask worker tcp://192.168.199.1:8786 --nworkers 6 --nthreads 1 --name MacPro_sha
           <div class="toolbar"><button class="ghost-btn" onclick="loadResults()">Load Latest Result</button><button class="primary-btn" onclick="downloadCsv()">Download CSV</button></div>
         </div>
         <div class="empty-state" id="result-empty-state"><div><h3>No result loaded</h3><p class="lead">Load the latest prediction output to display the RSS result map.</p></div></div>
-        <div class="panel hidden" id="result-map-panel"><div class="panel-header"><h3>Result Map</h3><span class="pill" id="result-status">No result loaded</span></div><div class="panel-body"><div id="result-map"></div></div></div>
+        <div class="panel hidden" id="result-map-panel"><div class="panel-header"><h3>Result Map</h3><span class="pill" id="result-status">No result loaded</span></div><div class="panel-body"><div class="result-map-wrap"><div id="result-map"></div><div class="result-legend hidden" id="result-legend"><div class="result-legend-title">Median RSS</div><div class="result-legend-gradient"></div><div class="result-legend-labels"><span id="result-legend-min">-- dBm</span><span id="result-legend-mid">-- dBm</span><span id="result-legend-max">-- dBm</span></div></div></div></div></div>
       </section>
 
       <section class="workspace" id="view-analysis">
@@ -2022,35 +2064,206 @@ dask worker tcp://192.168.199.1:8786 --nworkers 6 --nthreads 1 --name MacPro_sha
       document.getElementById("result-map-panel").classList.remove("hidden");
       document.getElementById("result-empty-state").classList.add("hidden");
       initResultMap();
+      clearResultMapLayers();
+      const values = rawData.map((p) => Number(p.Predicted_Value)).filter((value) => Number.isFinite(value));
+      if (values.length === 0) {
+        clearPredictionResults();
+        showToast("Prediction result values are not valid.");
+        return;
+      }
+      const min = Math.min(...values);
+      const max = Math.max(...values);
+      const isMapResult = getPredictionResultMode(rawData) === "predictData_map";
+      const renderedCount = isMapResult
+        ? renderResultMeshMap(rawData, min, max)
+        : renderResultPointMap(rawData, min, max);
+      renderResultLegend(min, max);
+      const mapPoints = rawData
+        .map((p) => [Number(p.Latitude), Number(p.Longitude)])
+        .filter((point) => point.every((value) => Number.isFinite(value)));
+      const bounds = L.latLngBounds(mapPoints);
+      if (bounds.isValid()) {
+        resultMap.fitBounds(bounds.pad(0.12));
+      } else {
+        resultMap.setView([rawData[0].Latitude, rawData[0].Longitude], 15);
+      }
+      document.getElementById("result-status").textContent = isMapResult
+        ? `${renderedCount} continuous mesh loaded`
+        : `${renderedCount} points loaded`;
+    }
+
+    function clearResultMapLayers() {
+      if (!resultMap) return;
       resultMap.eachLayer((layer) => {
         if (!layer._url) resultMap.removeLayer(layer);
       });
-      const values = rawData.map((p) => p.Predicted_Value);
-      const min = Math.min(...values);
-      const max = Math.max(...values);
+    }
+
+    function getPredictionResultMode(rawData) {
+      const mode = rawData.find((record) => record && record.Prediction_Result_Mode)?.Prediction_Result_Mode;
+      return mode || "predictData_map";
+    }
+
+    function getSortedUniqueNumbers(values) {
+      return Array.from(new Set(values.filter((value) => Number.isFinite(value))))
+        .sort((a, b) => a - b);
+    }
+
+    function getMeshEdges(values) {
+      if (values.length === 0) return [];
+      if (values.length === 1) {
+        const fallbackHalfStep = 0.00005;
+        return [values[0] - fallbackHalfStep, values[0] + fallbackHalfStep];
+      }
+      const edges = [values[0] - ((values[1] - values[0]) / 2)];
+      for (let index = 1; index < values.length; index += 1) {
+        edges.push((values[index - 1] + values[index]) / 2);
+      }
+      edges.push(values[values.length - 1] + ((values[values.length - 1] - values[values.length - 2]) / 2));
+      return edges;
+    }
+
+    function getMeshCellBounds(latitude, longitude, latitudeEdges, longitudeEdges, latitudeIndex, longitudeIndex) {
+      return [
+        [latitudeEdges[latitudeIndex], longitudeEdges[longitudeIndex]],
+        [latitudeEdges[latitudeIndex + 1], longitudeEdges[longitudeIndex + 1]]
+      ];
+    }
+
+    const meshCanvasOpacity = 0.58;
+
+    function renderResultMeshMap(rawData, min, max) {
+      const validRecords = rawData.map((p) => ({
+        latitude: Number(p.Latitude),
+        longitude: Number(p.Longitude),
+        value: Number(p.Predicted_Value)
+      })).filter((record) => Number.isFinite(record.latitude) && Number.isFinite(record.longitude) && Number.isFinite(record.value));
+      const latitudes = getSortedUniqueNumbers(validRecords.map((record) => record.latitude));
+      const longitudes = getSortedUniqueNumbers(validRecords.map((record) => record.longitude));
+      const valueMap = new Map();
+      validRecords.forEach((record) => {
+        valueMap.set(`${record.latitude}|${record.longitude}`, record.value);
+      });
+      createInterpolatedMeshCanvasLayer({ latitudes, longitudes, valueMap }, min, max).addTo(resultMap);
+      return validRecords.length;
+    }
+
+    function renderResultPointMap(rawData, min, max) {
+      let pointCount = 0;
       rawData.forEach((p) => {
-        const color = getColormap(p.Predicted_Value, min, max);
-        L.circleMarker([p.Latitude, p.Longitude], {
+        const latitude = Number(p.Latitude);
+        const longitude = Number(p.Longitude);
+        const value = Number(p.Predicted_Value);
+        if (![latitude, longitude, value].every((item) => Number.isFinite(item))) return;
+        const color = getColormap(value, min, max);
+        L.circleMarker([latitude, longitude], {
           radius: 4,
           fillColor: color,
           color: "#05080d",
           weight: 0.5,
           fillOpacity: 0.82
-        }).bindPopup(`RSS: ${Number(p.Predicted_Value).toFixed(2)} dBm`).addTo(resultMap);
+        }).bindPopup(`Median RSS: ${value.toFixed(2)} dBm`).addTo(resultMap);
+        pointCount += 1;
       });
-      resultMap.setView([rawData[0].Latitude, rawData[0].Longitude], 15);
-      document.getElementById("result-status").textContent = `${rawData.length} points loaded`;
+      return pointCount;
+    }
+
+    function createInterpolatedMeshCanvasLayer(meshModel, min, max) {
+      const MeshCanvasLayer = L.Layer.extend({
+        onAdd(map) {
+          this._map = map;
+          this._canvas = L.DomUtil.create("canvas", "result-mesh-canvas leaflet-zoom-animated");
+          this._canvas.style.pointerEvents = "none";
+          this._canvas.style.zIndex = 420;
+          map.getPanes().overlayPane.appendChild(this._canvas);
+          map.on("moveend zoomend resize", this._redraw, this);
+          this._redraw();
+        },
+        onRemove(map) {
+          map.off("moveend zoomend resize", this._redraw, this);
+          if (this._canvas && this._canvas.parentNode) this._canvas.parentNode.removeChild(this._canvas);
+        },
+        _redraw() {
+          drawInterpolatedMeshCanvas(this._map, this._canvas, meshModel, min, max);
+        }
+      });
+      return new MeshCanvasLayer();
+    }
+
+    function drawInterpolatedMeshCanvas(map, canvas, meshModel, min, max) {
+      const size = map.getSize();
+      const topLeft = map.containerPointToLayerPoint([0, 0]);
+      L.DomUtil.setPosition(canvas, topLeft);
+      canvas.width = size.x;
+      canvas.height = size.y;
+      canvas.style.width = `${size.x}px`;
+      canvas.style.height = `${size.y}px`;
+
+      const canvasContext = canvas.getContext("2d");
+      canvasContext.clearRect(0, 0, size.x, size.y);
+      canvasContext.globalAlpha = meshCanvasOpacity;
+      const sampleStep = 3;
+      for (let y = 0; y < size.y; y += sampleStep) {
+        for (let x = 0; x < size.x; x += sampleStep) {
+          const latLng = map.containerPointToLatLng([x, y]);
+          const interpolated = interpolateMeshValue(latLng.lat, latLng.lng, meshModel);
+          if (!Number.isFinite(interpolated)) continue;
+          canvasContext.fillStyle = getColormap(interpolated, min, max);
+          canvasContext.fillRect(x, y, sampleStep + 1, sampleStep + 1);
+        }
+      }
+      canvasContext.globalAlpha = 1;
+    }
+
+    function findMeshInterval(values, target) {
+      if (values.length === 0 || target < values[0] || target > values[values.length - 1]) return null;
+      if (values.length === 1) return [0, 0, 0];
+      for (let index = 0; index < values.length - 1; index += 1) {
+        if (target >= values[index] && target <= values[index + 1]) {
+          const span = values[index + 1] - values[index] || 1;
+          return [index, index + 1, (target - values[index]) / span];
+        }
+      }
+      return [values.length - 1, values.length - 1, 0];
+    }
+
+    function interpolateMeshValue(latitude, longitude, meshModel) {
+      const latInterval = findMeshInterval(meshModel.latitudes, latitude);
+      const lngInterval = findMeshInterval(meshModel.longitudes, longitude);
+      if (!latInterval || !lngInterval) return NaN;
+      const [lat0Index, lat1Index, latRatio] = latInterval;
+      const [lng0Index, lng1Index, lngRatio] = lngInterval;
+      const lat0 = meshModel.latitudes[lat0Index];
+      const lat1 = meshModel.latitudes[lat1Index];
+      const lng0 = meshModel.longitudes[lng0Index];
+      const lng1 = meshModel.longitudes[lng1Index];
+      const v00 = meshModel.valueMap.get(`${lat0}|${lng0}`);
+      const v01 = meshModel.valueMap.get(`${lat0}|${lng1}`);
+      const v10 = meshModel.valueMap.get(`${lat1}|${lng0}`);
+      const v11 = meshModel.valueMap.get(`${lat1}|${lng1}`);
+      if (![v00, v01, v10, v11].every((value) => Number.isFinite(value))) return NaN;
+      const lower = v00 * (1 - lngRatio) + v01 * lngRatio;
+      const upper = v10 * (1 - lngRatio) + v11 * lngRatio;
+      return lower * (1 - latRatio) + upper * latRatio; // bilinear interpolation
+    }
+
+    function renderResultLegend(min, max) {
+      const middle = min + ((max - min) / 2);
+      document.getElementById("result-legend-min").textContent = `${Number(min).toFixed(1)} dBm`;
+      document.getElementById("result-legend-mid").textContent = `${Number(middle).toFixed(1)} dBm`;
+      document.getElementById("result-legend-max").textContent = `${Number(max).toFixed(1)} dBm`;
+      document.getElementById("result-legend").classList.remove("hidden");
     }
 
     function clearPredictionResults() {
-      if (resultMap) {
-        resultMap.eachLayer((layer) => {
-          if (!layer._url) resultMap.removeLayer(layer);
-        });
-      }
+      clearResultMapLayers();
       document.getElementById("result-map-panel").classList.add("hidden");
       document.getElementById("result-empty-state").classList.remove("hidden");
       document.getElementById("result-status").textContent = "No result loaded";
+      document.getElementById("result-legend").classList.add("hidden");
+      document.getElementById("result-legend-min").textContent = "-- dBm";
+      document.getElementById("result-legend-mid").textContent = "-- dBm";
+      document.getElementById("result-legend-max").textContent = "-- dBm";
     }
 
     function getColormap(value, min, max) {

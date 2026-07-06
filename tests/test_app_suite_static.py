@@ -245,6 +245,33 @@ class AppSuiteStaticTests(unittest.TestCase):
         self.assertIn('document.getElementById("result-empty-state").classList.add("hidden")', html)
         self.assertIn('document.getElementById("result-map-panel").classList.add("hidden")', html)
 
+    def test_results_explorer_uses_mesh_area_map_with_prediction_value_legend(self):
+        html = self.read_app()
+        self.assertNotIn("leaflet-heat", html)
+        self.assertIn('id="result-legend"', html)
+        self.assertIn("Median RSS", html)
+        self.assertIn("result-legend-gradient", html)
+        self.assertIn("result-legend-labels", html)
+        self.assertIn("function renderResultMeshMap", html)
+        self.assertIn("function createInterpolatedMeshCanvasLayer", html)
+        self.assertIn("function drawInterpolatedMeshCanvas", html)
+        self.assertIn("function interpolateMeshValue", html)
+        self.assertIn("function renderResultLegend", html)
+        self.assertIn("const meshCanvasOpacity = 0.58", html)
+        self.assertIn("canvasContext.globalAlpha = meshCanvasOpacity", html)
+        self.assertIn("bilinear", html)
+        self.assertNotIn("L.rectangle", html)
+        self.assertIn("continuous mesh loaded", html)
+
+    def test_results_explorer_uses_point_map_for_csv_prediction_results(self):
+        html = self.read_app()
+        self.assertIn("function getPredictionResultMode", html)
+        self.assertIn('getPredictionResultMode(rawData) === "predictData_map"', html)
+        self.assertIn("function renderResultPointMap", html)
+        self.assertIn("L.circleMarker", html)
+        self.assertIn("points loaded", html)
+        self.assertIn("Prediction_Result_Mode", html)
+
     def test_prediction_parameters_can_be_temporarily_saved_and_reloaded_after_reset(self):
         html = self.read_app()
         self.assertIn("Save Params", html)

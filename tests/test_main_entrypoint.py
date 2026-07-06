@@ -117,6 +117,50 @@ class MainEntrypointTests(unittest.TestCase):
         self.assertIn("window.expose(download_data_analysis_svg)", source)
         self.assertIn("window.expose(download_data_analysis_png)", source)
 
+    def test_prediction_data_uses_row_median_from_model_columns(self):
+        source = MAIN.read_text(encoding="utf-8")
+        prediction_data = source[
+            source.index("def get_prediction_data"):
+            source.index("def download_csv")
+        ]
+        self.assertIn('re.compile(r"^Model_(\\d+)$")', prediction_data)
+        self.assertIn("model_columns = sorted(", prediction_data)
+        self.assertIn("numeric_models.median(axis=1, skipna=True)", prediction_data)
+        self.assertIn('df["Predicted_Value"]', prediction_data)
+        self.assertIn('df["Latitude"]', prediction_data)
+        self.assertIn('df["Longitude"]', prediction_data)
+
+    def test_prediction_result_mode_is_saved_and_returned_with_prediction_data(self):
+        source = MAIN.read_text(encoding="utf-8")
+        self.assertIn("PREDICTION_RESULT_MODE_FILE", source)
+        self.assertIn('PREDICTION_RESULT_MODE_FILE = "predict_RSS_result_mode.json"', source)
+        self.assertIn("def save_prediction_result_mode", source)
+        self.assertIn("def load_prediction_result_mode", source)
+        execute_prediction = source[
+            source.index("def executeRssPrediction"):
+            source.index("def executeDataProcessing")
+        ]
+        self.assertIn('save_prediction_result_mode(coords.get("predictDataSelectValue", "predictData_map"))', execute_prediction)
+        prediction_data = source[
+            source.index("def get_prediction_data"):
+            source.index("def download_csv")
+        ]
+        self.assertIn("prediction_result_mode = load_prediction_result_mode()", prediction_data)
+        self.assertIn('df["Prediction_Result_Mode"] = prediction_result_mode', prediction_data)
+
+    def test_prediction_result_mode_survives_worker_temp_cleanup(self):
+        source = MAIN.read_text(encoding="utf-8")
+        worker = source[
+            source.index("def worker_thread"):
+            source.index("def executeRssPrediction")
+        ]
+        initial_cleanup = worker.index('subFun.clean_folder_except(selected_folder_csv, "keep_nothing")')
+        first_worker_save = worker.index('save_prediction_result_mode(coords.get("predictDataSelectValue", "predictData_map"))')
+        final_cleanup = worker.index('subFun.clean_folder_except(selected_folder_csv, "predict_RSS_")')
+        final_worker_save = worker.rindex('save_prediction_result_mode(coords.get("predictDataSelectValue", "predictData_map"))')
+        self.assertLess(initial_cleanup, first_worker_save)
+        self.assertLess(final_cleanup, final_worker_save)
+
     def test_picklable_filter_skips_multiprocessing_queue_runtime_error(self):
         source = SUBFUN.read_text(encoding="utf-8")
         self.assertIn("def is_picklable", source)

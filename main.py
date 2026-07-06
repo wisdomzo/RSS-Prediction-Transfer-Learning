@@ -13,6 +13,7 @@ import pandas as pd
 import threading
 import glob
 import pandas as pd
+import re
 import predict_area
 import training_history_database
 import transfer_learning_main
@@ -30,6 +31,7 @@ prediction_monitor_thread = None
 current_model_training_process = None
 current_model_training_queue = None
 model_training_monitor_thread = None
+PREDICTION_RESULT_MODE_FILE = "predict_RSS_result_mode.json"
 
 
 def connect_to_existing_cluster(coords):
@@ -433,6 +435,32 @@ def get_writable_temp_path():
     return base_path
 
 
+def save_prediction_result_mode(prediction_mode):
+    """Persist the latest prediction input mode for result rendering."""
+    try:
+        mode = prediction_mode if prediction_mode in {"predictData_map", "predictData_file"} else "predictData_map"
+        mode_path = os.path.join(get_writable_temp_path(), PREDICTION_RESULT_MODE_FILE)
+        with open(mode_path, "w", encoding="utf-8") as f:
+            json.dump({"prediction_result_mode": mode}, f)
+    except Exception as e:
+        print(f"Failed to save prediction result mode: {e}")
+
+
+def load_prediction_result_mode():
+    """Load the latest prediction input mode for result rendering."""
+    try:
+        mode_path = os.path.join(get_writable_temp_path(), PREDICTION_RESULT_MODE_FILE)
+        if not os.path.exists(mode_path):
+            return "predictData_map"
+        with open(mode_path, "r", encoding="utf-8") as f:
+            payload = json.load(f)
+        mode = payload.get("prediction_result_mode")
+        return mode if mode in {"predictData_map", "predictData_file"} else "predictData_map"
+    except Exception as e:
+        print(f"Failed to load prediction result mode: {e}")
+        return "predictData_map"
+
+
 # 定义供前端调用的Python接口
 def worker_thread(coords):
     """在后台线程中运行机器学习任务，防止卡死 UI"""
@@ -455,6 +483,7 @@ def worker_thread(coords):
             print(f"Unknown database: {db_key}")
             return False
         subFun.clean_folder_except(selected_folder_csv, "keep_nothing")  # 清理临时文件夹，保留特定前缀的文件
+        save_prediction_result_mode(coords.get("predictDataSelectValue", "predictData_map"))
         
         # 准备参数列表
         if coords['predictDataSelectValue'] == "predictData_file":
@@ -503,6 +532,7 @@ def worker_thread(coords):
         rxData_Altitude_TL.to_csv(os.path.join(selected_folder_csv, f'predict_RSS_{time_str}.csv'), index=False)
         print("Prediction results generated.")
         subFun.clean_folder_except(selected_folder_csv, "predict_RSS_")
+        save_prediction_result_mode(coords.get("predictDataSelectValue", "predictData_map"))
         #"""
         window.evaluate_js("updateProgress(100, 'Completed')")
         return True
@@ -677,6 +707,7 @@ def executeRssPrediction(coords):
         if not custom_model_path:
             return False
         coords["custom_model_path"] = custom_model_path
+    save_prediction_result_mode(coords.get("predictDataSelectValue", "predictData_map"))
     current_prediction_queue = multiprocessing.Queue()
     current_prediction_process = multiprocessing.Process(
         target=_prediction_process_entry,
@@ -736,18 +767,48 @@ def executeDataProcessing(coords):
 
 
 def get_prediction_data():
-    """读取最新的预测结果 CSV 并返回给前端绘图"""
+    """Read the latest prediction CSV and return map-ready records."""
     try:
         folder = get_writable_temp_path()
-        # 匹配最新的预测文件
         files = glob.glob(os.path.join(folder, "predict_RSS_*.csv"))
         if not files:
             return None
         
         latest_file = max(files, key=os.path.getctime)
         df = pd.read_csv(latest_file)
-        
-        # 确保列名与 JS 匹配：lng, lat, Predicted_Value
+
+        latitude_column = next((col for col in df.columns if str(col).lower() in {"latitude", "lat"}), None)
+        longitude_column = next((col for col in df.columns if str(col).lower() in {"longitude", "lng", "lon"}), None)
+        if not latitude_column or not longitude_column:
+            print("Failed to read prediction data: missing Latitude/Longitude columns.")
+            return None
+
+        model_column_pattern = re.compile(r"^Model_(\d+)$")
+        model_columns = [col for col in df.columns if model_column_pattern.match(str(col))]
+        model_columns = sorted(
+            model_columns,
+            key=lambda col: int(model_column_pattern.match(str(col)).group(1))
+        )
+
+        if model_columns:
+            numeric_models = df[model_columns].apply(pd.to_numeric, errors="coerce")
+            df["Predicted_Value"] = numeric_models.median(axis=1, skipna=True)
+        elif "Predicted_Value" in df.columns:
+            df["Predicted_Value"] = pd.to_numeric(df["Predicted_Value"], errors="coerce")
+        else:
+            print("Failed to read prediction data: missing Model_* prediction columns.")
+            return None
+
+        df["Latitude"] = pd.to_numeric(df[latitude_column], errors="coerce")
+        df["Longitude"] = pd.to_numeric(df[longitude_column], errors="coerce")
+        df = df.dropna(subset=["Latitude", "Longitude", "Predicted_Value"])
+        if df.empty:
+            print("Failed to read prediction data: no valid numeric prediction rows.")
+            return None
+
+        prediction_result_mode = load_prediction_result_mode()
+        df["Prediction_Result_Mode"] = prediction_result_mode
+
         return df.to_dict(orient='records')
     except Exception as e:
         print(f"Failed to read data: {e}")
