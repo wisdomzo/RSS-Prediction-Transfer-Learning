@@ -272,6 +272,25 @@ class AppSuiteStaticTests(unittest.TestCase):
         self.assertIn("points loaded", html)
         self.assertIn("Prediction_Result_Mode", html)
 
+    def test_results_explorer_has_uncertainty_mesh_subview(self):
+        html = self.read_app()
+        self.assertIn('data-result-layer="prediction"', html)
+        self.assertIn('data-result-layer="uncertainty"', html)
+        self.assertIn('id="uncertainty-eta"', html)
+        self.assertIn('id="uncertainty-status"', html)
+        self.assertIn("function showResultLayer", html)
+        self.assertIn("function renderUncertaintyLayer", html)
+        self.assertIn("function classifyUncertaintyValue", html)
+        self.assertIn("function getUncertaintyColor", html)
+        self.assertIn("Uncertainty", html)
+        self.assertIn("Top-η", html)
+        self.assertIn("Bottom-η", html)
+        self.assertIn("uncertaintyMeshOpacity", html)
+        self.assertIn("rgba(231, 76, 60", html)
+        self.assertIn("rgba(39, 174, 96", html)
+        self.assertIn("rgba(52, 152, 219", html)
+        self.assertIn("Math.min(0.5, Math.max(0, eta))", html)
+
     def test_prediction_parameters_can_be_temporarily_saved_and_reloaded_after_reset(self):
         html = self.read_app()
         self.assertIn("Save Params", html)

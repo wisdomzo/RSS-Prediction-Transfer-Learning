@@ -666,6 +666,45 @@
       position: relative;
     }
 
+    .result-layer-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+
+    .result-layer-tabs {
+      display: inline-flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .result-layer-controls {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .result-layer-controls label {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 740;
+    }
+
+    .result-layer-controls input {
+      width: 96px;
+      min-height: 34px;
+    }
+
+    .result-layer-note {
+      color: var(--subtle);
+      font-size: 11px;
+      font-weight: 650;
+    }
+
     .result-legend {
       width: min(292px, calc(100% - 32px));
       position: absolute;
@@ -1406,7 +1445,7 @@ dask worker tcp://192.168.199.1:8786 --nworkers 6 --nthreads 1 --name MacPro_sha
           <div class="toolbar"><button class="ghost-btn" onclick="loadResults()">Load Latest Result</button><button class="primary-btn" onclick="downloadCsv()">Download CSV</button></div>
         </div>
         <div class="empty-state" id="result-empty-state"><div><h3>No result loaded</h3><p class="lead">Load the latest prediction output to display the RSS result map.</p></div></div>
-        <div class="panel hidden" id="result-map-panel"><div class="panel-header"><h3>Result Map</h3><span class="pill" id="result-status">No result loaded</span></div><div class="panel-body"><div class="result-map-wrap"><div id="result-map"></div><div class="result-legend hidden" id="result-legend"><div class="result-legend-title">Median RSS</div><div class="result-legend-gradient"></div><div class="result-legend-labels"><span id="result-legend-min">-- dBm</span><span id="result-legend-mid">-- dBm</span><span id="result-legend-max">-- dBm</span></div></div></div></div></div>
+        <div class="panel hidden" id="result-map-panel"><div class="panel-header"><h3>Result Map</h3><span class="pill" id="result-status">No result loaded</span></div><div class="panel-body"><div class="result-layer-toolbar"><div class="result-layer-tabs"><button class="ghost-btn active" data-result-layer="prediction" onclick="showResultLayer('prediction')">Prediction RSS</button><button class="ghost-btn" data-result-layer="uncertainty" onclick="showResultLayer('uncertainty')">Uncertainty</button></div><div class="result-layer-controls"><label for="uncertainty-eta">η</label><input id="uncertainty-eta" type="number" min="0" max="1" step="0.05" value="0.1" onchange="renderUncertaintyLayerFromControl()" /><span class="result-layer-note" id="uncertainty-status">Top-η red, Bottom-η green, middle blue.</span></div></div><div class="result-map-wrap"><div id="result-map"></div><div class="result-legend hidden" id="result-legend"><div class="result-legend-title" id="result-legend-title">Median RSS</div><div class="result-legend-gradient" id="result-legend-gradient"></div><div class="result-legend-labels"><span id="result-legend-min">-- dBm</span><span id="result-legend-mid">-- dBm</span><span id="result-legend-max">-- dBm</span></div></div></div></div></div>
       </section>
 
       <section class="workspace" id="view-analysis">
@@ -1587,6 +1626,8 @@ dask worker tcp://192.168.199.1:8786 --nworkers 6 --nthreads 1 --name MacPro_sha
     const analysisPalette = ["#1f77b4", "#d62728", "#2ca02c", "#9467bd", "#ff7f0e", "#17becf", "#8c564b", "#e377c2", "#7f7f7f", "#bcbd22", "#003f5c", "#bc5090", "#ffa600", "#58508d", "#00876c"];
     let areaMap;
     let resultMap;
+    let latestResultData = [];
+    let currentResultLayer = "prediction";
     let drawnItems;
 
     function ensurePywebviewApi() {
@@ -2064,20 +2105,13 @@ dask worker tcp://192.168.199.1:8786 --nworkers 6 --nthreads 1 --name MacPro_sha
       document.getElementById("result-map-panel").classList.remove("hidden");
       document.getElementById("result-empty-state").classList.add("hidden");
       initResultMap();
-      clearResultMapLayers();
       const values = rawData.map((p) => Number(p.Predicted_Value)).filter((value) => Number.isFinite(value));
       if (values.length === 0) {
         clearPredictionResults();
         showToast("Prediction result values are not valid.");
         return;
       }
-      const min = Math.min(...values);
-      const max = Math.max(...values);
-      const isMapResult = getPredictionResultMode(rawData) === "predictData_map";
-      const renderedCount = isMapResult
-        ? renderResultMeshMap(rawData, min, max)
-        : renderResultPointMap(rawData, min, max);
-      renderResultLegend(min, max);
+      latestResultData = rawData;
       const mapPoints = rawData
         .map((p) => [Number(p.Latitude), Number(p.Longitude)])
         .filter((point) => point.every((value) => Number.isFinite(value)));
@@ -2087,6 +2121,29 @@ dask worker tcp://192.168.199.1:8786 --nworkers 6 --nthreads 1 --name MacPro_sha
       } else {
         resultMap.setView([rawData[0].Latitude, rawData[0].Longitude], 15);
       }
+      showResultLayer(currentResultLayer);
+    }
+
+    function showResultLayer(layerName) {
+      currentResultLayer = layerName === "uncertainty" ? "uncertainty" : "prediction";
+      document.querySelectorAll("[data-result-layer]").forEach((button) => {
+        button.classList.toggle("active", button.dataset.resultLayer === currentResultLayer);
+      });
+      if (!latestResultData.length) return;
+      initResultMap();
+      clearResultMapLayers();
+      if (currentResultLayer === "uncertainty") {
+        renderUncertaintyLayer(latestResultData);
+        return;
+      }
+      const values = latestResultData.map((p) => Number(p.Predicted_Value)).filter((value) => Number.isFinite(value));
+      const min = Math.min(...values);
+      const max = Math.max(...values);
+      const isMapResult = getPredictionResultMode(latestResultData) === "predictData_map";
+      const renderedCount = isMapResult
+        ? renderResultMeshMap(latestResultData, min, max)
+        : renderResultPointMap(latestResultData, min, max);
+      renderResultLegend(min, max);
       document.getElementById("result-status").textContent = isMapResult
         ? `${renderedCount} continuous mesh loaded`
         : `${renderedCount} points loaded`;
@@ -2168,7 +2225,96 @@ dask worker tcp://192.168.199.1:8786 --nworkers 6 --nthreads 1 --name MacPro_sha
       return pointCount;
     }
 
-    function createInterpolatedMeshCanvasLayer(meshModel, min, max) {
+    function renderUncertaintyLayerFromControl() {
+      if (currentResultLayer === "uncertainty" && latestResultData.length) {
+        showResultLayer("uncertainty");
+      }
+    }
+
+    const uncertaintyMeshOpacity = 0.46;
+
+    function getUncertaintyEta() {
+      const eta = Number(document.getElementById("uncertainty-eta").value);
+      return Math.min(0.5, Math.max(0, eta));
+    }
+
+    function getUncertaintyRecords(rawData) {
+      return rawData.map((p) => ({
+        latitude: Number(p.Latitude),
+        longitude: Number(p.Longitude),
+        value: Number(p.Uncertainty)
+      })).filter((record) => Number.isFinite(record.latitude) && Number.isFinite(record.longitude) && Number.isFinite(record.value));
+    }
+
+    function getUncertaintyThresholds(values, eta) {
+      const sortedValues = [...values].sort((a, b) => a - b);
+      const tailCount = Math.floor(sortedValues.length * eta);
+      if (tailCount <= 0) return { bottomMax: -Infinity, topMin: Infinity };
+      return {
+        bottomMax: sortedValues[tailCount - 1],
+        topMin: sortedValues[sortedValues.length - tailCount]
+      };
+    }
+
+    function classifyUncertaintyValue(value, thresholds) {
+      if (value <= thresholds.bottomMax) return "bottom";
+      if (value >= thresholds.topMin) return "top";
+      return "middle";
+    }
+
+    function getUncertaintyColor(className) {
+      if (className === "top") return "rgba(231, 76, 60, 0.72)";
+      if (className === "bottom") return "rgba(39, 174, 96, 0.72)";
+      return "rgba(52, 152, 219, 0.52)";
+    }
+
+    function renderUncertaintyLayer(rawData) {
+      const eta = getUncertaintyEta();
+      const validRecords = getUncertaintyRecords(rawData);
+      if (!validRecords.length) {
+        document.getElementById("result-status").textContent = "No Uncertainty values found";
+        document.getElementById("uncertainty-status").textContent = "The latest CSV does not include numeric Uncertainty values.";
+        document.getElementById("result-legend").classList.add("hidden");
+        return;
+      }
+      const thresholds = getUncertaintyThresholds(validRecords.map((record) => record.value), eta);
+      const isMapResult = getPredictionResultMode(rawData) === "predictData_map";
+      if (isMapResult) {
+        const latitudes = getSortedUniqueNumbers(validRecords.map((record) => record.latitude));
+        const longitudes = getSortedUniqueNumbers(validRecords.map((record) => record.longitude));
+        const valueMap = new Map();
+        validRecords.forEach((record) => {
+          valueMap.set(`${record.latitude}|${record.longitude}`, record.value);
+        });
+        createInterpolatedMeshCanvasLayer(
+          { latitudes, longitudes, valueMap },
+          Math.min(...validRecords.map((record) => record.value)),
+          Math.max(...validRecords.map((record) => record.value)),
+          {
+            opacity: uncertaintyMeshOpacity,
+            colorFn: (value) => getUncertaintyColor(classifyUncertaintyValue(value, thresholds))
+          }
+        ).addTo(resultMap);
+      } else {
+        validRecords.forEach((record) => {
+          const className = classifyUncertaintyValue(record.value, thresholds);
+          L.circleMarker([record.latitude, record.longitude], {
+            radius: 5,
+            fillColor: getUncertaintyColor(className),
+            color: "#05080d",
+            weight: 0.5,
+            fillOpacity: 0.78
+          }).bindPopup(`Uncertainty: ${record.value.toFixed(4)} (${className})`).addTo(resultMap);
+        });
+      }
+      renderUncertaintyLegend(eta);
+      document.getElementById("uncertainty-status").textContent = `η=${eta.toFixed(2)}. Top-η red, Bottom-η green, middle blue.`;
+      document.getElementById("result-status").textContent = isMapResult
+        ? `${validRecords.length} uncertainty mesh cells loaded`
+        : `${validRecords.length} uncertainty points loaded`;
+    }
+
+    function createInterpolatedMeshCanvasLayer(meshModel, min, max, options = {}) {
       const MeshCanvasLayer = L.Layer.extend({
         onAdd(map) {
           this._map = map;
@@ -2184,13 +2330,13 @@ dask worker tcp://192.168.199.1:8786 --nworkers 6 --nthreads 1 --name MacPro_sha
           if (this._canvas && this._canvas.parentNode) this._canvas.parentNode.removeChild(this._canvas);
         },
         _redraw() {
-          drawInterpolatedMeshCanvas(this._map, this._canvas, meshModel, min, max);
+          drawInterpolatedMeshCanvas(this._map, this._canvas, meshModel, min, max, options);
         }
       });
       return new MeshCanvasLayer();
     }
 
-    function drawInterpolatedMeshCanvas(map, canvas, meshModel, min, max) {
+    function drawInterpolatedMeshCanvas(map, canvas, meshModel, min, max, options = {}) {
       const size = map.getSize();
       const topLeft = map.containerPointToLayerPoint([0, 0]);
       L.DomUtil.setPosition(canvas, topLeft);
@@ -2202,13 +2348,14 @@ dask worker tcp://192.168.199.1:8786 --nworkers 6 --nthreads 1 --name MacPro_sha
       const canvasContext = canvas.getContext("2d");
       canvasContext.clearRect(0, 0, size.x, size.y);
       canvasContext.globalAlpha = meshCanvasOpacity;
+      if (options.opacity) canvasContext.globalAlpha = options.opacity;
       const sampleStep = 3;
       for (let y = 0; y < size.y; y += sampleStep) {
         for (let x = 0; x < size.x; x += sampleStep) {
           const latLng = map.containerPointToLatLng([x, y]);
           const interpolated = interpolateMeshValue(latLng.lat, latLng.lng, meshModel);
           if (!Number.isFinite(interpolated)) continue;
-          canvasContext.fillStyle = getColormap(interpolated, min, max);
+          canvasContext.fillStyle = options.colorFn ? options.colorFn(interpolated) : getColormap(interpolated, min, max);
           canvasContext.fillRect(x, y, sampleStep + 1, sampleStep + 1);
         }
       }
@@ -2249,18 +2396,37 @@ dask worker tcp://192.168.199.1:8786 --nworkers 6 --nthreads 1 --name MacPro_sha
 
     function renderResultLegend(min, max) {
       const middle = min + ((max - min) / 2);
+      document.getElementById("result-legend-title").textContent = "Median RSS";
+      document.getElementById("result-legend-gradient").style.background = "linear-gradient(90deg, rgb(0, 0, 255), rgb(0, 255, 255), rgb(0, 255, 0), rgb(255, 255, 0), rgb(255, 0, 0))";
       document.getElementById("result-legend-min").textContent = `${Number(min).toFixed(1)} dBm`;
       document.getElementById("result-legend-mid").textContent = `${Number(middle).toFixed(1)} dBm`;
       document.getElementById("result-legend-max").textContent = `${Number(max).toFixed(1)} dBm`;
       document.getElementById("result-legend").classList.remove("hidden");
     }
 
+    function renderUncertaintyLegend(eta) {
+      document.getElementById("result-legend-title").textContent = "Uncertainty";
+      document.getElementById("result-legend-gradient").style.background = "linear-gradient(90deg, rgba(39, 174, 96, 0.82), rgba(52, 152, 219, 0.72), rgba(231, 76, 60, 0.82))";
+      document.getElementById("result-legend-min").textContent = `Bottom-η ${eta.toFixed(2)}`;
+      document.getElementById("result-legend-mid").textContent = "Middle";
+      document.getElementById("result-legend-max").textContent = `Top-η ${eta.toFixed(2)}`;
+      document.getElementById("result-legend").classList.remove("hidden");
+    }
+
     function clearPredictionResults() {
+      latestResultData = [];
+      currentResultLayer = "prediction";
       clearResultMapLayers();
+      document.querySelectorAll("[data-result-layer]").forEach((button) => {
+        button.classList.toggle("active", button.dataset.resultLayer === "prediction");
+      });
       document.getElementById("result-map-panel").classList.add("hidden");
       document.getElementById("result-empty-state").classList.remove("hidden");
       document.getElementById("result-status").textContent = "No result loaded";
+      document.getElementById("uncertainty-status").textContent = "Top-η red, Bottom-η green, middle blue.";
       document.getElementById("result-legend").classList.add("hidden");
+      document.getElementById("result-legend-title").textContent = "Median RSS";
+      document.getElementById("result-legend-gradient").style.background = "linear-gradient(90deg, rgb(0, 0, 255), rgb(0, 255, 255), rgb(0, 255, 0), rgb(255, 255, 0), rgb(255, 0, 0))";
       document.getElementById("result-legend-min").textContent = "-- dBm";
       document.getElementById("result-legend-mid").textContent = "-- dBm";
       document.getElementById("result-legend-max").textContent = "-- dBm";
