@@ -601,6 +601,463 @@ def plot_Model_Aggregation_Error_CDF(csv_paths, output_folder, needPNG=True, nee
     }
 
 
+def split_dataset_by_region_stratified_sampling(folderAddress,fileName="predict_RSS.csv",lat_col="Latitude",lon_col="Longitude"):
+    # URAS: Uncertainty + Region Stratified Sampling
+    import os
+    import numpy as np
+    import pandas as pd
+    from sklearn.cluster import DBSCAN
+
+    # =====================================================
+    # Helper Function
+    # =====================================================
+
+    def find_best_region(
+            df_part,
+            lat_col,
+            lon_col,
+            uncertainty_col,
+            eps,
+            min_samples):
+
+        if len(df_part) == 0:
+            return pd.DataFrame()
+
+        coords = df_part[
+            [lat_col, lon_col]
+        ].values
+
+        clustering = DBSCAN(
+            eps=eps,
+            min_samples=min_samples
+        )
+
+        labels = clustering.fit_predict(coords)
+
+        df_part = df_part.copy()
+
+        df_part["Cluster"] = labels
+
+        valid_cluster = df_part[
+            df_part["Cluster"] != -1
+        ]
+
+        # No cluster found
+        if len(valid_cluster) == 0:
+            return df_part
+
+        cluster_stat = []
+
+        for cid in sorted(
+                valid_cluster["Cluster"].unique()):
+
+            tmp = valid_cluster[
+                valid_cluster["Cluster"] == cid
+            ]
+
+            cluster_stat.append([
+                cid,
+                tmp["Uncertainty"].mean(),
+                len(tmp)
+            ])
+
+        cluster_stat = pd.DataFrame(
+            cluster_stat,
+            columns=[
+                "Cluster",
+                "MeanU",
+                "Size"
+            ]
+        )
+
+        # Region Score
+        cluster_stat["Score"] = (
+            cluster_stat["MeanU"]
+            *
+            np.log1p(
+                cluster_stat["Size"]
+            )
+        )
+
+        best_cluster = (
+            cluster_stat
+            .sort_values(
+                by="Score",
+                ascending=False
+            )
+            .iloc[0]["Cluster"]
+        )
+
+        best_region = valid_cluster[
+            valid_cluster["Cluster"]
+            == best_cluster
+        ].copy()
+
+        return best_region
+
+    # =====================================================
+    # Region Stratified Sampling
+    # =====================================================
+
+    def region_stratified_sampling(
+            df,
+            lat_col='Latitude',
+            lon_col='Longitude',
+            uncertainty_col='Uncertainty',
+            sample_ratio=0.1,
+            top_ratio=0.7,
+            middle_ratio=0.2,
+            bottom_ratio=0.1,
+            eps=0.0008,
+            min_samples=20):
+
+        df = df.copy().reset_index(drop=True)
+
+        total_samples = len(df)
+
+        select_num = max(
+            int(total_samples * sample_ratio),
+            1
+        )
+
+        # =====================================
+        # Split U Distribution
+        # =====================================
+
+        df_sorted = df.sort_values(
+            by=uncertainty_col,
+            ascending=False
+        ).reset_index(drop=True)
+
+        top_num = int(total_samples * 0.2)
+        bottom_num = int(total_samples * 0.2)
+
+        top_df = df_sorted.iloc[:top_num].copy()
+
+        middle_df = df_sorted.iloc[
+            top_num:-bottom_num
+        ].copy()
+
+        bottom_df = df_sorted.iloc[
+            -bottom_num:
+        ].copy()
+
+        # =====================================
+        # Find Regions
+        # =====================================
+
+        top_region = find_best_region(
+            top_df,
+            lat_col,
+            lon_col,
+            uncertainty_col,
+            eps,
+            min_samples
+        )
+
+        middle_region = find_best_region(
+            middle_df,
+            lat_col,
+            lon_col,
+            uncertainty_col,
+            eps,
+            min_samples
+        )
+
+        bottom_region = find_best_region(
+            bottom_df,
+            lat_col,
+            lon_col,
+            uncertainty_col,
+            eps,
+            min_samples
+        )
+
+        # =====================================
+        # Allocation
+        # =====================================
+
+        n_top = int(
+            select_num * top_ratio
+        )
+
+        n_middle = int(
+            select_num * middle_ratio
+        )
+
+        n_bottom = (
+            select_num
+            - n_top
+            - n_middle
+        )
+
+        top_ft = (
+            top_region
+            .sort_values(
+                by=uncertainty_col,
+                ascending=False
+            )
+            .head(
+                min(
+                    n_top,
+                    len(top_region)
+                )
+            )
+        )
+
+        if len(middle_region) > 0:
+
+            middle_ft = (
+                middle_region
+                .sample(
+                    n=min(
+                        n_middle,
+                        len(middle_region)
+                    ),
+                    random_state=42
+                )
+            )
+
+        else:
+
+            middle_ft = pd.DataFrame()
+
+        if len(bottom_region) > 0:
+
+            bottom_ft = (
+                bottom_region
+                .sample(
+                    n=min(
+                        n_bottom,
+                        len(bottom_region)
+                    ),
+                    random_state=42
+                )
+            )
+
+        else:
+
+            bottom_ft = pd.DataFrame()
+
+        selected_df = pd.concat(
+            [
+                top_ft,
+                middle_ft,
+                bottom_ft
+            ]
+        )
+
+        # =====================================
+        # Fill Missing
+        # =====================================
+
+        if len(selected_df) < select_num:
+
+            remain_num = (
+                select_num
+                - len(selected_df)
+            )
+
+            remain_pool = df[
+                ~df["SampleID"].isin(
+                    selected_df["SampleID"]
+                )
+            ]
+
+            additional = (
+                remain_pool
+                .sort_values(
+                    by=uncertainty_col,
+                    ascending=False
+                )
+                .head(remain_num)
+            )
+
+            selected_df = pd.concat(
+                [
+                    selected_df,
+                    additional
+                ]
+            )
+
+        print(str(min(top_ft['Uncertainty'])) + " < top_ft < " + str(max(top_ft['Uncertainty'])))
+        print(str(min(middle_ft['Uncertainty'])) + " < middle_ft < " + str(max(middle_ft['Uncertainty'])))
+        print(str(min(bottom_ft['Uncertainty'])) + " < bottom_ft < " + str(max(bottom_ft['Uncertainty'])))
+        return selected_df
+
+    # =====================================================
+    # Load Dataset
+    # =====================================================
+
+    file_path = os.path.join(
+        folderAddress,
+        fileName
+    )
+
+    df = pd.read_csv(file_path)
+
+    if "SampleID" not in df.columns:
+
+        df["SampleID"] = np.arange(
+            len(df)
+        )
+
+    total_samples = len(df)
+
+    p10_idx = max(
+        int(total_samples * 0.1),
+        1
+    )
+
+    # =====================================================
+    # Top10%
+    # =====================================================
+
+    df_sorted = df.sort_values(
+        by="Uncertainty",
+        ascending=False
+    )
+
+    high_ft = df_sorted.iloc[:p10_idx]
+
+    # =====================================================
+    # Bottom10%
+    # =====================================================
+
+    low_ft = df_sorted.iloc[-p10_idx:]
+
+    # =====================================================
+    # Random
+    # =====================================================
+
+    random_42_ft = df.sample(
+        n=p10_idx,
+        random_state=42
+    )
+
+    # =====================================================
+    # Region Stratified Sampling
+    # =====================================================
+
+    region_ft = region_stratified_sampling(
+        df,
+        lat_col=lat_col,
+        lon_col=lon_col,
+        uncertainty_col="Uncertainty",
+
+        sample_ratio=0.1,
+
+        top_ratio=0.7,
+        middle_ratio=0.2,
+        bottom_ratio=0.1,
+
+        eps=0.0008,
+        min_samples=20
+    )
+
+    # =====================================================
+    # Save FT Dataset
+    # =====================================================
+
+    high_ft.to_csv(
+        os.path.join(
+            folderAddress,
+            "highUncertainty_ft_10p.csv"
+        ),
+        index=False
+    )
+
+    low_ft.to_csv(
+        os.path.join(
+            folderAddress,
+            "lowUncertainty_ft_10p.csv"
+        ),
+        index=False
+    )
+
+    random_42_ft.to_csv(
+        os.path.join(
+            folderAddress,
+            "random_42_ft_10p.csv"
+        ),
+        index=False
+    )
+
+    region_ft.to_csv(
+        os.path.join(
+            folderAddress,
+            "proposal_ft_10p.csv"
+        ),
+        index=False
+    )
+
+    # =====================================================
+    # Common Test
+    # =====================================================
+
+    train_ids = (
+        set(high_ft["SampleID"])
+        |
+        set(low_ft["SampleID"])
+        |
+        set(random_42_ft["SampleID"])
+        |
+        set(region_ft["SampleID"])
+    )
+
+    common_test = df[
+        ~df["SampleID"].isin(
+            train_ids
+        )
+    ]
+
+    common_test.to_csv(
+        os.path.join(
+            folderAddress,
+            "common_test.csv"
+        ),
+        index=False
+    )
+
+    # =====================================================
+    # Report
+    # =====================================================
+
+    print("================================")
+    print("Finished")
+    print("================================")
+    print(f"Total Samples : {total_samples}")
+    print(f"FT Samples    : {p10_idx}")
+    print(f"Common Test   : {len(common_test)}")
+    print()
+
+    print(
+        f"High Mean U   : "
+        f"{high_ft['Uncertainty'].mean():.3f}"
+    )
+
+    print(
+        f"Low Mean U    : "
+        f"{low_ft['Uncertainty'].mean():.3f}"
+    )
+
+    print(
+        f"Random Mean U : "
+        f"{random_42_ft['Uncertainty'].mean():.3f}"
+    )
+
+    print(
+        f"Region Mean U : "
+        f"{region_ft['Uncertainty'].mean():.3f}"
+    )
+
+
+
+
+
+
+
+
 def main():
     '''
     请严格按照以下【科研出版级制图规范】为我编写 Python 绘图代码，并读取指定的数据文件运行生成图表：
@@ -668,8 +1125,8 @@ def main():
 
     # RCC函数
     #plot_Four_Scenarios_Error_CDF(folderAddress, needPNG=False, needSVG=True)
-    #split_dataset_by_region_stratified_sampling(folderAddress,fileName="predict_RSS.csv",lat_col="Latitude",lon_col="Longitude")
-    plot_Travel_Distance(folderAddress, start_lat = start_lat_unseen1, start_lon = start_lon_unseen1, needPNG=True, needSVG=False)
+    split_dataset_by_region_stratified_sampling(folderAddress,fileName="predict_RSS.csv",lat_col="Latitude",lon_col="Longitude")
+    #plot_Travel_Distance(folderAddress, start_lat = start_lat_unseen1, start_lon = start_lon_unseen1, needPNG=True, needSVG=False)
     
     return
 
