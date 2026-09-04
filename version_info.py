@@ -20,9 +20,11 @@ def _run_git(repo: Path, *args: str) -> str | None:
         ["git", "-C", str(repo), *args],
         capture_output=True,
         text=True,
+        encoding="utf-8",
+        errors="replace",
         check=False,
     )
-    value = result.stdout.strip()
+    value = (result.stdout or "").strip()
     return value if result.returncode == 0 and value else None
 
 

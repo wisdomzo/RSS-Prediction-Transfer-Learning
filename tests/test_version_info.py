@@ -1,4 +1,5 @@
 from pathlib import Path
+import subprocess
 import tempfile
 import unittest
 from unittest import mock
@@ -8,6 +9,32 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class VersionInfoTests(unittest.TestCase):
+    def test_git_output_is_decoded_as_utf8_on_windows_locales(self):
+        from version_info import _run_git
+
+        completed = subprocess.CompletedProcess(
+            args=["git"],
+            returncode=0,
+            stdout="v2.6.4, English interface update",
+            stderr="",
+        )
+        with mock.patch("version_info.subprocess.run", return_value=completed) as run:
+            self.assertEqual(_run_git(ROOT, "log", "-1", "--pretty=%s"), "v2.6.4, English interface update")
+        self.assertEqual(run.call_args.kwargs["encoding"], "utf-8")
+        self.assertEqual(run.call_args.kwargs["errors"], "replace")
+
+    def test_git_output_none_is_treated_as_missing_version_data(self):
+        from version_info import _run_git
+
+        completed = subprocess.CompletedProcess(
+            args=["git"],
+            returncode=0,
+            stdout=None,
+            stderr="",
+        )
+        with mock.patch("version_info.subprocess.run", return_value=completed):
+            self.assertIsNone(_run_git(ROOT, "log", "-1", "--pretty=%s"))
+
     def test_explicit_version_has_priority_and_is_normalized(self):
         from version_info import resolve_version
 
