@@ -8,6 +8,7 @@ MAIN = ROOT / "main.py"
 SUBFUN = ROOT / "subFun.py"
 SUBFUN_TL = ROOT / "subFun_TL.py"
 TRANSFER_LEARNING_MAIN = ROOT / "transfer_learning_main.py"
+MAIN_COLLECT_DATA = ROOT / "main_collect_data.py"
 NON_ENGLISH_LOG_RE = re.compile(r"[\u3040-\u30ff\u3400-\u9fff]")
 LOG_OUTPUT_RE = re.compile(r"(print\(|evaluate_js\(|updateProgress\(|alert\(|desc\s*=)")
 APP_LOG_OUTPUT_FILES = [
@@ -36,6 +37,22 @@ class MainEntrypointTests(unittest.TestCase):
         self.assertIn("def get_app_version(self):", source)
         self.assertIn('get_resource_path("asset_version.txt")', source)
         self.assertIn("resolve_runtime_version", source)
+
+    def test_windows_packaged_temp_path_uses_appdata(self):
+        source = MAIN.read_text(encoding="utf-8")
+        self.assertIn("def get_writable_temp_path", source)
+        self.assertIn('os.environ.get("APPDATA")', source)
+        self.assertIn('"RSS_PredictApp"', source)
+        self.assertIn('"tempData"', source)
+        self.assertIn('if os.name == "nt"', source)
+
+    def test_data_collection_uses_joined_qgis_input_path_and_checks_it_exists(self):
+        source = MAIN_COLLECT_DATA.read_text(encoding="utf-8")
+        self.assertIn('inputQGISFilesPath = os.path.join(expDataPath, f"inputQGISforML_{expName}_SF{SF}.csv")', source)
+        self.assertIn("QGIS_input.to_csv(inputQGISFilesPath", source)
+        self.assertIn("if not os.path.isfile(inputQGISFilesPath):", source)
+        self.assertIn("Failed to create QGIS input CSV", source)
+        self.assertIn("csv_path = inputQGISFilesPath", source)
 
     def test_main_starts_resizable_without_auto_maximize(self):
         source = MAIN.read_text(encoding="utf-8")

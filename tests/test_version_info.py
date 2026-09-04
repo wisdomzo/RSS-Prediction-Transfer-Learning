@@ -83,6 +83,19 @@ class VersionInfoTests(unittest.TestCase):
                 )
             resolve_git_version.assert_not_called()
 
+    def test_runtime_version_accepts_utf8_bom_packaged_resource(self):
+        from version_info import resolve_runtime_version
+
+        with tempfile.TemporaryDirectory() as directory:
+            version_file = Path(directory) / "asset_version.txt"
+            version_file.write_text("\ufeffv2.6.8\n", encoding="utf-8")
+            with mock.patch("version_info.resolve_version") as resolve_git_version:
+                self.assertEqual(
+                    resolve_runtime_version(ROOT, version_file),
+                    "v2.6.8",
+                )
+            resolve_git_version.assert_not_called()
+
     def test_runtime_version_falls_back_to_development_build(self):
         from version_info import VersionResolutionError, resolve_runtime_version
 
@@ -114,7 +127,8 @@ class BuildScriptVersionTests(unittest.TestCase):
         self.assertIn("version_info.py", script)
         self.assertIn('RSS_Predictor_Windows_$Version', script)
         self.assertIn("build\\asset_version.txt", script)
-        self.assertIn('Set-Content -Path $AssetVersionPath -Value $Version', script)
+        self.assertIn("[System.Text.UTF8Encoding]::new($false)", script)
+        self.assertIn("[System.IO.File]::WriteAllText($AssetVersionPath, $Version", script)
         self.assertIn('"--onefile"', script)
         self.assertNotIn('"--onedir"', script)
         self.assertIn('Join-Path $ScriptDir "wave.icns"', script)

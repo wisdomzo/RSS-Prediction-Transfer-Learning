@@ -428,15 +428,19 @@ def get_resource_path(relative_path):
 
 
 def get_writable_temp_path():
-    """Use the Downloads directory to avoid macOS permission restrictions."""
+    """Return a writable runtime directory for generated ASSET files."""
     if getattr(sys, 'frozen', False):
-        base_path = os.path.join(
-            os.path.expanduser("~"),
-            "Library",
-            "Application Support",
-            "RSS_PredictApp",
-            "tempData"
-        )
+        if os.name == "nt":
+            app_data_root = os.environ.get("APPDATA") or os.path.expanduser("~")
+            base_path = os.path.join(app_data_root, "RSS_PredictApp", "tempData")
+        else:
+            base_path = os.path.join(
+                os.path.expanduser("~"),
+                "Library",
+                "Application Support",
+                "RSS_PredictApp",
+                "tempData"
+            )
     else:
         base_path = os.path.join(APP_ROOT, "tempData")
 

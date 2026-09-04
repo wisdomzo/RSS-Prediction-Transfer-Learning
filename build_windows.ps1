@@ -37,7 +37,8 @@ Write-Host "Cleaning old build and dist directories..."
 Remove-Item -Recurse -Force build, dist -ErrorAction SilentlyContinue
 Get-ChildItem -Filter *.spec -ErrorAction SilentlyContinue | Remove-Item -Force
 New-Item -ItemType Directory -Force -Path build | Out-Null
-Set-Content -Path $AssetVersionPath -Value $Version -Encoding UTF8
+$Utf8NoBom = [System.Text.UTF8Encoding]::new($false)
+[System.IO.File]::WriteAllText($AssetVersionPath, $Version, $Utf8NoBom)
 
 $PyInstallerArgs = @(
     "--noconfirm",

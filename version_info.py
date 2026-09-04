@@ -29,7 +29,8 @@ def _run_git(repo: Path, *args: str) -> str | None:
 
 
 def _normalize_version(value: str, source: str) -> str:
-    match = VERSION_PATTERN.fullmatch(value.strip())
+    normalized_value = value.strip().lstrip("\ufeff")
+    match = VERSION_PATTERN.fullmatch(normalized_value)
     if not match:
         raise VersionResolutionError(
             f"{source} must contain a semantic version such as v2.6.4."

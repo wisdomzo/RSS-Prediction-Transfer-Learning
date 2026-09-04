@@ -31,8 +31,9 @@ def start_collect_logic(expDataPath, map_path, fun_path, frequency_MHz, SF, Pt_d
     }
 
     expName = "myTempExp"
-    dataPath = expDataPath + "/data.pkl.xz"
-    altitudeDataPath = expDataPath + "/rxData_" + expName + "_SF" + str(SF) + "_altitude.csv"
+    dataPath = os.path.join(expDataPath, "data.pkl.xz")
+    rxDataPath = os.path.join(expDataPath, f"rxData_{expName}_SF{SF}.csv")
+    altitudeDataPath = os.path.join(expDataPath, f"rxData_{expName}_SF{SF}_altitude.csv")
 
     # Integrate experimental data.
     if os.path.isfile(dataPath):
@@ -48,7 +49,7 @@ def start_collect_logic(expDataPath, map_path, fun_path, frequency_MHz, SF, Pt_d
         with lzma.open(dataPath, 'wb') as saveFile:
             pickle.dump(all_vars, saveFile)
         #####
-        rxData.to_csv(expDataPath + "/rxData_" + expName + "_SF" + str(SF) + ".csv", index=False)
+        rxData.to_csv(rxDataPath, index=False)
 
     # Add elevation data.
     if 'rxData_Altitude' not in globals():
@@ -66,21 +67,21 @@ def start_collect_logic(expDataPath, map_path, fun_path, frequency_MHz, SF, Pt_d
                 break
             else:
                 # Add building height to terrain elevation to obtain the effective elevation.
-                csv_path = expDataPath + "/rxData_" + expName + "_SF" + str(SF) + ".csv"
+                csv_path = rxDataPath
                 print("\nGenerating Tx-Rx spatial distance with the building map.")
                 gpkg_path_building = subFun.get_gpkg_files(map_path, "*_building.gpkg")
                 if not gpkg_path_building:
                     print("Building map ignored.")
                     print("\nGenerating Tx-Rx spatial distance with the altitude map.")
                     gpkg_path_altitude = subFun.get_gpkg_files(map_path, "*_altitude.tif")
-                    output_path_altitude = expDataPath + "/rxData_" + expName + "_SF" + str(SF) + "_altitude.csv"
+                    output_path_altitude = altitudeDataPath
                     subFun.load_map_data(csv_path, gpkg_path_altitude, output_path_altitude, "altitude")
                 else:
-                    output_path_building = expDataPath + "/rxData_" + expName + "_SF" + str(SF) + "_building.csv"
+                    output_path_building = os.path.join(expDataPath, f"rxData_{expName}_SF{SF}_building.csv")
                     subFun.load_map_data(csv_path, gpkg_path_building, output_path_building, "building")
                     print("\nGenerating Tx-Rx spatial distance with the altitude map.")
                     gpkg_path_altitude = subFun.get_gpkg_files(map_path, "*_altitude.tif")
-                    output_path_altitude = expDataPath + "/rxData_" + expName + "_SF" + str(SF) + "_altitude_no_building.csv"
+                    output_path_altitude = os.path.join(expDataPath, f"rxData_{expName}_SF{SF}_altitude_no_building.csv")
                     subFun.load_map_data(csv_path, gpkg_path_altitude, output_path_altitude, "altitude")
                     subFun.merge_csv_files(output_path_building, output_path_altitude, altitudeDataPath)
 
@@ -135,8 +136,9 @@ def start_collect_logic(expDataPath, map_path, fun_path, frequency_MHz, SF, Pt_d
     # Map-based machine-learning inference.
     # Read or generate sample-point data.
     # region
-    outputQGISFilesPath = expDataPath + "/outputQGISforML_" + expName + "_SF" + str(SF) + ".csv"
-    cityType_outputQGISFilesPath = expDataPath + "/cityType_outputQGISforML_" + expName + "_SF" + str(SF) + ".csv"
+    inputQGISFilesPath = os.path.join(expDataPath, f"inputQGISforML_{expName}_SF{SF}.csv")
+    outputQGISFilesPath = os.path.join(expDataPath, f"outputQGISforML_{expName}_SF{SF}.csv")
+    cityType_outputQGISFilesPath = os.path.join(expDataPath, f"cityType_outputQGISforML_{expName}_SF{SF}.csv")
     while True:
         if os.path.isfile(outputQGISFilesPath) and os.path.isfile(cityType_outputQGISFilesPath):
             QGIS_output = (pd.read_csv(outputQGISFilesPath).sort_values(by='searchIndex'))
@@ -171,7 +173,9 @@ def start_collect_logic(expDataPath, map_path, fun_path, frequency_MHz, SF, Pt_d
             )
             QGIS_input = QGIS_input.reset_index()
             QGIS_input.rename(columns={'index': 'searchIndex'}, inplace=True)
-            QGIS_input.to_csv(expDataPath + "/inputQGISforML_" + expName + "_SF" + str(SF) + ".csv", index=False)
+            QGIS_input.to_csv(inputQGISFilesPath, index=False)
+            if not os.path.isfile(inputQGISFilesPath):
+                raise FileNotFoundError(f"Failed to create QGIS input CSV: {inputQGISFilesPath}")
             #####
             if 'all_vars' in globals(): del all_vars
             all_vars = {key: value for key, value in globals().items()
@@ -179,7 +183,7 @@ def start_collect_logic(expDataPath, map_path, fun_path, frequency_MHz, SF, Pt_d
             with lzma.open(dataPath, 'wb') as saveFile:
                 pickle.dump(all_vars, saveFile)
             #####
-            csv_path = expDataPath + "/inputQGISforML_" + expName + "_SF" + str(SF) + ".csv"
+            csv_path = inputQGISFilesPath
             print("\nGenerating meshgrid with the building map.")
             gpkg_path_bd = subFun.get_gpkg_files(map_path, "*_building.gpkg")
             print("\nGenerating meshgrid with the altitude map.")
@@ -190,9 +194,9 @@ def start_collect_logic(expDataPath, map_path, fun_path, frequency_MHz, SF, Pt_d
                 print("Building map ignored.")
                 subFun.load_area_max_data(csv_path, gpkg_path_al, outputQGISFilesPath, "altitude", M, visualAngle['H'])
             else:
-                outputQGISFilesPath_building = expDataPath + "/outputQGISforML_" + expName + "_SF" + str(SF) + "_building.csv"
+                outputQGISFilesPath_building = os.path.join(expDataPath, f"outputQGISforML_{expName}_SF{SF}_building.csv")
                 subFun.load_area_max_data(csv_path, gpkg_path_bd, outputQGISFilesPath_building, "building", M, visualAngle['H'])
-                outputQGISFilesPath_altitude = expDataPath + "/outputQGISforML_" + expName + "_SF" + str(SF) + "_altitude.csv"
+                outputQGISFilesPath_altitude = os.path.join(expDataPath, f"outputQGISforML_{expName}_SF{SF}_altitude.csv")
                 subFun.load_area_max_data(csv_path, gpkg_path_al, outputQGISFilesPath_altitude, "altitude", M, visualAngle['H'])
                 subFun.merge_csv_files(outputQGISFilesPath_building, outputQGISFilesPath_altitude, outputQGISFilesPath)
             # Read the city type (land use).
