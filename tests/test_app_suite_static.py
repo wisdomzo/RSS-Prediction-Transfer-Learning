@@ -483,6 +483,10 @@ class AppSuiteStaticTests(unittest.TestCase):
         self.assertIn('onclick="openDistributedGuide()"', html)
         self.assertIn('id="distributed-guide-modal"', html)
         self.assertIn("Distributed Learning Guide", html)
+        self.assertIn("Prerequisites", html)
+        self.assertIn("Install Dask Distributed on every worker computer", html)
+        self.assertIn('python -m pip install "dask[distributed]" --upgrade', html)
+        self.assertIn('python -c "import dask, distributed; print(dask.__version__, distributed.__version__)"', html)
         self.assertIn("ulimit -n 10000", html)
         self.assertIn("dask scheduler --host 192.168.1.200", html)
         self.assertIn("dask worker tcp://192.168.199.1:8786 --nworkers 12 --nthreads 1 --name MacPro_alpha --memory-limit 14GB", html)
@@ -500,6 +504,9 @@ class AppSuiteStaticTests(unittest.TestCase):
             "scheduler address",
         ]:
             self.assertIn(explanation, html)
+        self.assertIn("If ASSET cannot connect to the scheduler, training continues in single-machine mode.", html)
+        self.assertIn("copyGuideCommand", html)
+        self.assertGreaterEqual(html.count('data-guide-copy='), 5)
         self.assertIn("function openDistributedGuide", html)
         self.assertIn("function closeDistributedGuide", html)
         self.assertIn("function loadAndShowPdf", html)

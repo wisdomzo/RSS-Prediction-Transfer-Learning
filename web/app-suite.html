@@ -1105,6 +1105,32 @@
       white-space: pre;
     }
 
+    .copy-command {
+      justify-self: start;
+      min-height: 30px;
+      padding: 0 10px;
+      border: 1px solid rgba(79, 213, 231, 0.24);
+      border-radius: 8px;
+      color: #c4f4fa;
+      background: rgba(79, 213, 231, 0.1);
+      font-size: 11px;
+      font-weight: 760;
+    }
+
+    .guide-checklist {
+      display: grid;
+      gap: 8px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .guide-checklist li {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
     .table {
       width: 100%;
       border-collapse: collapse;
@@ -1328,32 +1354,59 @@
         <button class="ghost-btn" onclick="closeDistributedGuide()">Close</button>
       </div>
       <div class="guide-modal-body">
-        <p class="lead">Use this setup when model training needs multiple workers. Start the scheduler on the master machine, then start workers on one or more worker machines before running Generate Model.</p>
+        <p class="lead">Use this setup when model training needs multiple workers. Prepare every worker computer first, start the scheduler on the master machine, then connect the workers before running Generate Model.</p>
         <ul class="guide-steps">
           <li>
-            <b>1. Increase the open-file limit on the master machine.</b>
+            <b>1. Prerequisites</b>
+            <p>Every participating computer must use a reachable network connection, a compatible Python environment, the project dependencies, and Dask Distributed. If ASSET cannot connect to the scheduler, training continues in single-machine mode.</p>
+            <ul class="guide-checklist">
+              <li>All computers can reach the scheduler IP address on the LAN.</li>
+              <li>Firewall rules allow worker connections to port 8786.</li>
+              <li>Each worker has enough CPU cores and memory for its configured worker count.</li>
+            </ul>
+          </li>
+          <li>
+            <b>2. Install Dask Distributed on every worker computer.</b>
+            <p>Run one of these commands on each worker machine before starting a worker process.</p>
+            <pre class="command-line" data-guide-command="install-pip">python -m pip install "dask[distributed]" --upgrade</pre>
+            <button class="copy-command" data-guide-copy="install-pip" onclick="copyGuideCommand('install-pip')">Copy command</button>
+            <pre class="command-line" data-guide-command="install-conda">conda install dask distributed -c conda-forge</pre>
+            <button class="copy-command" data-guide-copy="install-conda" onclick="copyGuideCommand('install-conda')">Copy command</button>
+          </li>
+          <li>
+            <b>3. Confirm Dask is available on each worker.</b>
+            <p>This check prints the installed Dask and Distributed versions. Use the same environment that will run the worker command.</p>
+            <pre class="command-line" data-guide-command="verify-dask">python -c "import dask, distributed; print(dask.__version__, distributed.__version__)"</pre>
+            <button class="copy-command" data-guide-copy="verify-dask" onclick="copyGuideCommand('verify-dask')">Copy command</button>
+          </li>
+          <li>
+            <b>4. Increase the open-file limit on the master machine.</b>
             <p>Run this before starting Dask so many files and worker connections can stay open during training.</p>
-            <pre class="command-line">ulimit -n 10000</pre>
+            <pre class="command-line" data-guide-command="open-files">ulimit -n 10000</pre>
+            <button class="copy-command" data-guide-copy="open-files" onclick="copyGuideCommand('open-files')">Copy command</button>
           </li>
           <li>
-            <b>2. Start the scheduler on the master machine.</b>
+            <b>5. Start the scheduler on the master machine.</b>
             <p>Replace the IP address if your master machine uses a different LAN address.</p>
-            <pre class="command-line">dask scheduler --host 192.168.1.200</pre>
+            <pre class="command-line" data-guide-command="scheduler">dask scheduler --host 192.168.1.200</pre>
+            <button class="copy-command" data-guide-copy="scheduler" onclick="copyGuideCommand('scheduler')">Copy command</button>
           </li>
           <li>
-            <b>3. Start workers after the scheduler is running.</b>
+            <b>6. Start workers after the scheduler is running.</b>
             <p>Run one command per worker group. Adjust worker count and memory limit to match the available CPU and memory on each machine.</p>
-            <pre class="command-line">dask worker tcp://192.168.199.1:8786 --nworkers 12 --nthreads 1 --name MacPro_alpha --memory-limit 14GB
+            <pre class="command-line" data-guide-command="workers">dask worker tcp://192.168.199.1:8786 --nworkers 12 --nthreads 1 --name MacPro_alpha --memory-limit 14GB
 dask worker tcp://192.168.199.1:8786 --nworkers 12 --nthreads 1 --name MacPro_beta --memory-limit 14GB
 dask worker tcp://192.168.199.1:8786 --nworkers 6 --nthreads 1 --name MacPro_shan --memory-limit 14GB</pre>
+            <button class="copy-command" data-guide-copy="workers" onclick="copyGuideCommand('workers')">Copy commands</button>
           </li>
           <li>
-            <b>4. Run training from ASSET.</b>
+            <b>7. Run training from ASSET.</b>
             <p>Paste the scheduler address into Model Training / Scheduler, select feature vectors, then click Generate Model.</p>
-            <pre class="command-line">192.168.199.1:8786</pre>
+            <pre class="command-line" data-guide-command="asset-scheduler">tcp://192.168.199.1:8786</pre>
+            <button class="copy-command" data-guide-copy="asset-scheduler" onclick="copyGuideCommand('asset-scheduler')">Copy address</button>
           </li>
           <li>
-            <b>5. Parameter reference.</b>
+            <b>8. Parameter reference.</b>
             <p><b>--host</b> sets the scheduler bind IP on the master machine. The scheduler address is the tcp://IP:8786 endpoint that ASSET and all workers connect to.</p>
             <p><b>--nworkers</b> is the worker count launched by that command. Higher worker count increases parallel jobs but also increases memory and file-handle pressure.</p>
             <p><b>--nthreads</b> sets threads per worker. For CPU-bound training, 1 thread per worker is usually stable and predictable.</p>
@@ -2830,6 +2883,30 @@ dask worker tcp://192.168.199.1:8786 --nworkers 6 --nthreads 1 --name MacPro_sha
 
     function closeDistributedGuide() {
       document.getElementById("distributed-guide-modal").classList.add("hidden");
+    }
+
+    async function copyGuideCommand(commandId) {
+      const command = document.querySelector(`[data-guide-command="${commandId}"]`);
+      if (!command) return;
+      const text = command.textContent.trim();
+      try {
+        if (navigator.clipboard && window.isSecureContext) {
+          await navigator.clipboard.writeText(text);
+        } else {
+          const temp = document.createElement("textarea");
+          temp.value = text;
+          temp.setAttribute("readonly", "");
+          temp.style.position = "fixed";
+          temp.style.opacity = "0";
+          document.body.appendChild(temp);
+          temp.select();
+          document.execCommand("copy");
+          document.body.removeChild(temp);
+        }
+        showToast("Command copied.");
+      } catch (error) {
+        showToast("Unable to copy command. Select the command text manually.");
+      }
     }
 
     function updateProgress(percent, status) {
