@@ -1118,6 +1118,18 @@
       line-height: 1.7;
     }
 
+    .application-log.fixed-height {
+      height: 560px;
+      min-height: 560px;
+      max-height: 560px;
+    }
+
+    .application-log.expanded-height {
+      height: calc(100vh - 260px);
+      min-height: 560px;
+      max-height: calc(100vh - 260px);
+    }
+
     .toast {
       position: fixed;
       right: 22px;
@@ -1827,11 +1839,11 @@ dask worker tcp://192.168.199.1:8786 --nworkers 6 --nthreads 1 --name MacPro_sha
             <h2>Live execution logs from Python and remote workers.</h2>
             <p class="lead">Review live application logs from local execution and remote worker output in a full-size console.</p>
           </div>
-          <div class="toolbar"><button class="ghost-btn" onclick="clearTerminal()">Clear Logs</button></div>
+          <div class="toolbar"><button class="ghost-btn" id="log-height-toggle" onclick="toggleApplicationLogHeight()">Expand Height</button><button class="ghost-btn" id="export-log-btn" onclick="exportApplicationLog()">Export Log</button><button class="ghost-btn" onclick="clearTerminal()">Clear Logs</button></div>
         </div>
         <div class="panel">
           <div class="panel-header"><h3>Application Log</h3><span class="pill" id="log-count">1 line</span></div>
-          <div class="panel-body"><div class="log" id="terminal-content-main" style="min-height:560px;max-height:calc(100vh - 260px);">&gt; ASSET suite initialized</div></div>
+          <div class="panel-body"><div id="terminal-content-main" class="log application-log fixed-height">&gt; ASSET suite initialized</div></div>
         </div>
       </section>
 
@@ -3256,6 +3268,34 @@ dask worker tcp://192.168.199.1:8786 --nworkers 6 --nthreads 1 --name MacPro_sha
 
     function updateTerminal(message) {
       appendTerminalLine(message);
+    }
+
+    function toggleApplicationLogHeight() {
+      const terminal = document.getElementById("terminal-content-main");
+      const button = document.getElementById("log-height-toggle");
+      if (!terminal || !button) return;
+      const isExpanded = !terminal.classList.contains("expanded-height");
+      terminal.classList.toggle("fixed-height", !isExpanded);
+      terminal.classList.toggle("expanded-height", isExpanded);
+      button.textContent = isExpanded ? "Lock Height" : "Expand Height";
+    }
+
+    async function exportApplicationLog() {
+      try {
+        const terminal = document.getElementById("terminal-content-main");
+        const logText = terminal.children.length
+          ? Array.from(terminal.children).map((line) => line.textContent).join("\n")
+          : terminal.textContent;
+        if (!logText || !logText.trim()) {
+          showToast("No application log is available to export.");
+          return;
+        }
+        ensurePywebviewApi();
+        const ok = await window.pywebview.api.download_application_log(logText);
+        showToast(ok ? "Application log exported." : "No application log was saved.");
+      } catch (error) {
+        showToast("Application log export failed.");
+      }
     }
 
     function appendTerminalLine(message) {

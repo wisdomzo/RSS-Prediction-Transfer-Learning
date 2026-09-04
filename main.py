@@ -1251,6 +1251,33 @@ def download_data_analysis_png():
     return download_analysis_output("png")
 
 
+def download_application_log(log_text):
+    try:
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        file_name = f"ASSET_application_log_{timestamp}.txt"
+        save_path = window.create_file_dialog(
+            webview.FileDialog.SAVE,
+            directory=os.path.expanduser("~"),
+            save_filename=file_name,
+            file_types=('Text files (*.txt)', 'All files (*.*)')
+        )
+        if not save_path:
+            return False
+
+        actual_destination = save_path[0] if isinstance(save_path, (list, tuple)) else save_path
+        normalized_text = str(log_text or "")
+        with open(actual_destination, "w", encoding="utf-8") as log_file:
+            log_file.write(normalized_text)
+            if normalized_text and not normalized_text.endswith("\n"):
+                log_file.write("\n")
+
+        print(f"Application log saved to: {actual_destination}")
+        return True
+    except Exception as e:
+        print(f"Application log export failed: {e}")
+        return False
+
+
 def start_logic():
     # Start in a resizable normal window; the UI expands to a three-column layout when the user maximizes it.
     # Redirect standard output.
@@ -1295,6 +1322,7 @@ def main():
     window.expose(reset_data_analysis_outputs)
     window.expose(download_data_analysis_svg)
     window.expose(download_data_analysis_png)
+    window.expose(download_application_log)
     window.expose(get_ui_preferences)
     window.expose(save_ui_preferences)
 

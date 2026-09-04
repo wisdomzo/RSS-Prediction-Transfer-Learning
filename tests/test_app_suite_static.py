@@ -36,6 +36,7 @@ class AppSuiteStaticTests(unittest.TestCase):
             "download_data_analysis_png",
             "get_ui_preferences",
             "save_ui_preferences",
+            "download_application_log",
         ]
         for call in required_calls:
             self.assertTrue(
@@ -179,6 +180,28 @@ class AppSuiteStaticTests(unittest.TestCase):
         self.assertIn(".rightbar .log {", html)
         self.assertIn("overflow-wrap: anywhere;", html)
         self.assertIn("white-space: pre-wrap;", html)
+
+    def test_application_log_height_can_be_locked(self):
+        html = self.read_app()
+        self.assertIn(".application-log.fixed-height", html)
+        self.assertIn(".application-log.expanded-height", html)
+        self.assertIn('id="log-height-toggle"', html)
+        self.assertIn('onclick="toggleApplicationLogHeight()"', html)
+        self.assertIn('id="terminal-content-main" class="log application-log fixed-height"', html)
+        self.assertIn("function toggleApplicationLogHeight", html)
+        self.assertIn('terminal.classList.toggle("fixed-height", !isExpanded)', html)
+        self.assertIn('terminal.classList.toggle("expanded-height", isExpanded)', html)
+        self.assertIn('button.textContent = isExpanded ? "Lock Height" : "Expand Height"', html)
+
+    def test_application_log_can_be_exported(self):
+        html = self.read_app()
+        self.assertIn('id="export-log-btn"', html)
+        self.assertIn('onclick="exportApplicationLog()"', html)
+        self.assertIn("async function exportApplicationLog", html)
+        self.assertIn('document.getElementById("terminal-content-main").textContent', html)
+        self.assertIn('Array.from(terminal.children).map((line) => line.textContent).join("\\n")', html)
+        self.assertIn("window.pywebview.api.download_application_log", html)
+        self.assertIn("Application log exported.", html)
 
     def test_prediction_area_is_conditional_on_map_bounds_mode(self):
         html = self.read_app()

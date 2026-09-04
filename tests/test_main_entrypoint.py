@@ -138,6 +138,14 @@ class MainEntrypointTests(unittest.TestCase):
         self.assertIn('download_model("ML_")', source)
         self.assertIn("window.expose(download_dataset_output)", source)
 
+    def test_application_log_download_is_exposed(self):
+        source = MAIN.read_text(encoding="utf-8")
+        self.assertIn("def download_application_log(log_text)", source)
+        self.assertIn("ASSET_application_log_", source)
+        self.assertIn("webview.FileDialog.SAVE", source)
+        self.assertIn("Application log saved to:", source)
+        self.assertIn("window.expose(download_application_log)", source)
+
     def test_data_analysis_api_is_exposed(self):
         source = MAIN.read_text(encoding="utf-8")
         self.assertIn("def list_analysis_csv_files", source)
