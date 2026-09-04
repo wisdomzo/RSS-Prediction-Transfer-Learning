@@ -34,6 +34,8 @@ class AppSuiteStaticTests(unittest.TestCase):
             "reset_data_analysis_outputs",
             "download_data_analysis_svg",
             "download_data_analysis_png",
+            "get_ui_preferences",
+            "save_ui_preferences",
         ]
         for call in required_calls:
             self.assertTrue(
@@ -261,6 +263,61 @@ class AppSuiteStaticTests(unittest.TestCase):
         self.assertIn("clearPredictionResultGuide()", results_view_branch)
         self.assertIn("clearPredictionResultGuide()", html)
         self.assertIn("setTimeout(dismissPredictionResultGuide, 12000)", html)
+
+    def test_app_has_first_run_sidebar_overview_tour(self):
+        html = self.read_app()
+        self.assertIn('id="tour-overlay"', html)
+        self.assertIn('id="tour-spotlight"', html)
+        self.assertIn('id="tour-card"', html)
+        self.assertIn("const tourDefinitions", html)
+        self.assertIn("appOverview", html)
+        self.assertIn("Prediction Workspace", html)
+        self.assertIn("Feature Generation", html)
+        self.assertIn("Results Explorer", html)
+        self.assertIn("Data Analysis", html)
+        self.assertIn("Log Console", html)
+        self.assertIn("asset.skipAppOverviewTour", html)
+        self.assertIn("Do not show this guide again", html)
+        self.assertIn('startTour("appOverview")', html)
+        self.assertIn("async function loadTourPreferences", html)
+        self.assertIn("async function persistTourPreference", html)
+        self.assertIn("window.pywebview.api.get_ui_preferences()", html)
+        self.assertIn("window.pywebview.api.save_ui_preferences", html)
+        self.assertIn("async function waitForPywebviewApi", html)
+        self.assertIn("await loadTourPreferences()", html)
+
+    def test_prediction_workspace_has_contextual_tour(self):
+        html = self.read_app()
+        self.assertIn("predictionWorkspace", html)
+        self.assertIn("asset.skipPredictionWorkspaceTour", html)
+        self.assertIn('data-tour-target="prediction-parameters"', html)
+        self.assertIn('data-tour-target="prediction-area"', html)
+        self.assertIn('data-tour-target="prediction-run"', html)
+        self.assertIn('data-tour-target="prediction-reset"', html)
+        self.assertIn('data-tour-target="prediction-draw-area"', html)
+        self.assertIn("Enter the radio, antenna, model, and database settings required for prediction.", html)
+        self.assertIn("Use the map tool to define the prediction boundary when map-bound mode is selected.", html)
+        self.assertIn('if (name === "prediction") maybeStartPredictionWorkspaceTour()', html)
+
+    def test_prediction_workspace_tour_locks_page_scroll(self):
+        html = self.read_app()
+        self.assertIn(".tour-scroll-locked", html)
+        self.assertIn("let tourScrollY = 0", html)
+        self.assertIn("function setTourScrollLock(isLocked)", html)
+        self.assertIn('document.body.classList.toggle("tour-scroll-locked", isLocked)', html)
+        self.assertIn("setTourScrollLock(true)", html)
+        self.assertIn("function preventTourScroll(event)", html)
+        self.assertIn("if (!activeTourName) return", html)
+        self.assertIn('window.addEventListener("wheel", preventTourScroll, { passive: false })', html)
+        self.assertIn('window.addEventListener("touchmove", preventTourScroll, { passive: false })', html)
+        self.assertIn('window.addEventListener("keydown", preventTourKeyboardScroll)', html)
+        self.assertIn("setTourScrollLock(false)", html)
+
+    def test_tour_layer_stays_above_app_components(self):
+        html = self.read_app()
+        self.assertIn("z-index: 10000", html)
+        self.assertIn("z-index: 10001", html)
+        self.assertIn("z-index: 10002", html)
 
     def test_reset_stops_backend_and_clears_inputs_and_logs(self):
         html = self.read_app()

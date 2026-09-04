@@ -9,5 +9,6 @@ models/
 *.csv
 *.DS_Store
 tempData/
+settings/
 *.pkl.xz
 *.pkl

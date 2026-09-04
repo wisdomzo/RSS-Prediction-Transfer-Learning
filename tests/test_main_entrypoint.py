@@ -38,6 +38,16 @@ class MainEntrypointTests(unittest.TestCase):
         self.assertIn('get_resource_path("asset_version.txt")', source)
         self.assertIn("resolve_runtime_version", source)
 
+    def test_ui_preferences_are_persisted_outside_temp_data(self):
+        source = MAIN.read_text(encoding="utf-8")
+        self.assertIn("def get_writable_settings_path", source)
+        self.assertIn('"settings"', source)
+        self.assertIn('"ui_preferences.json"', source)
+        self.assertIn("def get_ui_preferences", source)
+        self.assertIn("def save_ui_preferences", source)
+        self.assertIn("window.expose(get_ui_preferences)", source)
+        self.assertIn("window.expose(save_ui_preferences)", source)
+
     def test_windows_packaged_temp_path_uses_appdata(self):
         source = MAIN.read_text(encoding="utf-8")
         self.assertIn("def get_writable_temp_path", source)

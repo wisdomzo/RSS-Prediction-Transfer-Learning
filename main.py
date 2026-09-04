@@ -34,6 +34,7 @@ current_model_training_process = None
 current_model_training_queue = None
 model_training_monitor_thread = None
 PREDICTION_RESULT_MODE_FILE = "predict_RSS_result_mode.json"
+UI_PREFERENCES_FILE = "ui_preferences.json"
 
 
 def connect_to_existing_cluster(coords):
@@ -446,6 +447,57 @@ def get_writable_temp_path():
 
     os.makedirs(base_path, exist_ok=True)
     return base_path
+
+
+def get_writable_settings_path():
+    """Return a writable settings directory that reset_temp_data does not clear."""
+    if getattr(sys, 'frozen', False):
+        if os.name == "nt":
+            app_data_root = os.environ.get("APPDATA") or os.path.expanduser("~")
+            base_path = os.path.join(app_data_root, "RSS_PredictApp", "settings")
+        else:
+            base_path = os.path.join(
+                os.path.expanduser("~"),
+                "Library",
+                "Application Support",
+                "RSS_PredictApp",
+                "settings"
+            )
+    else:
+        base_path = os.path.join(APP_ROOT, "settings")
+
+    os.makedirs(base_path, exist_ok=True)
+    return base_path
+
+
+def get_ui_preferences():
+    """Load persistent UI preferences used by the frontend."""
+    preferences_path = os.path.join(get_writable_settings_path(), UI_PREFERENCES_FILE)
+    try:
+        if not os.path.exists(preferences_path):
+            return {}
+        with open(preferences_path, "r", encoding="utf-8") as f:
+            payload = json.load(f)
+        return payload if isinstance(payload, dict) else {}
+    except Exception as e:
+        print(f"Failed to load UI preferences: {e}")
+        return {}
+
+
+def save_ui_preferences(preferences):
+    """Merge and persist UI preferences outside the resettable temp directory."""
+    preferences_path = os.path.join(get_writable_settings_path(), UI_PREFERENCES_FILE)
+    try:
+        existing = get_ui_preferences()
+        if not isinstance(preferences, dict):
+            return False
+        existing.update(preferences)
+        with open(preferences_path, "w", encoding="utf-8") as f:
+            json.dump(existing, f, indent=2, sort_keys=True)
+        return True
+    except Exception as e:
+        print(f"Failed to save UI preferences: {e}")
+        return False
 
 
 def save_prediction_result_mode(prediction_mode):
@@ -1243,6 +1295,8 @@ def main():
     window.expose(reset_data_analysis_outputs)
     window.expose(download_data_analysis_svg)
     window.expose(download_data_analysis_png)
+    window.expose(get_ui_preferences)
+    window.expose(save_ui_preferences)
 
     # Start the window with the WebKit engine on macOS.
     webview.start(start_logic, debug=False, gui='webkit2')

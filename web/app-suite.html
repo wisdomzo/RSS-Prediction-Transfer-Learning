@@ -36,6 +36,12 @@
       font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     }
 
+    body.tour-scroll-locked {
+      width: 100%;
+      position: fixed;
+      overflow: hidden;
+    }
+
     button, input, select {
       font: inherit;
     }
@@ -260,6 +266,107 @@
     .coachmark-close:hover {
       color: var(--text);
       background: rgba(255, 255, 255, 0.07);
+    }
+
+    .tour-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 10000;
+      pointer-events: auto;
+    }
+
+    .tour-scrim {
+      position: absolute;
+      inset: 0;
+      background: rgba(3, 6, 10, 0.68);
+      backdrop-filter: blur(4px);
+    }
+
+    .tour-spotlight {
+      position: fixed;
+      z-index: 10001;
+      border: 1px solid rgba(79, 213, 231, 0.78);
+      border-radius: 8px;
+      box-shadow:
+        0 0 0 9999px rgba(3, 6, 10, 0.58),
+        0 0 32px rgba(79, 213, 231, 0.34);
+      pointer-events: none;
+      transition: left 180ms ease, top 180ms ease, width 180ms ease, height 180ms ease;
+    }
+
+    .tour-card {
+      width: min(360px, calc(100vw - 32px));
+      position: fixed;
+      z-index: 10002;
+      padding: 16px;
+      border: 1px solid rgba(79, 213, 231, 0.34);
+      border-radius: 8px;
+      background: rgba(10, 17, 26, 0.98);
+      box-shadow: var(--shadow);
+      transition: left 180ms ease, top 180ms ease;
+    }
+
+    .tour-card::before {
+      content: "";
+      width: 11px;
+      height: 11px;
+      position: absolute;
+      left: -7px;
+      top: 24px;
+      transform: rotate(45deg);
+      border-left: 1px solid rgba(79, 213, 231, 0.34);
+      border-bottom: 1px solid rgba(79, 213, 231, 0.34);
+      background: #0a111a;
+    }
+
+    .tour-card h3 {
+      margin: 3px 28px 8px 0;
+      font-size: 15px;
+      line-height: 1.25;
+    }
+
+    .tour-card p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .tour-progress {
+      color: var(--cyan);
+      font-size: 11px;
+      font-weight: 760;
+      text-transform: uppercase;
+    }
+
+    .tour-options {
+      margin-top: 14px;
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .tour-checkbox {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .tour-checkbox input {
+      width: 14px;
+      min-height: 14px;
+      accent-color: var(--cyan);
+    }
+
+    .tour-actions {
+      display: flex;
+      gap: 8px;
+      margin-left: auto;
     }
 
     .main {
@@ -1432,9 +1539,9 @@ dask worker tcp://192.168.199.1:8786 --nworkers 6 --nthreads 1 --name MacPro_sha
 
       <div class="nav-section">
         <div class="nav-title">Prediction Command</div>
-        <button class="nav-item active" data-view="prediction"><span class="nav-dot"></span>Prediction Workspace</button>
+        <button class="nav-item active" data-view="prediction" data-tour-target="nav-prediction"><span class="nav-dot"></span>Prediction Workspace</button>
         <div class="nav-guide-anchor">
-          <button class="nav-item" id="results-nav-item" data-view="results"><span class="nav-dot"></span>Results Explorer<span class="result-new-badge hidden" id="results-new-badge">New</span></button>
+          <button class="nav-item" id="results-nav-item" data-view="results" data-tour-target="nav-results"><span class="nav-dot"></span>Results Explorer<span class="result-new-badge hidden" id="results-new-badge">New</span></button>
           <div class="prediction-result-guide hidden" id="prediction-result-guide" role="status" aria-live="polite">
             <button class="coachmark-close" type="button" aria-label="Dismiss result notification" title="Dismiss" onclick="dismissPredictionResultGuide()">&times;</button>
             <div class="eyebrow">Prediction complete</div>
@@ -1446,13 +1553,13 @@ dask worker tcp://192.168.199.1:8786 --nworkers 6 --nthreads 1 --name MacPro_sha
       </div>
       <div class="nav-section">
         <div class="nav-title">Model Factory</div>
-        <button class="nav-item" data-view="training"><span class="nav-dot"></span>Model Training</button>
-        <button class="nav-item" data-view="dataset"><span class="nav-dot"></span>Feature Generation</button>
+        <button class="nav-item" data-view="training" data-tour-target="nav-training"><span class="nav-dot"></span>Model Training</button>
+        <button class="nav-item" data-view="dataset" data-tour-target="nav-feature-generation"><span class="nav-dot"></span>Feature Generation</button>
       </div>
       <div class="nav-section">
         <div class="nav-title">System</div>
-        <button class="nav-item" data-view="analysis"><span class="nav-dot"></span>Data Analysis</button>
-        <button class="nav-item" data-view="logs"><span class="nav-dot"></span>Log Console</button>
+        <button class="nav-item" data-view="analysis" data-tour-target="nav-analysis"><span class="nav-dot"></span>Data Analysis</button>
+        <button class="nav-item" data-view="logs" data-tour-target="nav-logs"><span class="nav-dot"></span>Log Console</button>
         <button class="nav-item hidden" data-view="acknowledgements"><span class="nav-dot"></span>Acknowledgements</button>
       </div>
     </aside>
@@ -1470,9 +1577,9 @@ dask worker tcp://192.168.199.1:8786 --nworkers 6 --nthreads 1 --name MacPro_sha
             <p class="lead">Configure the prediction model, source data, radio parameters, antenna settings, and map bounds for RSS prediction.</p>
           </div>
           <div class="toolbar">
-            <button class="ghost-btn" data-keep-unlocked onclick="resetPrediction()">Reset</button>
-            <button class="ghost-btn" onclick="openAreaPicker()">Draw Area</button>
-            <button class="primary-btn" onclick="runPrediction()">Run RSS Prediction</button>
+            <button class="ghost-btn" data-keep-unlocked data-tour-target="prediction-reset" onclick="resetPrediction()">Reset</button>
+            <button class="ghost-btn" data-tour-target="prediction-draw-area" onclick="openAreaPicker()">Draw Area</button>
+            <button class="primary-btn" data-tour-target="prediction-run" onclick="runPrediction()">Run RSS Prediction</button>
           </div>
         </div>
         <div class="panel welcome-panel workspace-width">
@@ -1483,7 +1590,7 @@ dask worker tcp://192.168.199.1:8786 --nworkers 6 --nthreads 1 --name MacPro_sha
           </div>
         </div>
         <div class="stack workspace-width">
-          <div class="panel">
+          <div class="panel" data-tour-target="prediction-parameters">
             <div class="panel-header">
               <h3>Parameters</h3>
               <div class="toolbar">
@@ -1538,7 +1645,7 @@ dask worker tcp://192.168.199.1:8786 --nworkers 6 --nthreads 1 --name MacPro_sha
               <input id="max-lat" type="hidden" />
             </div>
           </div>
-          <div class="panel" id="prediction-area-panel">
+          <div class="panel" id="prediction-area-panel" data-tour-target="prediction-area">
             <div class="panel-header"><h3>Prediction Area</h3><span class="pill" id="area-status">No area selected</span></div>
             <div class="panel-body">
               <div id="area-map" class="mini-map"></div>
@@ -1772,6 +1879,25 @@ dask worker tcp://192.168.199.1:8786 --nworkers 6 --nthreads 1 --name MacPro_sha
     </aside>
   </div>
 
+  <div class="tour-overlay hidden" id="tour-overlay" role="dialog" aria-modal="true" aria-labelledby="tour-title">
+    <div class="tour-scrim"></div>
+    <div class="tour-spotlight" id="tour-spotlight"></div>
+    <section class="tour-card" id="tour-card">
+      <button class="coachmark-close" type="button" aria-label="Skip guide" title="Skip guide" onclick="skipCurrentTour()">&times;</button>
+      <div class="tour-progress" id="tour-progress">1 / 1</div>
+      <h3 id="tour-title">Guide</h3>
+      <p id="tour-description">Guide step.</p>
+      <div class="tour-options">
+        <label class="tour-checkbox"><input id="tour-do-not-show" type="checkbox" />Do not show this guide again</label>
+        <div class="tour-actions">
+          <button class="ghost-btn" id="tour-back-btn" type="button" onclick="previousTourStep()">Back</button>
+          <button class="ghost-btn" type="button" onclick="skipCurrentTour()">Skip</button>
+          <button class="primary-btn" id="tour-next-btn" type="button" onclick="nextTourStep()">Next</button>
+        </div>
+      </div>
+    </section>
+  </div>
+
   <div class="toast" id="toast"><strong>ASSET</strong><div id="toast-message">Ready</div></div>
 
   <script>
@@ -1835,6 +1961,32 @@ dask worker tcp://192.168.199.1:8786 --nworkers 6 --nthreads 1 --name MacPro_sha
     let currentResultLayer = "prediction";
     let drawnItems;
     let predictionResultGuideTimer = null;
+    const tourStorageKeys = {
+      appOverview: "asset.skipAppOverviewTour",
+      predictionWorkspace: "asset.skipPredictionWorkspaceTour"
+    };
+    const tourDefinitions = {
+      appOverview: [
+        { target: '[data-tour-target="nav-prediction"]', title: "Prediction Workspace", description: "Configure parameters, define a prediction area, and run RSS prediction." },
+        { target: '[data-tour-target="nav-results"]', title: "Results Explorer", description: "Load prediction results and inspect RSS or uncertainty maps." },
+        { target: '[data-tour-target="nav-training"]', title: "Model Training", description: "Train new models or run transfer learning with optional distributed execution." },
+        { target: '[data-tour-target="nav-feature-generation"]', title: "Feature Generation", description: "Prepare CSV and map data, generate feature vectors, and download processed datasets." },
+        { target: '[data-tour-target="nav-analysis"]', title: "Data Analysis", description: "Analyze generated CSV outputs and export figures for reporting." },
+        { target: '[data-tour-target="nav-logs"]', title: "Log Console", description: "Track runtime messages, progress, warnings, and completed operations." }
+      ],
+      predictionWorkspace: [
+        { target: '[data-tour-target="prediction-parameters"]', title: "Parameters", description: "Enter the radio, antenna, model, and database settings required for prediction." },
+        { target: '[data-tour-target="prediction-area"]', title: "Prediction Area", description: "Choose or inspect the map-bounds area used to generate prediction mesh points." },
+        { target: '[data-tour-target="prediction-draw-area"]', title: "Draw Area", description: "Use the map tool to define the prediction boundary when map-bound mode is selected." },
+        { target: '[data-tour-target="prediction-run"]', title: "Run RSS Prediction", description: "Start the prediction workflow. Inputs are locked while the backend task is running." },
+        { target: '[data-tour-target="prediction-reset"]', title: "Reset", description: "Stop the current prediction task if needed and clear temporary prediction outputs." }
+      ]
+    };
+    let activeTourName = null;
+    let activeTourStep = 0;
+    let tourScrollY = 0;
+    let tourPreferenceCache = {};
+    let predictionWorkspaceTourSeen = false;
 
     function ensurePywebviewApi() {
       if (!window.pywebview || !window.pywebview.api) {
@@ -1859,6 +2011,185 @@ dask worker tcp://192.168.199.1:8786 --nworkers 6 --nthreads 1 --name MacPro_sha
       clearTimeout(window.__assetToast);
       window.__assetToast = setTimeout(() => toast.classList.remove("show"), 2600);
     }
+
+    function isTourSkipped(name) {
+      if (tourPreferenceCache[tourStorageKeys[name]] === true) return true;
+      try {
+        return localStorage.getItem(tourStorageKeys[name]) === "true";
+      } catch (error) {
+        return false;
+      }
+    }
+
+    async function loadTourPreferences() {
+      if (!window.pywebview || !window.pywebview.api || !window.pywebview.api.get_ui_preferences) return;
+      try {
+        const preferences = await window.pywebview.api.get_ui_preferences();
+        tourPreferenceCache = preferences && typeof preferences === "object" ? preferences : {};
+      } catch (error) {
+        tourPreferenceCache = {};
+      }
+    }
+
+    async function persistTourPreference(name) {
+      const preferenceKey = tourStorageKeys[name];
+      if (!preferenceKey) return;
+      tourPreferenceCache[preferenceKey] = true;
+      try {
+        localStorage.setItem(preferenceKey, "true");
+      } catch (error) {
+        // The Python settings file remains the authoritative fallback.
+      }
+      if (!window.pywebview || !window.pywebview.api || !window.pywebview.api.save_ui_preferences) return;
+      try {
+        await window.pywebview.api.save_ui_preferences({ [preferenceKey]: true });
+      } catch (error) {
+        showToast("Guide preference could not be saved.");
+      }
+    }
+
+    function rememberTourPreference(name) {
+      const checkbox = document.getElementById("tour-do-not-show");
+      if (!checkbox || !checkbox.checked) return;
+      persistTourPreference(name);
+    }
+
+    function canStartTour() {
+      return !predictionRunning && !datasetProcessing && !modelTrainingLocked;
+    }
+
+    async function waitForPywebviewApi(timeoutMs = 1800) {
+      if (window.pywebview && window.pywebview.api) return true;
+      return new Promise((resolve) => {
+        let resolved = false;
+        const done = (value) => {
+          if (resolved) return;
+          resolved = true;
+          window.removeEventListener("pywebviewready", readyHandler);
+          resolve(value);
+        };
+        const readyHandler = () => done(true);
+        window.addEventListener("pywebviewready", readyHandler, { once: true });
+        setTimeout(() => done(Boolean(window.pywebview && window.pywebview.api)), timeoutMs);
+      });
+    }
+
+    function startTour(name) {
+      if (activeTourName || !tourDefinitions[name] || isTourSkipped(name) || !canStartTour()) return;
+      activeTourName = name;
+      activeTourStep = 0;
+      document.getElementById("tour-do-not-show").checked = false;
+      document.getElementById("tour-overlay").classList.remove("hidden");
+      setTourScrollLock(true);
+      renderTourStep();
+    }
+
+    function setTourScrollLock(isLocked) {
+      if (isLocked) {
+        tourScrollY = window.scrollY || document.documentElement.scrollTop || 0;
+        document.body.style.top = `-${tourScrollY}px`;
+      } else {
+        document.body.style.top = "";
+        window.scrollTo(0, tourScrollY);
+      }
+      document.body.classList.toggle("tour-scroll-locked", isLocked);
+    }
+
+    function preventTourScroll(event) {
+      if (!activeTourName) return;
+      event.preventDefault();
+    }
+
+    function preventTourKeyboardScroll(event) {
+      if (!activeTourName) return;
+      if (event.target && event.target.closest && event.target.closest("#tour-card")) return;
+      const scrollKeys = new Set(["ArrowDown", "ArrowUp", "ArrowLeft", "ArrowRight", "PageDown", "PageUp", "Home", "End", " "]);
+      if (scrollKeys.has(event.key)) event.preventDefault();
+    }
+
+    function renderTourStep() {
+      const steps = tourDefinitions[activeTourName] || [];
+      const step = steps[activeTourStep];
+      const overlay = document.getElementById("tour-overlay");
+      if (!step || !overlay) {
+        finishCurrentTour();
+        return;
+      }
+      const target = document.querySelector(step.target);
+      if (!target) {
+        nextTourStep();
+        return;
+      }
+      if (activeTourName) setTourScrollLock(false);
+      target.scrollIntoView({ block: "center", inline: "nearest", behavior: "auto" });
+      requestAnimationFrame(() => {
+        const rect = target.getBoundingClientRect();
+        const pad = 8;
+        const spotlight = document.getElementById("tour-spotlight");
+        const card = document.getElementById("tour-card");
+        const cardWidth = Math.min(360, window.innerWidth - 32);
+        const cardHeight = card.offsetHeight || 220;
+        const preferRight = rect.right + cardWidth + 32 < window.innerWidth;
+        const left = preferRight ? rect.right + 18 : Math.max(16, Math.min(window.innerWidth - cardWidth - 16, rect.left));
+        const top = Math.max(16, Math.min(window.innerHeight - cardHeight - 16, rect.top));
+        spotlight.style.left = `${Math.max(8, rect.left - pad)}px`;
+        spotlight.style.top = `${Math.max(8, rect.top - pad)}px`;
+        spotlight.style.width = `${rect.width + pad * 2}px`;
+        spotlight.style.height = `${rect.height + pad * 2}px`;
+        card.style.left = `${left}px`;
+        card.style.top = `${top}px`;
+        if (activeTourName) setTourScrollLock(true);
+      });
+      document.getElementById("tour-progress").textContent = `${activeTourStep + 1} / ${steps.length}`;
+      document.getElementById("tour-title").textContent = step.title;
+      document.getElementById("tour-description").textContent = step.description;
+      document.getElementById("tour-back-btn").disabled = activeTourStep === 0;
+      document.getElementById("tour-next-btn").textContent = activeTourStep === steps.length - 1 ? "Done" : "Next";
+    }
+
+    function nextTourStep() {
+      const steps = tourDefinitions[activeTourName] || [];
+      if (activeTourStep >= steps.length - 1) {
+        finishCurrentTour();
+        return;
+      }
+      activeTourStep += 1;
+      renderTourStep();
+    }
+
+    function previousTourStep() {
+      if (activeTourStep === 0) return;
+      activeTourStep -= 1;
+      renderTourStep();
+    }
+
+    function finishCurrentTour() {
+      const finishedTour = activeTourName;
+      if (finishedTour) rememberTourPreference(finishedTour);
+      document.getElementById("tour-overlay").classList.add("hidden");
+      activeTourName = null;
+      activeTourStep = 0;
+      setTourScrollLock(false);
+      if (finishedTour === "appOverview") maybeStartPredictionWorkspaceTour();
+    }
+
+    function skipCurrentTour() {
+      finishCurrentTour();
+    }
+
+    function maybeStartPredictionWorkspaceTour() {
+      if (predictionWorkspaceTourSeen || activeTourName || isTourSkipped("predictionWorkspace") || !canStartTour()) return;
+      if (!document.getElementById("view-prediction").classList.contains("active")) return;
+      predictionWorkspaceTourSeen = true;
+      setTimeout(() => startTour("predictionWorkspace"), 350);
+    }
+
+    window.addEventListener("resize", () => {
+      if (activeTourName) renderTourStep();
+    });
+    window.addEventListener("wheel", preventTourScroll, { passive: false });
+    window.addEventListener("touchmove", preventTourScroll, { passive: false });
+    window.addEventListener("keydown", preventTourKeyboardScroll);
 
     function showPredictionResultGuide() {
       document.getElementById("results-nav-item").classList.add("has-new-result");
@@ -1944,6 +2275,7 @@ dask worker tcp://192.168.199.1:8786 --nworkers 6 --nthreads 1 --name MacPro_sha
 
     function dismissSplash() {
       document.getElementById("splash-screen").classList.add("dismissed");
+      startTour("appOverview");
     }
 
     function showView(name) {
@@ -1963,6 +2295,7 @@ dask worker tcp://192.168.199.1:8786 --nworkers 6 --nthreads 1 --name MacPro_sha
       document.getElementById(`view-${name}`).classList.add("active");
       document.querySelectorAll(".nav-item").forEach((item) => item.classList.toggle("active", item.dataset.view === name));
       if (name === "prediction") setTimeout(initAreaMap, 0);
+      if (name === "prediction") maybeStartPredictionWorkspaceTour();
       if (name === "results") {
         clearPredictionResultGuide();
         setTimeout(initResultMap, 0);
@@ -2947,8 +3280,10 @@ dask worker tcp://192.168.199.1:8786 --nworkers 6 --nthreads 1 --name MacPro_sha
       document.getElementById("log-count").textContent = "1 line";
     }
 
-    window.addEventListener("load", () => {
+    window.addEventListener("load", async () => {
       loadAppVersion();
+      await waitForPywebviewApi();
+      await loadTourPreferences();
       initAreaMap();
       togglePredictionArea();
       renderSelectedFiles();
@@ -2958,6 +3293,9 @@ dask worker tcp://192.168.199.1:8786 --nworkers 6 --nthreads 1 --name MacPro_sha
       setTimeout(dismissSplash, splashExitMs);
     });
     window.addEventListener("pywebviewready", loadAppVersion);
+    window.addEventListener("pywebviewready", async () => {
+      await loadTourPreferences();
+    });
   </script>
 </body>
 </html>
