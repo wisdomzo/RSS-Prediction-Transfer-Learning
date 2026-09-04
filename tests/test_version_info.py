@@ -82,6 +82,26 @@ class BuildScriptVersionTests(unittest.TestCase):
         self.assertIn('build/asset_version.txt', script)
         self.assertIn('--add-data "build/asset_version.txt:."', script)
 
+    def test_windows_build_script_matches_mac_packaging_contract(self):
+        script = (ROOT / "build_windows.ps1").read_text(encoding="utf-8")
+        self.assertIn("version_info.py", script)
+        self.assertIn('RSS_Predictor_Windows_$Version', script)
+        self.assertIn("build\\asset_version.txt", script)
+        self.assertIn('Set-Content -Path $AssetVersionPath -Value $Version', script)
+        self.assertIn('"--add-data", "web;web"', script)
+        self.assertIn('"--add-data", "tempData;tempData"', script)
+        self.assertIn('"--add-data", "database;database"', script)
+        self.assertIn('"--add-data", "models;models"', script)
+        self.assertIn('"--add-data", "assets;assets"', script)
+        self.assertIn('"--add-data", "build\\asset_version.txt;."', script)
+        self.assertIn('"--exclude-module", "ray.thirdparty_files.psutil"', script)
+        self.assertIn('"--hidden-import", "numpy.core.multiarray"', script)
+        self.assertIn('"--hidden-import", "numpy.core._multiarray_umath"', script)
+        self.assertIn('"--hidden-import", "fiona._shim"', script)
+        self.assertIn('"--collect-all", "pywebview"', script)
+        self.assertIn("Remove-Item -Recurse -Force build, dist", script)
+        self.assertIn("Get-ChildItem -Filter *.spec", script)
+
 
 if __name__ == "__main__":
     unittest.main()
