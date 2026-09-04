@@ -30,6 +30,13 @@ class MainEntrypointTests(unittest.TestCase):
         self.assertIn('"web/app-suite.html"', source)
         self.assertIn("get_resource_path(ui_entry)", source)
 
+    def test_app_version_is_exposed_to_the_frontend(self):
+        source = MAIN.read_text(encoding="utf-8")
+        self.assertIn("from version_info import resolve_runtime_version", source)
+        self.assertIn("def get_app_version(self):", source)
+        self.assertIn('get_resource_path("asset_version.txt")', source)
+        self.assertIn("resolve_runtime_version", source)
+
     def test_main_starts_resizable_without_auto_maximize(self):
         source = MAIN.read_text(encoding="utf-8")
         window_call = source[source.index("webview.create_window("):source.index("window.expose(executeRssPrediction)")]

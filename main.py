@@ -22,7 +22,9 @@ import base64
 import io
 import json
 import multiprocessing
+from pathlib import Path
 from dask.distributed import Client, get_client, Queue
+from version_info import resolve_runtime_version
 
 
 current_prediction_process = None
@@ -278,6 +280,12 @@ class Api:
     def __init__(self):
         # The window may not exist during initialization.
         pass
+
+    def get_app_version(self):
+        return resolve_runtime_version(
+            Path(APP_ROOT),
+            Path(get_resource_path("asset_version.txt")),
+        )
 
     def select_files_native(self, type):
         # Use the current constant and a compatible filter format.

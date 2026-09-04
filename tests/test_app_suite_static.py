@@ -75,6 +75,14 @@ class AppSuiteStaticTests(unittest.TestCase):
         self.assertNotIn('id="progress-percent"', html)
         self.assertNotIn('id="progress-status"', html)
 
+    def test_sidebar_brand_displays_runtime_app_version(self):
+        html = self.read_app()
+        self.assertIn('id="app-version"', html)
+        self.assertIn('class="version-badge"', html)
+        self.assertIn("async function loadAppVersion", html)
+        self.assertIn("window.pywebview.api.get_app_version()", html)
+        self.assertIn('window.addEventListener("pywebviewready", loadAppVersion)', html)
+
     def test_system_data_analysis_view_supports_cdf_plot_and_downloads(self):
         html = self.read_app()
         self.assertIn('data-view="analysis"', html)
@@ -151,6 +159,25 @@ class AppSuiteStaticTests(unittest.TestCase):
         self.assertIn(".model-training-stack", html)
         self.assertIn(".workspace-width", html)
 
+    def test_prediction_welcome_and_parameters_share_workspace_width(self):
+        html = self.read_app()
+        start = html.index('id="view-prediction"')
+        end = html.index('id="view-training"')
+        prediction = html[start:end]
+        self.assertIn('class="panel welcome-panel workspace-width"', prediction)
+        self.assertIn('class="stack workspace-width"', prediction)
+
+    def test_compact_log_width_is_not_driven_by_log_content(self):
+        html = self.read_app()
+        self.assertIn("width: 340px;", html)
+        self.assertIn("max-width: 340px;", html)
+        self.assertIn(".rightbar .stack {", html)
+        self.assertIn("grid-template-columns: minmax(0, 1fr);", html)
+        self.assertIn(".rightbar .panel,", html)
+        self.assertIn(".rightbar .log {", html)
+        self.assertIn("overflow-wrap: anywhere;", html)
+        self.assertIn("white-space: pre-wrap;", html)
+
     def test_prediction_area_is_conditional_on_map_bounds_mode(self):
         html = self.read_app()
         self.assertIn('id="prediction-area-panel"', html)
@@ -211,6 +238,29 @@ class AppSuiteStaticTests(unittest.TestCase):
         self.assertIn("clearPredictionResults()", html)
         self.assertIn('document.getElementById("result-status").textContent = "No result loaded"', html)
         self.assertIn("if (!layer._url) resultMap.removeLayer(layer)", html)
+
+    def test_completed_prediction_guides_user_to_latest_results(self):
+        html = self.read_app()
+        self.assertIn('id="results-nav-item"', html)
+        self.assertIn('id="results-new-badge"', html)
+        self.assertIn('id="prediction-result-guide"', html)
+        self.assertIn("Prediction complete", html)
+        self.assertIn("Your latest RSS prediction is ready.", html)
+        self.assertIn('onclick="openLatestPredictionResults()"', html)
+        self.assertIn("function showPredictionResultGuide", html)
+        self.assertIn("function dismissPredictionResultGuide", html)
+        self.assertIn("function clearPredictionResultGuide", html)
+        self.assertIn("async function openLatestPredictionResults", html)
+        self.assertIn('showView("results")', html)
+        self.assertIn("await loadResults()", html)
+        self.assertIn("if (predictionRunning && Number(percent) >= 100) showPredictionResultGuide()", html)
+        results_view_branch = html[
+            html.index('if (name === "results") {'):
+            html.index('if (name === "results") {') + 180
+        ]
+        self.assertIn("clearPredictionResultGuide()", results_view_branch)
+        self.assertIn("clearPredictionResultGuide()", html)
+        self.assertIn("setTimeout(dismissPredictionResultGuide, 12000)", html)
 
     def test_reset_stops_backend_and_clears_inputs_and_logs(self):
         html = self.read_app()

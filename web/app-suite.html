@@ -90,6 +90,26 @@
       font-weight: 760;
     }
 
+    .brand-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .version-badge {
+      min-height: 20px;
+      display: inline-flex;
+      align-items: center;
+      padding: 0 7px;
+      border: 1px solid rgba(79, 213, 231, 0.25);
+      border-radius: 999px;
+      color: #a9e9f1;
+      background: rgba(79, 213, 231, 0.08);
+      font-size: 10px;
+      font-weight: 750;
+      white-space: nowrap;
+    }
+
     .brand p {
       margin: 2px 0 0;
       color: var(--muted);
@@ -144,6 +164,103 @@
     }
 
     .active .nav-dot { background: var(--cyan); }
+
+    .nav-guide-anchor {
+      position: relative;
+    }
+
+    .nav-item.has-new-result {
+      color: var(--text);
+      background: rgba(111, 211, 140, 0.1);
+      box-shadow: inset 0 0 0 1px rgba(111, 211, 140, 0.28);
+    }
+
+    .nav-item.has-new-result .nav-dot {
+      background: var(--green);
+      box-shadow: 0 0 12px rgba(111, 211, 140, 0.64);
+    }
+
+    .result-new-badge {
+      min-width: 34px;
+      min-height: 20px;
+      margin-left: auto;
+      display: inline-grid;
+      place-items: center;
+      padding: 0 7px;
+      border: 1px solid rgba(111, 211, 140, 0.36);
+      border-radius: 999px;
+      color: #bdf4cc;
+      background: rgba(111, 211, 140, 0.12);
+      font-size: 10px;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+
+    .prediction-result-guide {
+      width: 280px;
+      position: absolute;
+      left: calc(100% + 15px);
+      top: -8px;
+      z-index: 80;
+      padding: 16px;
+      border: 1px solid rgba(79, 213, 231, 0.42);
+      border-radius: 8px;
+      background: rgba(10, 17, 26, 0.98);
+      box-shadow: 0 20px 56px rgba(0, 0, 0, 0.48), 0 0 24px rgba(79, 213, 231, 0.1);
+    }
+
+    .prediction-result-guide::before {
+      content: "";
+      width: 11px;
+      height: 11px;
+      position: absolute;
+      left: -7px;
+      top: 20px;
+      transform: rotate(45deg);
+      border-left: 1px solid rgba(79, 213, 231, 0.42);
+      border-bottom: 1px solid rgba(79, 213, 231, 0.42);
+      background: #0a111a;
+    }
+
+    .prediction-result-guide strong {
+      display: block;
+      margin: 3px 24px 6px 0;
+      font-size: 14px;
+    }
+
+    .prediction-result-guide p {
+      margin: 0 0 13px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .prediction-result-guide .eyebrow {
+      margin-bottom: 0;
+      color: var(--green);
+    }
+
+    .coachmark-close {
+      width: 28px;
+      height: 28px;
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      display: grid;
+      place-items: center;
+      padding: 0;
+      border: 0;
+      border-radius: 50%;
+      color: var(--muted);
+      background: transparent;
+      font-size: 18px;
+      line-height: 1;
+    }
+
+    .coachmark-close:hover {
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.07);
+    }
 
     .main {
       min-width: 0;
@@ -816,6 +933,10 @@
 
     .rightbar {
       display: none;
+      width: 340px;
+      max-width: 340px;
+      min-width: 0;
+      overflow: hidden;
       border-left: 1px solid var(--line);
       padding: 22px 18px;
       background: rgba(10, 15, 23, 0.86);
@@ -824,6 +945,26 @@
     .stack {
       display: grid;
       gap: 14px;
+    }
+
+    .rightbar .stack {
+      min-width: 0;
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .rightbar .panel,
+    .rightbar .panel-body {
+      min-width: 0;
+      max-width: 100%;
+    }
+
+    .rightbar .log {
+      width: 100%;
+      min-width: 0;
+      max-width: 100%;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      word-break: break-word;
     }
 
     .job {
@@ -1231,7 +1372,7 @@ dask worker tcp://192.168.199.1:8786 --nworkers 6 --nthreads 1 --name MacPro_sha
       <div class="brand">
         <div class="mark"></div>
         <div>
-          <h1>ASSET</h1>
+          <div class="brand-title"><h1>ASSET</h1><span class="version-badge" id="app-version">Development Build</span></div>
           <p>RSS Prediction Suite</p>
         </div>
       </div>
@@ -1239,7 +1380,16 @@ dask worker tcp://192.168.199.1:8786 --nworkers 6 --nthreads 1 --name MacPro_sha
       <div class="nav-section">
         <div class="nav-title">Prediction Command</div>
         <button class="nav-item active" data-view="prediction"><span class="nav-dot"></span>Prediction Workspace</button>
-        <button class="nav-item" data-view="results"><span class="nav-dot"></span>Results Explorer</button>
+        <div class="nav-guide-anchor">
+          <button class="nav-item" id="results-nav-item" data-view="results"><span class="nav-dot"></span>Results Explorer<span class="result-new-badge hidden" id="results-new-badge">New</span></button>
+          <div class="prediction-result-guide hidden" id="prediction-result-guide" role="status" aria-live="polite">
+            <button class="coachmark-close" type="button" aria-label="Dismiss result notification" title="Dismiss" onclick="dismissPredictionResultGuide()">&times;</button>
+            <div class="eyebrow">Prediction complete</div>
+            <strong>Your latest RSS prediction is ready.</strong>
+            <p>Open Results Explorer to inspect the map and export the generated CSV.</p>
+            <button class="primary-btn" type="button" onclick="openLatestPredictionResults()">View Results</button>
+          </div>
+        </div>
       </div>
       <div class="nav-section">
         <div class="nav-title">Model Factory</div>
@@ -1279,7 +1429,7 @@ dask worker tcp://192.168.199.1:8786 --nworkers 6 --nthreads 1 --name MacPro_sha
             <p class="lead">An AI-ensemble-driven framework designed for <span style="color: rgb(255, 255, 255);">A</span>daptive <span style="color: rgb(255, 255, 255);">S</span>ignal <span style="color: rgb(255, 255, 255);">S</span>trength <span style="color: rgb(255, 255, 255);">E</span>stimation and <span style="color: rgb(255, 255, 255);">T</span>racking, providing a professional workspace that seamlessly integrates dataset preparation, parallel model training, operational monitoring, and robust RSS result analysis.</p>
           </div>
         </div>
-        <div class="stack">
+        <div class="stack workspace-width">
           <div class="panel">
             <div class="panel-header">
               <h3>Parameters</h3>
@@ -1631,10 +1781,21 @@ dask worker tcp://192.168.199.1:8786 --nworkers 6 --nthreads 1 --name MacPro_sha
     let latestResultData = [];
     let currentResultLayer = "prediction";
     let drawnItems;
+    let predictionResultGuideTimer = null;
 
     function ensurePywebviewApi() {
       if (!window.pywebview || !window.pywebview.api) {
         throw new Error("pywebview API is not available. Run this file through main.py.");
+      }
+    }
+
+    async function loadAppVersion() {
+      const badge = document.getElementById("app-version");
+      if (!badge || !window.pywebview || !window.pywebview.api || !window.pywebview.api.get_app_version) return;
+      try {
+        badge.textContent = await window.pywebview.api.get_app_version();
+      } catch (error) {
+        badge.textContent = "Development Build";
       }
     }
 
@@ -1644,6 +1805,32 @@ dask worker tcp://192.168.199.1:8786 --nworkers 6 --nthreads 1 --name MacPro_sha
       toast.classList.add("show");
       clearTimeout(window.__assetToast);
       window.__assetToast = setTimeout(() => toast.classList.remove("show"), 2600);
+    }
+
+    function showPredictionResultGuide() {
+      document.getElementById("results-nav-item").classList.add("has-new-result");
+      document.getElementById("results-new-badge").classList.remove("hidden");
+      document.getElementById("prediction-result-guide").classList.remove("hidden");
+      clearTimeout(predictionResultGuideTimer);
+      predictionResultGuideTimer = setTimeout(dismissPredictionResultGuide, 12000);
+    }
+
+    function dismissPredictionResultGuide() {
+      document.getElementById("prediction-result-guide").classList.add("hidden");
+      clearTimeout(predictionResultGuideTimer);
+      predictionResultGuideTimer = null;
+    }
+
+    function clearPredictionResultGuide() {
+      dismissPredictionResultGuide();
+      document.getElementById("results-nav-item").classList.remove("has-new-result");
+      document.getElementById("results-new-badge").classList.add("hidden");
+    }
+
+    async function openLatestPredictionResults() {
+      clearPredictionResultGuide();
+      showView("results");
+      await loadResults();
     }
 
     function escapeHtml(value) {
@@ -1723,7 +1910,10 @@ dask worker tcp://192.168.199.1:8786 --nworkers 6 --nthreads 1 --name MacPro_sha
       document.getElementById(`view-${name}`).classList.add("active");
       document.querySelectorAll(".nav-item").forEach((item) => item.classList.toggle("active", item.dataset.view === name));
       if (name === "prediction") setTimeout(initAreaMap, 0);
-      if (name === "results") setTimeout(initResultMap, 0);
+      if (name === "results") {
+        clearPredictionResultGuide();
+        setTimeout(initResultMap, 0);
+      }
     }
 
     document.querySelectorAll("[data-view]").forEach((button) => {
@@ -1861,6 +2051,7 @@ dask worker tcp://192.168.199.1:8786 --nworkers 6 --nthreads 1 --name MacPro_sha
         showToast("Draw a map area before running map-based prediction.");
         return;
       }
+      clearPredictionResultGuide();
       setPredictionRunning(true);
       updateProgress(5, "Prediction submitted");
       ensurePywebviewApi();
@@ -1870,6 +2061,7 @@ dask worker tcp://192.168.199.1:8786 --nworkers 6 --nthreads 1 --name MacPro_sha
 
     async function resetPrediction() {
       setPredictionRunning(false);
+      clearPredictionResultGuide();
       if (drawnItems) drawnItems.clearLayers();
       ["min-lng", "min-lat", "max-lng", "max-lat"].forEach((id) => document.getElementById(id).value = "");
       document.getElementById("area-status").textContent = "No area selected";
@@ -2646,6 +2838,7 @@ dask worker tcp://192.168.199.1:8786 --nworkers 6 --nthreads 1 --name MacPro_sha
       document.getElementById("runtime-bar").style.width = `${normalized}%`;
       document.getElementById("runtime-pill").textContent = `${percent}%`;
       document.getElementById("runtime-title").textContent = status;
+      if (predictionRunning && Number(percent) >= 100) showPredictionResultGuide();
       if (predictionRunning && (Number(percent) >= 100 || Number(percent) < 0)) setPredictionRunning(false);
       if (modelTrainingLocked && Number(percent) >= 100) setModelTrainingLocked(false);
       if (wasTrainingLocked && Number(percent) >= 100) setTrainingVisualState("complete");
@@ -2678,6 +2871,7 @@ dask worker tcp://192.168.199.1:8786 --nworkers 6 --nthreads 1 --name MacPro_sha
     }
 
     window.addEventListener("load", () => {
+      loadAppVersion();
       initAreaMap();
       togglePredictionArea();
       renderSelectedFiles();
@@ -2686,6 +2880,7 @@ dask worker tcp://192.168.199.1:8786 --nworkers 6 --nthreads 1 --name MacPro_sha
       updateProgress(0, "Ready");
       setTimeout(dismissSplash, splashExitMs);
     });
+    window.addEventListener("pywebviewready", loadAppVersion);
   </script>
 </body>
 </html>
