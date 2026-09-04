@@ -185,7 +185,7 @@ class AppSuiteStaticTests(unittest.TestCase):
         self.assertTrue((LOGO_DIR / "ShinshuUniv_logo.png").exists())
         self.assertTrue((WEB_LOGO_DIR / "NICT_logo.png").exists())
         self.assertTrue((WEB_LOGO_DIR / "ShinshuUniv_logo.png").exists())
-        self.assertIn('data-view="acknowledgements"', html)
+        self.assertIn('class="nav-item hidden" data-view="acknowledgements"', html)
         self.assertIn('id="view-acknowledgements"', html)
         self.assertIn('src="logos/NICT_logo.png"', html)
         self.assertIn('src="logos/ShinshuUniv_logo.png"', html)
