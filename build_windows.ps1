@@ -27,7 +27,7 @@ if (-not $Version) {
 
 $AppName = "RSS_Predictor_Windows_$Version"
 $MainScript = "main.py"
-$WindowsIcon = Join-Path $ScriptDir "wave.ico"
+$AppIcon = Join-Path $ScriptDir "wave.icns"
 $AssetVersionPath = Join-Path $ScriptDir "build\asset_version.txt"
 
 Write-Host "APP_NAME=$AppName"
@@ -41,7 +41,7 @@ Set-Content -Path $AssetVersionPath -Value $Version -Encoding UTF8
 
 $PyInstallerArgs = @(
     "--noconfirm",
-    "--onedir",
+    "--onefile",
     "--windowed",
     "--name", $AppName,
     "--add-data", "web;web",
@@ -64,6 +64,8 @@ $PyInstallerArgs = @(
     "--hidden-import", "numpy",
     "--hidden-import", "numpy.core.multiarray",
     "--hidden-import", "numpy.core._multiarray_umath",
+    "--hidden-import", "scipy._external.array_api_compat.numpy.fft",
+    "--hidden-import", "scipy._lib.array_api_compat.numpy.fft",
     "--hidden-import", "rasterio.sample",
     "--hidden-import", "matplotlib.pyplot",
     "--hidden-import", "pyogrio._geometry",
@@ -71,6 +73,7 @@ $PyInstallerArgs = @(
     "--hidden-import", "fiona.schema",
     "--collect-all", "psutil",
     "--collect-all", "numpy",
+    "--collect-all", "scipy",
     "--collect-all", "rasterio",
     "--collect-all", "pywebview",
     "--collect-all", "matplotlib",
@@ -78,10 +81,10 @@ $PyInstallerArgs = @(
     "--collect-all", "fiona"
 )
 
-if (Test-Path $WindowsIcon) {
-    $PyInstallerArgs += @("--icon", $WindowsIcon)
+if (Test-Path $AppIcon) {
+    $PyInstallerArgs += @("--icon", $AppIcon)
 } else {
-    Write-Host "No wave.ico file was found. Packaging will continue without a Windows icon."
+    Write-Host "No wave.icns file was found. Packaging will continue without a custom icon."
 }
 
 $RayAvailable = $false
@@ -105,7 +108,7 @@ Write-Host "Running PyInstaller packaging. This may take a few minutes..."
 
 if ($LASTEXITCODE -eq 0) {
     Write-Host "Packaging completed successfully."
-    Write-Host "Application location: $ScriptDir\dist\$AppName"
+    Write-Host "Application location: $ScriptDir\dist\$AppName.exe"
 } else {
     Write-Error "Packaging failed. Review the error messages above."
     exit 1

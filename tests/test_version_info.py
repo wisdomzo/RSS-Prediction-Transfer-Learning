@@ -115,6 +115,10 @@ class BuildScriptVersionTests(unittest.TestCase):
         self.assertIn('RSS_Predictor_Windows_$Version', script)
         self.assertIn("build\\asset_version.txt", script)
         self.assertIn('Set-Content -Path $AssetVersionPath -Value $Version', script)
+        self.assertIn('"--onefile"', script)
+        self.assertNotIn('"--onedir"', script)
+        self.assertIn('Join-Path $ScriptDir "wave.icns"', script)
+        self.assertIn('$PyInstallerArgs += @("--icon", $AppIcon)', script)
         self.assertIn('"--add-data", "web;web"', script)
         self.assertIn('"--add-data", "tempData;tempData"', script)
         self.assertIn('"--add-data", "database;database"', script)
@@ -124,10 +128,14 @@ class BuildScriptVersionTests(unittest.TestCase):
         self.assertIn('"--exclude-module", "ray.thirdparty_files.psutil"', script)
         self.assertIn('"--hidden-import", "numpy.core.multiarray"', script)
         self.assertIn('"--hidden-import", "numpy.core._multiarray_umath"', script)
+        self.assertIn('"--hidden-import", "scipy._external.array_api_compat.numpy.fft"', script)
+        self.assertIn('"--hidden-import", "scipy._lib.array_api_compat.numpy.fft"', script)
         self.assertIn('"--hidden-import", "fiona._shim"', script)
+        self.assertIn('"--collect-all", "scipy"', script)
         self.assertIn('"--collect-all", "pywebview"', script)
         self.assertIn("Remove-Item -Recurse -Force build, dist", script)
         self.assertIn("Get-ChildItem -Filter *.spec", script)
+        self.assertIn("Application location: $ScriptDir\\dist\\$AppName.exe", script)
 
 
 if __name__ == "__main__":
