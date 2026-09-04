@@ -6,19 +6,19 @@ import sys
 import os
 
 # region
-# 1. 農場＠四万十町SF8
-# 2. 農場＠四万十町SF10
-# 3. 神社＠四万十町SF8
-# 4. 神社＠四万十町SF10
-# 5. 琉大＠沖縄SF8
-# 6. 琉大＠沖縄SF10
-# 7. 小学＠沖縄SF8
-# 8. 小学＠沖縄SF10
-# 9. 農研＠名護SF8
-# 10. 農研＠名護SF10
-# 11. 南＠長野SF8
-# 12. 高工大＠高知SF8
-# 13. 高工大＠高知SF10
+# 1. Farm at Shimanto Town, SF8
+# 2. Farm at Shimanto Town, SF10
+# 3. Shrine at Shimanto Town, SF8
+# 4. Shrine at Shimanto Town, SF10
+# 5. University of the Ryukyus in Okinawa, SF8
+# 6. University of the Ryukyus in Okinawa, SF10
+# 7. Elementary school in Okinawa, SF8
+# 8. Elementary school in Okinawa, SF10
+# 9. Agricultural research site in Nago, SF8
+# 10. Agricultural research site in Nago, SF10
+# 11. Southern site in Nagano, SF8
+# 12. Kochi University of Technology, SF8
+# 13. Kochi University of Technology, SF10
 # endregion
 
 
@@ -28,104 +28,104 @@ def main():
 
     while True:
         print("\n-----------------------------------------------")
-        print("欢迎使用<<RSS预测系统v2.1.10>>, by 趙欧, 20250525")
+        print("Welcome to RSS Prediction System v2.1.10, by Ou Zhao, 20250525")
         print("-----------------------------------------------")
-        print("请选择一个选项：")
-        print("1: 训练一般模型")
-        print("2: 转移学习训练本地化模型")
-        print("3: 评价《一般》模型")
-        print("4: 评价《迁移》模型")
-        print("5: 实验数据处理")
-        print("6: 预测RSS")
-        print("7: 展示训练网络拓扑图")
-        print("8: 比较多个模型性能")
-        print("9: 分析具体模型性能（test）")
-        print("99: 用语说明等")
-        print("0: 退出")
-        choice = input("请输入选项的数字 (1, 2, ..., 0): ")
+        print("Select an option:")
+        print("1: Train a general model")
+        print("2: Train a localized model through transfer learning")
+        print("3: Evaluate a general model")
+        print("4: Evaluate a transfer-learning model")
+        print("5: Process experimental data")
+        print("6: Predict RSS")
+        print("7: Display the training-network topology")
+        print("8: Compare model performance")
+        print("9: Analyze a specific model (test)")
+        print("99: Display terminology and help")
+        print("0: Exit")
+        choice = input("Enter an option number (1, 2, ..., 0): ")
 
         if choice == '1':
-            print("用户选择了训练一般模型。")
-            # 添加从头训练模型的代码
+            print("Selected: train a general model.")
+            # Train a model from scratch.
             ml_files = subFun.list_ml_files()
             if not ml_files:
-                print("没有找到以'ML_'开头的文件。")
+                print("No files beginning with 'ML_' were found.")
                 return
-            print("---> 选择训练数据")
+            print("---> Select training data")
             readDataIndex = subFun.get_user_selection(ml_files)
             contentReadDataIndex = [ml_files[i-1] for i in readDataIndex]
-            numCore1 = subFun.input_with_default("请输入第一层卷积块数量", 8)
-            numCore2 = subFun.input_with_default("请输入第二层卷积块数量", 16)
-            numCore3 = subFun.input_with_default("请输入第三层卷积块数量", 32)
-            numTestPer = subFun.input_with_default("请输入测试数据百分比", 0.15)
+            numCore1 = subFun.input_with_default("Enter the number of convolution blocks in layer 1", 8)
+            numCore2 = subFun.input_with_default("Enter the number of convolution blocks in layer 2", 16)
+            numCore3 = subFun.input_with_default("Enter the number of convolution blocks in layer 3", 32)
+            numTestPer = subFun.input_with_default("Enter the test-data proportion", 0.15)
             subprocess.run([sys.executable, 'training_history_database.py', str(numCore1), str(numCore2), str(numCore3), str(numTestPer), str(readDataIndex)] + contentReadDataIndex, check=True)
             break
         elif choice == '2':
-            print("用户选择了转移学习训练本地化模型。")
-            # 添加转移学习模型的代码
+            print("Selected: train a localized model through transfer learning.")
+            # Train a transfer-learning model.
             ml_files = subFun.list_ml_files()
             history_TL_files = subFun.list_history_TL_files()
             if not history_TL_files:
-                print("没有找到以'history_model_from_'或者'TL_model_'开头的文件。")
+                print("No files beginning with 'history_model_from_' or 'TL_model_' were found.")
                 return
             if not ml_files:
-                print("没有找到以'ML_'开头的文件。")
+                print("No files beginning with 'ML_' were found.")
                 return
-            print("---> 选择历史模型和待预测数据")
+            print("---> Select a historical model and prediction data")
             user_input = subFun.get_user_selection(history_TL_files)
             selected_predict_model = history_TL_files[user_input[0] - 1]
             readDataIndex = subFun.get_user_selection(ml_files)
             contentReadDataIndex = [ml_files[i - 1] for i in readDataIndex]
-            numTestPer_TL = subFun.input_with_default("基于迁移模型，请输入对于新数据的预测比例[0,1]", 0.9)
+            numTestPer_TL = subFun.input_with_default("Enter the proportion of new data to predict with the transfer model [0,1]", 0.9)
             subprocess.run([sys.executable, 'transfer_learning_main.py', str(numTestPer_TL), str(user_input), selected_predict_model, str(readDataIndex)] + contentReadDataIndex, check=True)
             break
         elif choice == '3':
-            print("用户选择了评价一般模型。")
-            # 添加评价一般模型的代码
+            print("Selected: evaluate a general model.")
+            # Evaluate a general model.
             #ml_files = subFun.list_ml_files()
             history_files = subFun.list_history_files()
             if not history_files:
-                print("没有找到以'history_model_from_'开头的文件。")
+                print("No files beginning with 'history_model_from_' were found.")
                 return
             user_input = subFun.get_user_selection(history_files)
             selected_name = history_files[user_input[0] - 1]
-            print("---> 评价历史模型")
+            print("---> Evaluate historical model")
             subFun_TL.show_history_model(selected_name)
             break
         elif choice == '4':
-            print("用户选择了评价迁移模型。")
-            # 添加评价转移模型的代码
+            print("Selected: evaluate a transfer-learning model.")
+            # Evaluate a transfer-learning model.
             TL_files = subFun.list_TL_files()
             if not TL_files:
-                print("没有找到以'TL_'开头的文件。")
+                print("No files beginning with 'TL_' were found.")
                 return
             user_input = subFun.get_user_selection(TL_files)
             selected_name = TL_files[user_input[0] - 1]
-            print("---> 评价迁移模型")
+            print("---> Evaluate transfer-learning model")
             subFun_TL.show_TL_model(selected_name)
             break
         elif choice == '5':
-            print("用户选择了实验数据处理。")
-            # 添加实验数据处理的代码
+            print("Selected: process experimental data.")
+            # Process experimental data.
             selected_folder_csv, selected_folder_map, selected_folder_fun = subFun.get_folder_path()
             subprocess.run([sys.executable, "main_collect_data.py", selected_folder_csv, selected_folder_map, selected_folder_fun], check=True)
             break
         elif choice == '6':
-            print("用户选择了预测RSS。")
-            # 添加预测RSS的代码
+            print("Selected: predict RSS.")
+            # Predict RSS.
             selected_folder_csv, selected_folder_map, selected_folder_fun = subFun.get_folder_path()
             subprocess.run([sys.executable, "predict_area.py", selected_folder_csv, selected_folder_map, selected_folder_fun], check=True)
-            print("ML文件 Done。")
-            # 选择历史模型和待预测数据
+            print("ML file generation completed.")
+            # Select a historical model and prediction data.
             ml_files = subFun.list_ml_files()
             history_TL_files = subFun.list_history_TL_files()
             if not history_TL_files:
-                print("没有找到以'history_model_from_'或者'TL_'开头的文件。")
+                print("No files beginning with 'history_model_from_' or 'TL_' were found.")
                 return
             if not ml_files:
-                print("没有找到以'ML_'开头的文件。")
+                print("No files beginning with 'ML_' were found.")
                 return
-            print("---> 选择模型和待预测数据")
+            print("---> Select a model and prediction data")
             user_input = subFun.get_user_selection(history_TL_files)
             selected_predict_model = history_TL_files[user_input[0] - 1]
             readDataIndex = subFun.get_user_selection(ml_files)
@@ -134,48 +134,48 @@ def main():
             subprocess.run(
                 [sys.executable, 'transfer_learning_main.py', numTestPer_TL, str(user_input), selected_predict_model,
                  str(readDataIndex)] + contentReadDataIndex, check=True)
-            print("已生成预测结果。")
-            print("\n---> 选择预测结果（Predict开头文件）")
+            print("Prediction results generated.")
+            print("\n---> Select prediction results (files beginning with 'Predict')")
             Predict_files = subFun.list_Predict_files()
             if not Predict_files:
-                print("没有找到以'Predict_'开头的文件。")
+                print("No files beginning with 'Predict_' were found.")
                 return
             user_input = subFun.get_user_selection(Predict_files)
             selected_name = Predict_files[user_input[0] - 1]
             rxData_Altitude_TL, _, _ = subFun_TL.show_Predict_model(selected_name)
-            print("---> 生成csv文件")
+            print("---> Generate CSV file")
             rxData_Altitude_TL.to_csv(selected_folder_csv + '/predict_RSS.csv', index=False)
             break
         elif choice == '7':
-            print("用户选择了展示训练网络拓扑图。")
-            # 添加展示训练网络拓扑图的代码
+            print("Selected: display the training-network topology.")
+            # Display the training-network topology.
             history_TL_files = subFun.list_history_TL_files()
             if not history_TL_files:
-                print("没有找到以'history_model_from_'开头的文件。")
+                print("No files beginning with 'history_model_from_' were found.")
                 return
             user_input = subFun.get_user_selection(history_TL_files)
             selected_name = history_TL_files[user_input[0] - 1]
             subFun_TL.show_training_network_topology(selected_name)
             break
         elif choice == '8':
-            print("用户选择了比较个模型性能。")
-            # 添加比较个模型性能的代码
+            print("Selected: compare model performance.")
+            # Compare model performance.
             paper_functions.show_diff_model_performance()
             break
         elif choice == '9':
-            print("用户选择了分析具体模型性能（test）。")
-            print("目前正在开发中（test）。")
+            print("Selected: analyze a specific model (test).")
+            print("This feature is currently under development (test).")
             #paper_functions.analyze_diff_model_performance()
             break
         elif choice == '99':
-            print("用户选择了获取帮助信息。信息如下：\n")
+            print("Selected: display help information.\n")
             paper_functions.display_readme("Readme.txt")
             break
         elif choice == '0':
-            print("退出程序。")
+            print("Exiting the program.")
             break
         else:
-            print("无效的选择，请重新输入。")
+            print("Invalid selection. Enter another option.")
 
 
 if __name__ == "__main__":

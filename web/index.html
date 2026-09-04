@@ -11,7 +11,7 @@
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet-draw/dist/leaflet.draw.js"></script>
     <style>
-        /* 新增现代感优化样式（不破坏原有风格） */
+        /* Add modern refinements without disrupting the existing style */
         :root {
             --cyan: #00ffff;
             --magenta: #ff00ff;
@@ -21,7 +21,7 @@
             --transition-base: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        /* 基础布局优化 */
+        /* Base layout refinements */
         body {
             font-family: 'Inter', sans-serif;
             line-height: 1.5;
@@ -50,7 +50,7 @@
             line-height: 1.6;
         }
 
-        /* 表单网格优化 */
+        /* Form grid refinements */
         .form-grid {
             gap: 1.25rem;
             margin-bottom: 2rem;
@@ -72,7 +72,7 @@
             letter-spacing: 1px;
         }
 
-        /* 输入框现代感优化 */
+        /* Modern input refinements */
         input[type="number"], select, textarea {
             border-radius: 8px;
             border: 1px solid var(--border-light);
@@ -95,7 +95,7 @@
             line-height: 1.5;
         }
 
-        /* 标签栏优化 */
+        /* Tab bar refinements */
         .tabs-nav {
             gap: 0.75rem;
             margin-bottom: 2rem;
@@ -124,7 +124,7 @@
             transform: translateY(-2px);
         }
 
-        /* 按钮组优化 */
+        /* Button group refinements */
         .button-group {
             gap: 1rem;
             margin-top: 2rem;
@@ -144,7 +144,7 @@
             box-shadow: 0 6px 20px rgba(255, 0, 255, 0.4);
         }
 
-        /* 进度环优化 */
+        /* Progress ring refinements */
         #progress-container {
             margin: 2rem 0;
         }
@@ -153,7 +153,7 @@
             margin-bottom: 1rem;
         }
 
-        /* 结果容器优化 */
+        /* Results container refinements */
         #result-container {
             border-radius: 16px;
             overflow: hidden;
@@ -165,7 +165,7 @@
             border: 1px solid var(--border-light);
         }
 
-        /* 响应式优化 */
+        /* Responsive layout refinements */
         @media (max-width: 768px) {
             .ai-card {
                 padding: 1.5rem;
@@ -190,18 +190,18 @@
             }
         }
 
-        /* Canvas 背景优化 */
+        /* Canvas background refinements */
         #neuralNetworkCanvas {
             filter: brightness(0.8) contrast(1.1);
         }
 
-        /* 弹窗背后的遮罩层样式 */
+        /* Backdrop styling behind dialogs */
         #help-modal::backdrop {
             background: rgba(0, 0, 0, 0.8);
             backdrop-filter: blur(4px);
         }
 
-        /* 针对帮助按钮的微调 */
+        /* Fine-tuning for the help button */
         .help-btn-glow {
             transition: var(--transition-base);
         }
@@ -213,101 +213,101 @@
 </head>
 <body>
 
-    <!-- 神经网络背景 -->
+    <!-- Neural network background -->
     <canvas id="neuralNetworkCanvas"></canvas>
 
-    <!-- 内容 -->
+    <!-- Content -->
     <div class="content-wrapper">
         <div class="ai-card">
             <h1>ASSET Framework</h1>
             <p class="subtitle">An AI-ensemble-driven <span style="color: #ffffff; font-weight: 600;">A</span>daptive <span style="color: #ffffff; font-weight: 600;">S</span>ignal <span style="color: #ffffff; font-weight: 600;">S</span>trength <span style="color: #ffffff; font-weight: 600;">E</span>stimation and <span style="color: #ffffff; font-weight: 600;">T</span>racking Framework</p>
-            
-            <!-- Tab 切换控件 -->
+
+            <!-- Tab controls -->
             <input type="radio" name="main-tabs" id="tab-predict" checked>
             <input type="radio" name="main-tabs" id="tab-generate">
             <input type="radio" name="main-tabs" id="tab-feature" disabled>
-            
+
             <div class="main-container">
-                <!-- 标签导航 -->
+                <!-- Tab navigation -->
                 <div class="tabs-nav">
                     <label for="tab-predict" class="nav-btn">Prediction</label>
                     <label for="tab-generate" class="nav-btn">Generation</label>
-                    <label for="tab-feature" class="nav-btn">データ処理</label>
+                    <label for="tab-feature" class="nav-btn">Data Processing</label>
                 </div>
-                
-                <!-- 标签内容区 -->
+
+                <!-- Tab content area -->
                 <div class="tabs-content">
-                    <!-- 预测标签页 -->
+                    <!-- Prediction tab -->
                     <div class="tab-pane pane-predict">
                         <form id="predict-form">
                             <div class="form-grid">
-                                <!-- 模型选择 -->
+                                <!-- Model selection -->
                                 <div class="form-group">
-                                    <label for="p-model">基本モデル選択</label>
+                                    <label for="p-model">Base Model</label>
                                     <select id="p-model" name="model" onchange="handleModelChange()" required>
                                         <option value="">Choose Model</option>
-                                        <option value="NICT_latest_model">汎用モデルM0（NICT信州大202605）</option>
-                                        <option value="customized_model">カスタムモデル</option>
+                                        <option value="NICT_latest_model">General-Purpose Model M0 (NICT/Shinshu University 202605)</option>
+                                        <option value="customized_model">Custom Model</option>
                                     </select>
                                 </div>
-                                
-                                <!-- 数据库选择 -->
+
+                                <!-- Database selection -->
                                 <div class="form-group">
-                                    <label for="p-database">データベース選択</label>
+                                    <label for="p-database">Database</label>
                                     <select id="p-database" name="database" onchange="handleDatabaseChange()" disabled>
                                         <option value="">Choose Database</option>
-                                        <option value="DB_matumotoCity">長野県松本市</option>
-                                        <option value="DB_kouchi_kamishi">高知県香美市</option>
-                                        <option value="DB_kouchi_shimanntoucyou">高知県四万十町</option>
-                                        <option value="DB_kanagawa_yokosukashi">神奈川県横須賀市</option>
-                                        <option value="DB_nagano_urugimura">長野県売木村</option>
-                                        <option value="DB_okinawa_naha">沖縄県那覇市</option>
-                                        <option value="DB_okinawa_nago">沖縄県名護市</option>
+                                        <option value="DB_matumotoCity">Matsumoto, Nagano</option>
+                                        <option value="DB_kouchi_kamishi">Kami, Kochi</option>
+                                        <option value="DB_kouchi_shimanntoucyou">Shimanto, Kochi</option>
+                                        <option value="DB_kanagawa_yokosukashi">Yokosuka, Kanagawa</option>
+                                        <option value="DB_nagano_urugimura">Urugi, Nagano</option>
+                                        <option value="DB_okinawa_naha">Naha, Okinawa</option>
+                                        <option value="DB_okinawa_nago">Nago, Okinawa</option>
                                     </select>
                                 </div>
 
                                 <div class="form-group">
-                                    <label for="p-predictDataSelect">予測データ</label>
+                                    <label for="p-predictDataSelect">Prediction Data</label>
                                     <select id="p-predictDataSelect" name="predictDataSelect" onchange="handlePredictDataChange()" disabled>
                                         <option value="">Choose Predict Data</option>
-                                        <option value="predictData_map">地図から選択</option>
-                                        <option value="predictData_file">CSVファイルから選択</option>
+                                        <option value="predictData_map">Select from Map</option>
+                                        <option value="predictData_file">Select CSV File</option>
                                     </select>
                                 </div>
-                                
-                                <!-- 地图选择按钮 -->
+
+                                <!-- Map selection button -->
                                 <div class="form-group" style="display: flex; align-items: flex-end;">
-                                    <button type="button" id="map-btn" onclick="handleMapClick()" disabled>地図から予測エリア作成</button>
+                                    <button type="button" id="map-btn" onclick="handleMapClick()" disabled>Create Prediction Area from Map</button>
                                 </div>
-                                
-                                <!-- 经度网格 -->
+
+                                <!-- Longitude grid -->
                                 <div class="form-group">
-                                    <label for="p-mesh-lng">メッシュ化（経度方向）</label>
-                                    <input type="number" id="p-mesh-lng" name="mesh_lng" 
-                                        min="1" step="1" value="30" 
+                                    <label for="p-mesh-lng">Longitude Grid Divisions</label>
+                                    <input type="number" id="p-mesh-lng" name="mesh_lng"
+                                        min="1" step="1" value="30"
                                         onblur="if(this.value < 1 || this.value === '') this.value = 1;"
-                                        placeholder="正整数を入力してください" disabled>
+                                        placeholder="Enter a positive integer" disabled>
                                 </div>
-                                
-                                <!-- 纬度网格 -->
+
+                                <!-- Latitude grid -->
                                 <div class="form-group">
-                                    <label for="p-mesh-lat">メッシュ化（緯度方向）</label>
-                                    <input type="number" id="p-mesh-lat" name="mesh_lat" 
-                                        min="1" step="1" value="30" 
+                                    <label for="p-mesh-lat">Latitude Grid Divisions</label>
+                                    <input type="number" id="p-mesh-lat" name="mesh_lat"
+                                        min="1" step="1" value="30"
                                         onblur="if(this.value < 1 || this.value === '') this.value = 1;"
-                                        placeholder="正整数を入力してください" disabled>
+                                        placeholder="Enter a positive integer" disabled>
                                 </div>
-                                
-                                <!-- 频率 -->
+
+                                <!-- Frequency -->
                                 <div class="form-group">
-                                    <label for="p-frequency">周波数（MH<span style="text-transform: lowercase;">z</span>）</label>
-                                    <input type="number" id="p-frequency" name="frequency" 
-                                        min="200" step="100" value="920" 
+                                    <label for="p-frequency">Frequency (MH<span style="text-transform: lowercase;">z</span>)</label>
+                                    <input type="number" id="p-frequency" name="frequency"
+                                        min="200" step="100" value="920"
                                         onblur="if(this.value < 200 || this.value === '') this.value = 200;"
-                                        placeholder="正整数を入力してください" disabled>
+                                        placeholder="Enter a positive integer" disabled>
                                 </div>
-                                
-                                <!-- SF选择 -->
+
+                                <!-- SF selection -->
                                 <div class="form-group">
                                     <label for="p-SF">SF</label>
                                     <select id="p-SF" name="SF" disabled>
@@ -322,63 +322,63 @@
                                         <option value="12">12</option>
                                     </select>
                                 </div>
-                                
+
                                 <!-- EIRP -->
                                 <div class="form-group">
                                     <label for="p-EIRP">EIRP（<span style="text-transform: lowercase;">d</span>B<span style="text-transform: lowercase;">m</span>）</label>
-                                    <input type="number" id="p-EIRP" name="EIRP" 
-                                        step="1" value="20" 
+                                    <input type="number" id="p-EIRP" name="EIRP"
+                                        step="1" value="20"
                                         onblur="if(this.value === '') this.value = 20;"
-                                        placeholder="値を入力してください" disabled>
+                                        placeholder="Enter a value" disabled>
                                 </div>
-                                
-                                <!-- 固定天线经度 -->
+
+                                <!-- Fixed antenna longitude -->
                                 <div class="form-group">
-                                    <label for="p-fixAntenna_lng">固定アンテナの経度（°）</label>
-                                    <input type="number" id="p-fixAntenna_lng" name="fixAntenna_lng" 
+                                    <label for="p-fixAntenna_lng">Fixed Antenna Longitude (°)</label>
+                                    <input type="number" id="p-fixAntenna_lng" name="fixAntenna_lng"
                                         step="0.01" value="137.9775489"
                                         onblur="if(this.value === '') this.value = 137.9775489;"
-                                        placeholder="値を入力してください" disabled>
+                                        placeholder="Enter a value" disabled>
                                 </div>
-                                
-                                <!-- 固定天线纬度 -->
+
+                                <!-- Fixed antenna latitude -->
                                 <div class="form-group">
-                                    <label for="p-fixAntenna_lat">固定アンテナの緯度（°）</label>
-                                    <input type="number" id="p-fixAntenna_lat" name="fixAntenna_lat" 
+                                    <label for="p-fixAntenna_lat">Fixed Antenna Latitude (°)</label>
+                                    <input type="number" id="p-fixAntenna_lat" name="fixAntenna_lat"
                                         step="0.01" value="36.2508738"
                                         onblur="if(this.value === '') this.value = 36.2508738;"
-                                        placeholder="値を入力してください" disabled>
+                                        placeholder="Enter a value" disabled>
                                 </div>
-                                
-                                <!-- 固定天线高度 -->
+
+                                <!-- Fixed antenna elevation -->
                                 <div class="form-group">
-                                    <label for="p-fixAntenna_alt">固定アンテナの標高（建物含む、m）</label>
-                                    <input type="number" id="p-fixAntenna_alt" name="fixAntenna_alt" 
+                                    <label for="p-fixAntenna_alt">Fixed Antenna Elevation (including building, m)</label>
+                                    <input type="number" id="p-fixAntenna_alt" name="fixAntenna_alt"
                                         step="1" value="640.7"
                                         onblur="if(this.value === '') this.value = 640.7;"
-                                        placeholder="値を入力してください" disabled>
+                                        placeholder="Enter a value" disabled>
                                 </div>
-                                
-                                <!-- 固定天线高度（屋顶） -->
+
+                                <!-- Fixed antenna height above rooftop -->
                                 <div class="form-group">
-                                    <label for="p-fixAntenna_height">固定アンテナの高さ（屋上まで、m）</label>
-                                    <input type="number" id="p-fixAntenna_height" name="fixAntenna_height" 
+                                    <label for="p-fixAntenna_height">Fixed Antenna Height above Rooftop (m)</label>
+                                    <input type="number" id="p-fixAntenna_height" name="fixAntenna_height"
                                         step="0.1" value="1.5"
                                         onblur="if(this.value === '') this.value = 1.5;"
-                                        placeholder="値を入力してください" disabled>
+                                        placeholder="Enter a value" disabled>
                                 </div>
-                                
-                                <!-- 移动天线高度 -->
+
+                                <!-- Mobile antenna height above ground -->
                                 <div class="form-group">
-                                    <label for="p-moveAntenna_height">移動アンテナの高さ（地面まで、m）</label>
-                                    <input type="number" id="p-moveAntenna_height" name="moveAntenna_height" 
+                                    <label for="p-moveAntenna_height">Mobile Antenna Height above Ground (m)</label>
+                                    <input type="number" id="p-moveAntenna_height" name="moveAntenna_height"
                                         step="0.1" value="1.8"
                                         onblur="if(this.value === '') this.value = 1.8;"
-                                        placeholder="値を入力してください" disabled>
+                                        placeholder="Enter a value" disabled>
                                 </div>
                             </div>
 
-                            <!-- 按钮组 -->
+                            <!-- Button group -->
                             <div class="button-group">
                                 <button type="reset" id="reset-btn" onclick="resetUI()">Reset</button>
                                 <div>
@@ -396,12 +396,12 @@
 
 
 
-                    <!-- 模型创建标签页 -->
+                    <!-- Model creation tab -->
                     <div class="tab-pane pane-generate">
                         <form id="model-form">
                             <div class="form-grid">
                                 <div class="form-group">
-                                    <label for="m-isGenFV">特徴ベクトル作成</label>
+                                    <label for="m-isGenFV">Feature Vector Generation</label>
                                     <select id="m-isGenFV" name="isGenFV" onchange="m_checkIsNeedGenFV()">
                                         <option value="yes">Yes</option>
                                         <option value="no">No</option>
@@ -409,79 +409,79 @@
                                 </div>
 
                                 <div class="form-group">
-                                    <label>既存特徴ベクトル選択</label>
+                                    <label>Select Existing Feature Vectors</label>
                                     <div style="display: flex; gap: 10px; align-items: center;">
                                         <button type="button" id="select-fv-btn" class="btn-modern" onclick="handleNativeSelect('fv')" disabled>
-                                            ファイルを選択
+                                            Select Files
                                         </button>
                                     </div>
-                                    <small id="upload-status-fv" style="display: block; margin-top: 5px; color: cyan;">未選択</small>
+                                    <small id="upload-status-fv" style="display: block; margin-top: 5px; color: cyan;">No files selected</small>
                                 </div>
 
                                 <div class="form-group">
                                     <label for="m-scheduler">Scheduler IP</label>
-                                    <input type="text" id="m-scheduler" name="scheduler" 
+                                    <input type="text" id="m-scheduler" name="scheduler"
                                         value=""
                                         placeholder="Scheduler IP and port"
                                     >
                                 </div>
                             </div>
-                            
+
                             <div class="form-grid">
-                                <!-- 超参数 -->
+                                <!-- Hyperparameters -->
                                 <div class="form-group">
-                                    <label>訓練用データ</label>
+                                    <label>Training Data</label>
                                     <div style="display: flex; gap: 10px; align-items: center;">
                                         <button type="button" id="select-csv-btn" class="btn-modern" onclick="handleNativeSelect('csv')">
-                                            ファイルを選択
+                                            Select Files
                                         </button>
                                     </div>
-                                    <small id="upload-status" style="display: block; margin-top: 5px; color: cyan;">未選択</small>
+                                    <small id="upload-status" style="display: block; margin-top: 5px; color: cyan;">No files selected</small>
                                 </div>
 
                                 <div class="form-group">
-                                    <label>標高データ (*.tif)</label>
+                                    <label>Elevation Data (*.tif)</label>
                                     <div style="display: flex; gap: 10px; align-items: center;">
                                         <button type="button" id="select-altitude-btn" class="btn-modern" onclick="handleNativeSelect('altitude')">
-                                            ファイルを選択
+                                            Select Files
                                         </button>
                                     </div>
-                                    <small id="upload-status-altitude" style="display: block; margin-top: 5px; color: cyan;">未選択</small>
+                                    <small id="upload-status-altitude" style="display: block; margin-top: 5px; color: cyan;">No files selected</small>
                                 </div>
 
                                 <div class="form-group">
-                                    <label>建物データ (*.gpkg)</label>
+                                    <label>Building Data (*.gpkg)</label>
                                     <div style="display: flex; gap: 10px; align-items: center;">
                                         <button type="button" id="select-building-btn" class="btn-modern" onclick="handleNativeSelect('building')">
-                                            ファイルを選択
+                                            Select Files
                                         </button>
                                     </div>
-                                    <small id="upload-status-building" style="display: block; margin-top: 5px; color: cyan;">未選択</small>
+                                    <small id="upload-status-building" style="display: block; margin-top: 5px; color: cyan;">No files selected</small>
                                 </div>
 
                                 <div class="form-group">
-                                    <label>土地利用データ (*.gpkg)</label>
+                                    <label>Land Use Data (*.gpkg)</label>
                                     <div style="display: flex; gap: 10px; align-items: center;">
                                         <button type="button" id="select-landuse-btn" class="btn-modern" onclick="handleNativeSelect('landuse')">
-                                            ファイルを選択
+                                            Select Files
                                         </button>
                                     </div>
-                                    <small id="upload-status-landuse" style="display: block; margin-top: 5px; color: cyan;">未選択</small>
+                                    <small id="upload-status-landuse" style="display: block; margin-top: 5px; color: cyan;">No files selected</small>
                                 </div>
                             </div>
 
                             <div class="form-grid">
-                                <!-- 频率 -->
+                                <!-- Frequency -->
                                 <div class="form-group">
-                                    <label for="m-frequency">周波数（MH<span style="text-transform: lowercase;">z</span>）</label>
-                                    <input type="number" id="m-frequency" name="frequency" 
-                                        min="200" step="100" value="920" 
+                                    <label for="m-frequency">Frequency (MH<span style="text-transform: lowercase;">z</span>)</label>
+                                    <input type="number" id="m-frequency" name="frequency"
+                                        min="200" step="100" value="920"
                                         onblur="if(this.value < 200 || this.value === '') this.value = 200;"
-                                        placeholder="正整数を入力してください"
+                                        placeholder="Enter a positive integer"
                                         onchange="m_checkInputs()">
                                 </div>
 
-                                <!-- SF选择 -->
+                                <!-- SF selection -->
                                 <div class="form-group">
                                     <label for="m-SF">SF</label>
                                     <select id="m-SF" name="SF" onchange="m_checkInputs()">
@@ -496,81 +496,81 @@
                                         <option value="12">12</option>
                                     </select>
                                 </div>
-                                
+
                                 <!-- EIRP -->
                                 <div class="form-group">
                                     <label for="m-EIRP">EIRP（<span style="text-transform: lowercase;">d</span>B<span style="text-transform: lowercase;">m</span>）</label>
-                                    <input type="number" id="m-EIRP" name="EIRP" 
-                                        step="1" value="20" 
+                                    <input type="number" id="m-EIRP" name="EIRP"
+                                        step="1" value="20"
                                         onblur="if(this.value === '') this.value = 20;"
-                                        placeholder="値を入力してください"
+                                        placeholder="Enter a value"
                                         onchange="m_checkInputs()">
                                 </div>
 
-                                <!-- 固定天线经度 -->
+                                <!-- Fixed antenna longitude -->
                                 <div class="form-group">
-                                    <label for="m-fixAntenna_lng">固定アンテナの経度（°）</label>
-                                    <input type="number" id="m-fixAntenna_lng" name="fixAntenna_lng" 
+                                    <label for="m-fixAntenna_lng">Fixed Antenna Longitude (°)</label>
+                                    <input type="number" id="m-fixAntenna_lng" name="fixAntenna_lng"
                                         step="0.01" value="137.9775489"
                                         onblur="if(this.value === '') this.value = 137.9775489;"
-                                        placeholder="値を入力してください"
+                                        placeholder="Enter a value"
                                         onchange="m_checkInputs()">
                                 </div>
-                                
-                                <!-- 固定天线纬度 -->
+
+                                <!-- Fixed antenna latitude -->
                                 <div class="form-group">
-                                    <label for="m-fixAntenna_lat">固定アンテナの緯度（°）</label>
-                                    <input type="number" id="m-fixAntenna_lat" name="fixAntenna_lat" 
+                                    <label for="m-fixAntenna_lat">Fixed Antenna Latitude (°)</label>
+                                    <input type="number" id="m-fixAntenna_lat" name="fixAntenna_lat"
                                         step="0.01" value="36.2508738"
                                         onblur="if(this.value === '') this.value = 36.2508738;"
-                                        placeholder="値を入力してください"
+                                        placeholder="Enter a value"
                                         onchange="m_checkInputs()">
                                 </div>
-                                
-                                <!-- 固定天线高度 -->
+
+                                <!-- Fixed antenna elevation -->
                                 <div class="form-group">
-                                    <label for="m-fixAntenna_alt">固定アンテナの高度（建物含む、m）</label>
-                                    <input type="number" id="m-fixAntenna_alt" name="fixAntenna_alt" 
+                                    <label for="m-fixAntenna_alt">Fixed Antenna Elevation (including building, m)</label>
+                                    <input type="number" id="m-fixAntenna_alt" name="fixAntenna_alt"
                                         step="1" value="640.7"
                                         onblur="if(this.value === '') this.value = 640.7;"
-                                        placeholder="値を入力してください"
+                                        placeholder="Enter a value"
                                         onchange="m_checkInputs()">
                                 </div>
-                                
-                                <!-- 固定天线高度（屋顶） -->
+
+                                <!-- Fixed antenna height above rooftop -->
                                 <div class="form-group">
-                                    <label for="m-fixAntenna_height">固定アンテナの高さ（屋上まで、m）</label>
-                                    <input type="number" id="m-fixAntenna_height" name="fixAntenna_height" 
+                                    <label for="m-fixAntenna_height">Fixed Antenna Height above Rooftop (m)</label>
+                                    <input type="number" id="m-fixAntenna_height" name="fixAntenna_height"
                                         step="0.1" value="1.5"
                                         onblur="if(this.value === '') this.value = 1.5;"
-                                        placeholder="値を入力してください"
+                                        placeholder="Enter a value"
                                         onchange="m_checkInputs()">
                                 </div>
-                                
-                                <!-- 移动天线高度 -->
+
+                                <!-- Mobile antenna height above ground -->
                                 <div class="form-group">
-                                    <label for="m-moveAntenna_height">移動アンテナの高さ（地面まで、m）</label>
-                                    <input type="number" id="m-moveAntenna_height" name="moveAntenna_height" 
+                                    <label for="m-moveAntenna_height">Mobile Antenna Height above Ground (m)</label>
+                                    <input type="number" id="m-moveAntenna_height" name="moveAntenna_height"
                                         step="0.1" value="1.8"
                                         onblur="if(this.value === '') this.value = 1.8;"
-                                        placeholder="値を入力してください"
+                                        placeholder="Enter a value"
                                         onchange="m_checkInputs()">
                                 </div>
                             </div>
 
                             <div class="form-grid">
-                                <!-- 模型选择 -->
+                                <!-- Model selection -->
                                 <div class="form-group">
-                                    <label for="m-model">基本モデル選択</label>
+                                    <label for="m-model">Base Model</label>
                                     <select id="m-model" name="m-model" onchange="m_handleModelChange()" required disabled>
-                                        <option value="noModel">新規モデル</option>
-                                        <option value="NICT_latest_model">汎用モデルM0（NICT信州大202605）</option>
-                                        <option value="customized_model">カスタムモデルfor転移</option>
+                                        <option value="noModel">New Model</option>
+                                        <option value="NICT_latest_model">General-Purpose Model M0 (NICT/Shinshu University 202605)</option>
+                                        <option value="customized_model">Custom Model for Transfer Learning</option>
                                     </select>
                                 </div>
 
                                 <div class="form-group">
-                                    <label for="m-numCore1">畳み込みカーネル数</label>
+                                    <label for="m-numCore1">Number of Convolution Kernels</label>
                                     <select id="m-numCore1" name="numCore1" disabled>
                                         <option value="2">2</option>
                                         <option value="4">4</option>
@@ -584,7 +584,7 @@
                                 </div>
 
                                 <div class="form-group">
-                                    <label for="m-learningType">学習タイプ</label>
+                                    <label for="m-learningType">Training Type</label>
                                     <select id="m-learningType" name="learningType" onchange="m_handleLearningTypeChange()" required disabled>
                                         <option value="type_None">None</option>
                                         <option value="type_TL">Transfer Learning</option>
@@ -593,25 +593,25 @@
                                 </div>
 
                                 <div class="form-group">
-                                    <label for="m-freezeLayer">凍結レイヤー</label>
+                                    <label for="m-freezeLayer">Frozen Layer</label>
                                     <select id="m-freezeLayer" name="freezeLayer" disabled>
                                         <option value="9">Up to 2nd conv. & BatchNorm.</option>
                                     </select>
                                 </div>
 
                                 <div class="form-group">
-                                    <label for="m-learningRate">初期学習率</label>
+                                    <label for="m-learningRate">Initial Learning Rate</label>
                                     <input type="number" id="m-learningRate" name="learningRate"
                                         min="0.000001" max="0.1" step="0.000001" value="0.0001"
                                         onblur="if(this.value < 0.000001 || this.value === '') this.value = 0.0001;"
-                                        placeholder="値を入力してください" disabled>
+                                        placeholder="Enter a value" disabled>
                                 </div>
 
                             </div>
 
                             <div style="margin: 10px 0; text-align: right;">
                                 <button type="button" onclick="loadAndShowPdf()" style="background: transparent; color: var(--cyan); border: 1px solid var(--cyan); padding: 5px 15px; font-size: 0.8rem; cursor: pointer; border-radius: 4px;">
-                                    <i class="fas fa-book"></i> Fine-Tuningの説明
+                                    <i class="fas fa-book"></i> Fine-Tuning Guide
                                 </button>
                             </div>
 
@@ -619,18 +619,18 @@
                             <dialog id="pdf-dialog" style="width:80%; height:80vh; border:none; border-radius:10px; padding:0;">
                                 <div style="display:flex; flex-direction:column; height:100%;">
                                     <div style="padding:10px; background:#333; color:white; display:flex; justify-content:space-between;">
-                                        <span>Fine-Tuningの説明</span>
+                                        <span>Fine-Tuning Guide</span>
                                         <button onclick="document.getElementById('pdf-dialog').close()">Close</button>
                                     </div>
                                     <iframe id="pdf-viewer" width="100%" height="100%" frameborder="0"></iframe>
                                 </div>
                             </dialog>
-                            
 
-                            <!-- 按钮组 -->
+
+                            <!-- Button group -->
                             <div class="button-group">
                                 <button type="reset" id="m-reset-btn" onclick="m_resetUI()">Reset</button>
-                                <button type="button" id="upload-confirm-btn" onclick="uploadTransferData()" disabled>アップロード</button>
+                                <button type="button" id="upload-confirm-btn" onclick="uploadTransferData()" disabled>Upload</button>
                                 <button type="button" id="generate-btn" onclick="execute_modelGeneration()" disabled>Generate</button>
                             </div>
                         </form>
@@ -640,29 +640,29 @@
 
 
 
-                    <!-- 数据处理标签页 -->
+                    <!-- Data processing tab -->
                     <div class="tab-pane pane-feature">
                         <div class="placeholder-content">
-                            <h3 style="color: var(--cyan); margin-bottom: 1rem;">データ処理機能</h3>
-                            <p style="opacity: 0.8;">この機能は現在開発中です。Coming soon...</p>
+                            <h3 style="color: var(--cyan); margin-bottom: 1rem;">Data Processing</h3>
+                            <p style="opacity: 0.8;">This feature is currently under development. Coming soon...</p>
                         </div>
                     </div>
                 </div>
 
 
                 <div class="status-wrapper" style="
-                    display: flex; 
-                    align-items: stretch; /* 关键：让左侧进度和右侧终端高度一致 */
-                    gap: 20px; 
-                    margin: 30px auto; 
-                    width: 95%; /* 撑开宽度 */
-                    max-width: none; /* 设置一个较大的上限防止超宽屏幕变形 */
+                    display: flex;
+                    align-items: stretch; /* Keep the progress panel and terminal at equal heights */
+                    gap: 20px;
+                    margin: 30px auto;
+                    width: 95%; /* Expand the available width */
+                    max-width: none; /* Prevent distortion on ultra-wide displays */
                     justify-content: center;
                 ">
                     <div id="progress-container" style="
-                        flex: 0 0 160px; /* 固定宽度 160px，不收缩 */
-                        text-align: center; 
-                        background: rgba(0, 255, 255, 0.05); 
+                        flex: 0 0 160px; /* Fixed 160px width without shrinking */
+                        text-align: center;
+                        background: rgba(0, 255, 255, 0.05);
                         border: 1px solid rgba(0, 255, 255, 0.1);
                         border-radius: 8px;
                         padding: 15px 10px;
@@ -673,7 +673,7 @@
                     ">
                         <div class="progress-ring-wrapper" style="position: relative; display: inline-block;">
                             <svg width="100" height="100"> <circle cx="50" cy="50" r="45" stroke="#1a1a1a" stroke-width="6" fill="transparent" />
-                                <circle id="progress-bar" cx="50" cy="50" r="45" stroke="cyan" stroke-width="6" 
+                                <circle id="progress-bar" cx="50" cy="50" r="45" stroke="cyan" stroke-width="6"
                                         fill="transparent" stroke-dasharray="283" stroke-dashoffset="283"
                                         style="transition: stroke-dashoffset 0.5s ease; stroke-linecap: round; transform: rotate(-90deg); transform-origin: 50% 50%;" />
                             </svg>
@@ -683,23 +683,23 @@
                     </div>
 
                     <div id="terminal-box" style="
-                        flex: 1; /* 自动撑开占据剩余空间 */
-                        min-width: 400px; /* 保证最小宽度 */
-                        height: 250px; /* 固定高度 */
-                        max-height: 250px; /* 设置最大高度，超出时显示滚动条 */
-                        background: rgba(0, 0, 0, 0.1); /* 稍微加深背景，提升对比度 */
-                        border: 1px solid rgba(0, 255, 255, 0.3); 
-                        border-radius: 8px; 
-                        padding: 12px; 
+                        flex: 1; /* Expand automatically to fill the remaining space */
+                        min-width: 400px; /* Maintain a minimum width */
+                        height: 250px; /* Fixed height */
+                        max-height: 250px; /* Show a scrollbar when content exceeds this height */
+                        background: rgba(0, 0, 0, 0.1); /* Slightly darken the background for better contrast */
+                        border: 1px solid rgba(0, 255, 255, 0.3);
+                        border-radius: 8px;
+                        padding: 12px;
                         overflow-x: hidden;
                         overflow-y: scroll;
-                        font-family: 'Menlo', 'Monaco', 'Courier New', monospace; /* macOS 优化字体 */
-                        font-size: 12px; 
+                        font-family: 'Menlo', 'Monaco', 'Courier New', monospace; /* Font stack optimized for macOS */
+                        font-size: 12px;
                         line-height: 1.5;
-                        color: #00ffcc; 
+                        color: #00ffcc;
                         text-align: left;
                         box-shadow: inset 0 0 15px rgba(0,0,0,0.7);
-                        scrollbar-width: thin; /* Firefox 滚动条 */
+                        scrollbar-width: thin; /* Firefox scrollbar */
                     ">
                         <div style="border-top: 1px dashed rgba(0, 255, 204, 0.4); margin: 8px 0;"></div>
                         <div style="color: #ffcc00; font-weight: bold;">Welcome to ASSET Framework v1.2</div>
@@ -713,10 +713,10 @@
         </div>
     </div>
 
-    <!-- 结果容器 -->
+    <!-- Results container -->
     <div id="result-container" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; z-index:9999; background:white; flex-direction:column;">
         <div style="background:#1a1a1a; color:#00ffcc; padding:10px 20px; display:flex; justify-content:space-between; align-items:center; font-family:'Orbitron';">
-            <span>電波マップの予測値</span>
+            <span>Radio Map Prediction</span>
             <div style="display: flex; flex-direction: row; align-items: center;">
                 <button onclick="handleDownload()" style="background:#0088ff; color:white; border:none; padding:5px 15px; cursor:pointer; margin-right:10px;">SAVE CSV</button>
                 <button onclick="closeResult()" style="background:#ff4444; color:white; border:none; padding:5px 15px; cursor:pointer;">CLOSE</button>
@@ -736,9 +736,9 @@
         </div>
     </div>
 
-    <!-- 原有脚本保持不变 -->
+    <!-- Existing script remains unchanged -->
     <script>
-        // 選択されたパスを保持するグローバル変数
+        // Global variable that stores selected paths
         let selectedPaths = {
             csv: [],
             altitude: [],
@@ -747,30 +747,30 @@
             fv: []
         };
 
-        // ファイル選択用の関数
+        // File selection function
         async function handleNativeSelect(type) {
             try {
                 const paths = await window.pywebview.api.select_files_native(type);
                 if (paths && paths.length > 0) {
                     selectedPaths[type] = paths;
-                    
-                    // UI 更新逻辑...
+
+                    // Update the UI...
                     let statusId = type === 'csv' ? 'upload-status' : `upload-status-${type}`;
                     const label = document.getElementById(statusId);
                     if (label) {
-                        label.innerText = `已选择 ${paths.length} 个文件`;
+                        label.innerText = `${paths.length} file(s) selected`;
                         label.style.color = "#00ffcc";
                     }
 
-                    // 【关键】选完路径后，手动调用一次检查函数
-                    m_checkInputs(); 
+                    // Recheck the form after path selection
+                    m_checkInputs();
                 }
             } catch (err) {
-                console.error("文件选择失败:", err);
+                console.error("File selection failed:", err);
             }
         }
 
-        // --- 神经网络可视化逻辑 ---
+        // --- Neural network visualization logic ---
         const canvas = document.getElementById('neuralNetworkCanvas');
         const ctx = canvas.getContext('2d');
         let nodes = [];
@@ -785,7 +785,7 @@
                 this.vx = (Math.random() - 0.5) * 0.5;
                 this.vy = (Math.random() - 0.5) * 0.5;
                 this.radius = Math.random() * 2 + 1;
-                this.brightness = Math.random(); // 用于闪烁效果
+                this.brightness = Math.random(); // Used for the flicker effect
             }
 
             update() {
@@ -795,7 +795,7 @@
                 if (this.x < 0 || this.x > canvas.width) this.vx *= -1;
                 if (this.y < 0 || this.y > canvas.height) this.vy *= -1;
 
-                // 更新亮度以产生微弱的脉动效果
+                // Update brightness to create a subtle pulse effect
                 this.brightness += (Math.random() - 0.5) * 0.02;
                 this.brightness = Math.max(0.2, Math.min(1, this.brightness));
             }
@@ -807,7 +807,7 @@
                     this.x, this.y, 0,
                     this.x, this.y, this.radius * 3
                 );
-                // 渐变从中心的亮青色/洋红到外圈的透明
+                // Fade from bright cyan/magenta at the center to transparent at the edge
                 gradient.addColorStop(0, `hsla(${Math.sin(Date.now()/1000) * 60 + 180}, 100%, 80%, ${this.brightness})`);
                 gradient.addColorStop(1, 'transparent');
                 ctx.fillStyle = gradient;
@@ -845,11 +845,11 @@
         }
 
         function render() {
-            // 半透明覆盖层实现运动模糊效果
+            // Use a translucent overlay to create motion blur
             ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            // 更新并绘制连接线
+            // Update and draw connections
             ctx.strokeStyle = 'rgba(0, 255, 255, 0.05)';
             ctx.lineWidth = 0.5;
             for (const conn of connections) {
@@ -859,7 +859,7 @@
                 ctx.stroke();
             }
 
-            // 更新并绘制节点
+            // Update and draw nodes
             for (const node of nodes) {
                 node.update();
                 node.draw(ctx);
@@ -867,7 +867,7 @@
         }
 
         function animate() {
-            connectNodes(); // 每帧都重新计算连接，以适应节点移动
+            connectNodes(); // Recalculate connections each frame as nodes move
             render();
             requestAnimationFrame(animate);
         }
@@ -882,19 +882,19 @@
             element.addEventListener('change', m_checkInputs);
         });
 
-        // --- 表单提交 ---
+        // --- Form submission ---
         document.getElementById('nnForm')?.addEventListener('submit', function(e) {
             e.preventDefault();
-            alert('神经网络启动指令已发出！请监控后台日志。');
+            alert('Neural network startup command sent. Monitor the backend logs for progress.');
         });
     </script>
 
     <script>
-        // 按钮点击触发的函数
+        // Button click handler
         async function execute_rssPredict() {
             setFormDisabledforPredictionPanal(true);
 
-            // 1. 从隐藏域获取坐标
+            // 1. Read coordinates from hidden fields
             const coords = {
                 model: document.getElementById('p-model').value,
                 min_lng: document.getElementById('min-lng').value,
@@ -915,20 +915,20 @@
                 database: document.getElementById('p-database').value
             };
 
-            // 2. 检查用户是否已经选择了区域
+            // 2. Check whether the user has selected an area
             if (coords.predictDataSelectValue === "predictData_map" && !coords.min_lng) {
-                alert("请先通过『选择预测区域』在地图上划定范围！");
+                alert("Select a prediction area on the map first.");
                 return;
             }
 
-            // 3. 调用你的后端接口 (假设后端接收这些参数)
+            // 3. Call the backend API with these parameters
             try {
                 document.getElementById('predict-btn').disabled = true;
                 document.getElementById('reset-btn').disabled = true;
                 document.getElementById('tab-generate').disabled = true;
                 await window.pywebview.api.executeRssPrediction(coords);
             } catch (error) {
-                console.error("预测执行失败:", error);
+                console.error("Prediction failed:", error);
                 document.getElementById('predict-btn').disabled = false;
                 document.getElementById('reset-btn').disabled = false;
                 document.getElementById('tab-generate').disabled = false;
@@ -961,21 +961,21 @@
                 document.getElementById('m-reset-btn').disabled = true;
                 await window.pywebview.api.executeModelGeneration(coords);
             } catch (error) {
-                console.error("模型生成失败:", error);
+                console.error("Model generation failed:", error);
                 document.getElementById('generate-btn').disabled = false;
                 document.getElementById('m-reset-btn').disabled = false;
             }
         }
 
-        // 监控 Model 选择框
+        // Monitor the model selector
         function handleModelChange() {
             const modelSelect = document.getElementById('p-model');
             const databaseSelect = document.getElementById('p-database');
-            
-            // 如果选择了任何值（非空），则开放按钮
+
+            // Enable the button when a non-empty value is selected
             if (modelSelect.value !== "") {
                 databaseSelect.disabled = false;
-                modelSelect.disabled = true; // 一旦选择了模型，就锁定模型选择，强制用户先选择数据库
+                modelSelect.disabled = true; // Lock the model selection until the user selects a database
             } else {
                 databaseSelect.disabled = true;
             }
@@ -983,7 +983,7 @@
 
         function m_handleModelChange() {
             const modelSelect = document.getElementById('m-model');
-            
+
             if (modelSelect.value === "noModel") {
                 document.getElementById('m-numCore1').disabled = false;
                 document.getElementById('m-learningType').disabled = true;
@@ -1012,11 +1012,11 @@
         function handleDatabaseChange() {
             const databaseSelect = document.getElementById('p-database');
             const predictDataSelect = document.getElementById('p-predictDataSelect');
-            
-            // 如果选择了任何值（非空），则开放按钮
+
+            // Enable the button when a non-empty value is selected
             if (databaseSelect.value !== "") {
                 predictDataSelect.disabled = false;
-                databaseSelect.disabled = true; // 一旦选择了数据库，就锁定数据库选择，强制用户先点击地图选择区域
+                databaseSelect.disabled = true; // Lock the database selection until the user selects an area on the map
             } else {
                 predictDataSelect.disabled = true;
             }
@@ -1026,8 +1026,8 @@
         function handlePredictDataChange() {
             const mapBtn = document.getElementById('map-btn');
             const predictDataSelect = document.getElementById('p-predictDataSelect');
-            
-            // 如果选择了任何值（非空），则开放按钮
+
+            // Enable the button when a non-empty value is selected
             if (predictDataSelect.value === "predictData_map") {
                 mapBtn.disabled = false;
                 predictDataSelect.disabled = true;
@@ -1048,9 +1048,9 @@
                 predictDataSelect.disabled = true;
             }
         }
-        
 
-        // 处理点击逻辑
+
+        // Handle click logic
         function handleMapClick() {
             const databaseValue = document.getElementById('p-database').value;
             if (databaseValue === "DB_matumotoCity") {
@@ -1072,7 +1072,7 @@
             }
         }
 
-        // 重置界面状态
+        // Reset the UI state
         async function resetUI() {
             document.getElementById('p-model').disabled = false;
             document.getElementById('map-btn').disabled = true;
@@ -1110,7 +1110,7 @@
 
 
         async function m_resetUI(keepMLfiles = false) {
-            // --- 1. 【新增】重置内存中的路径变量 ---
+            // --- 1. Reset in-memory path variables ---
             selectedPaths = {
                 csv: [],
                 altitude: [],
@@ -1124,19 +1124,19 @@
                 m_checkIsNeedGenFV();
             }, 0);
 
-            // --- 2. 恢复 UI 文字显示 ---
-            document.getElementById('upload-status').innerText = "未選択";
-            document.getElementById('upload-status-altitude').innerText = "未選択";
-            document.getElementById('upload-status-building').innerText = "未選択";
-            document.getElementById('upload-status-landuse').innerText = "未選択";
+            // --- 2. Restore UI status text ---
+            document.getElementById('upload-status').innerText = "No files selected";
+            document.getElementById('upload-status-altitude').innerText = "No files selected";
+            document.getElementById('upload-status-building').innerText = "No files selected";
+            document.getElementById('upload-status-landuse').innerText = "No files selected";
 
-            // 恢复文字颜色（如果是之前改成了绿色/青色，这里改回灰色）
+            // Restore status text to gray after any prior green/cyan state
             document.getElementById('upload-status').style.color = "#666";
             document.getElementById('upload-status-altitude').style.color = "#666";
             document.getElementById('upload-status-building').style.color = "#666";
             document.getElementById('upload-status-landuse').style.color = "#666";
 
-            // --- 3. 恢复按钮和输入框状态 ---
+            // --- 3. Restore button and input states ---
             document.getElementById('tab-predict').disabled = false;
             document.getElementById('m-isGenFV').disabled = false;
             document.getElementById('m-model').disabled = true;
@@ -1148,20 +1148,20 @@
             document.getElementById('generate-btn').disabled = true;
             document.getElementById('m-scheduler').disabled = false;
 
-            // 确保你的选择按钮是可点击的
+            // Ensure the selection buttons are clickable
             document.getElementById('select-csv-btn').disabled = false;
             document.getElementById('select-altitude-btn').disabled = false;
             document.getElementById('select-building-btn').disabled = false;
             document.getElementById('select-landuse-btn').disabled = false;
 
-            // 清除进度和终端
+            // Clear progress and terminal output
             document.getElementById('progress-status').innerText = "Ready to start";
             document.getElementById('progress-percent').innerText = "0%";
             const terminalContent = document.getElementById('terminal-content');
             if (terminalContent) terminalContent.innerText = "";
 
-            // --- 4. 【关键】重新运行一次检查逻辑 ---
-            // 此时 selectedPaths 已空，upload-confirm-btn 会被正确禁用
+            // --- 4. Run validation again ---
+            // selectedPaths is now empty, so upload-confirm-btn will be disabled correctly
             m_checkInputs();
 
             try {
@@ -1175,7 +1175,7 @@
         }
 
 
-        // 修改你原有的 openMap 函数，支持传入中心点坐标
+        // Allow openMap to accept center-point coordinates
         function openMap(centerCoords, zoomLevel, limitArea) {
             if (event) event.preventDefault();
 
@@ -1189,10 +1189,10 @@
             modal.innerHTML = `
                 <div style="padding: 15px 25px; background: #222; color: white; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid cyan;">
                     <div style="display: flex; flex-direction: column;">
-                        <span style="font-family: 'Orbitron', sans-serif; font-size: 16px; color: #00ffcc;">予測エリア選択</span>
+                        <span style="font-family: 'Orbitron', sans-serif; font-size: 16px; color: #00ffcc;">Select Prediction Area</span>
                         <div id="coord-display" style="font-size: 12px; color: #aaa; margin-top: 4px;">Waiting for area selection...</div>
                     </div>
-                    <button type="button" id="close-map-btn" style="background: #00ffcc; color: #222; border: none; padding: 5px 15px; cursor: pointer; font-weight: bold;">完成</button>
+                    <button type="button" id="close-map-btn" style="background: #00ffcc; color: #222; border: none; padding: 5px 15px; cursor: pointer; font-weight: bold;">Done</button>
                 </div>
                 <div id="map-canvas" style="flex: 1; width: 100%; height: 100%;"></div>
             `;
@@ -1220,20 +1220,20 @@
 
             const drawControl = new L.Control.Draw({
                 draw: { rectangle: true, polyline: false, circle: false, marker: false, polygon: false, circlemarker: false },
-                edit: { featureGroup: drawnItems } // 允许编辑已画好的图形
+                edit: { featureGroup: drawnItems } // Allow editing of existing shapes
             });
             map.addControl(drawControl);
 
-            // --- 提取坐标的公共函数 ---
+            // --- Shared coordinate extraction function ---
             function updateCoordinates() {
                 if (drawnItems.getLayers().length === 0) return;
-                
+
                 const layer = drawnItems.getLayers()[0];
                 const bounds = layer.getBounds();
                 const sw = bounds.getSouthWest();
                 const ne = bounds.getNorthEast();
 
-                // 格式化数据
+                // Format the data
                 const coords = {
                     minLng: sw.lng.toFixed(6),
                     minLat: sw.lat.toFixed(6),
@@ -1241,42 +1241,42 @@
                     maxLat: ne.lat.toFixed(6)
                 };
 
-                document.getElementById('coord-display').innerText = 
+                document.getElementById('coord-display').innerText =
                     `Min: ${coords.minLng}, ${coords.minLat} | Max: ${coords.maxLng}, ${coords.maxLat}`;
 
-                // 将值传递给隐藏的 input 标签
+                // Pass values to hidden input elements
                 document.getElementById('min-lng').value = coords.minLng;
                 document.getElementById('min-lat').value = coords.minLat;
                 document.getElementById('max-lng').value = coords.maxLng;
                 document.getElementById('max-lat').value = coords.maxLat;
-                
+
                 return coords;
             }
 
-            // A. 监听创建事件
+            // A. Listen for creation events
             map.on(L.Draw.Event.CREATED, function (e) {
                 drawnItems.clearLayers();
                 drawnItems.addLayer(e.layer);
                 updateCoordinates();
             });
 
-            // B. 监听编辑事件 (实时刷新核心)
+            // B. Listen for edit events and refresh in real time
             map.on(L.Draw.Event.EDITED, function (e) {
                 updateCoordinates();
             });
 
-            // C. 监听删除事件
+            // C. Listen for deletion events
             map.on(L.Draw.Event.DELETED, function (e) {
                 document.getElementById('min-lng').value = "";
                 document.getElementById('min-lat').value = "";
                 document.getElementById('max-lng').value = "";
                 document.getElementById('max-lat').value = "";
-                document.getElementById('coord-display').innerText = "選択エリアがクリアされました。再度選択してください。";
+                document.getElementById('coord-display').innerText = "The selected area has been cleared. Please select it again.";
             });
 
             document.getElementById('close-map-btn').onclick = () => {
                 const finalCoords = updateCoordinates();
-                console.log("最终确定的坐标:", finalCoords);
+                console.log("Final coordinates:", finalCoords);
                 document.body.removeChild(modal);
                 document.getElementById('map-btn').disabled = true;
                 document.getElementById('p-mesh-lng').disabled = false;
@@ -1295,29 +1295,29 @@
 
         function checkInputs(predictDataSelectValue = null) {
             const predictBtn = document.getElementById('predict-btn');
-            
-            // 定义所有必须检查的字段 ID
+
+            // Define all required field IDs
             console.log("Checking inputs for predictDataSelectValue:", predictDataSelectValue);
             let requiredIds = [];
             if (predictDataSelectValue === "predictData_file") {
                 requiredIds = [
-                    'p-model', 'p-database',  
-                    'p-mesh-lng', 'p-mesh-lat', 
-                    'p-frequency', 'p-SF', 'p-EIRP', 'p-fixAntenna_lng', 
-                    'p-fixAntenna_lat', 'p-fixAntenna_alt', 'p-fixAntenna_height', 
+                    'p-model', 'p-database',
+                    'p-mesh-lng', 'p-mesh-lat',
+                    'p-frequency', 'p-SF', 'p-EIRP', 'p-fixAntenna_lng',
+                    'p-fixAntenna_lat', 'p-fixAntenna_alt', 'p-fixAntenna_height',
                     'p-moveAntenna_height'
                 ];
             } else {
                 requiredIds = [
-                    'p-model', 'p-database', 'min-lng', 'min-lat', 
-                    'max-lng', 'max-lat', 'p-mesh-lng', 'p-mesh-lat', 
-                    'p-frequency', 'p-SF', 'p-EIRP', 'p-fixAntenna_lng', 
-                    'p-fixAntenna_lat', 'p-fixAntenna_alt', 'p-fixAntenna_height', 
+                    'p-model', 'p-database', 'min-lng', 'min-lat',
+                    'max-lng', 'max-lat', 'p-mesh-lng', 'p-mesh-lat',
+                    'p-frequency', 'p-SF', 'p-EIRP', 'p-fixAntenna_lng',
+                    'p-fixAntenna_lat', 'p-fixAntenna_alt', 'p-fixAntenna_height',
                     'p-moveAntenna_height'
                 ];
             }
 
-            // 检查是否所有字段都有值且不为空字符串
+            // Check that every field has a non-empty value
             const allFilled = requiredIds.every(id => {
                 const el = document.getElementById(id);
                 return el && el.value.trim() !== ""
@@ -1325,7 +1325,7 @@
 
             if (allFilled) {
                 predictBtn.disabled = false;
-                predictBtn.style.boxShadow = "0 0 15px cyan"; // 可选：激活时加个发光效果
+                predictBtn.style.boxShadow = "0 0 15px cyan"; // Add a glow when active
             } else {
                 predictBtn.disabled = true;
                 predictBtn.style.boxShadow = "none";
@@ -1334,16 +1334,16 @@
 
         function m_checkInputs() {
             const uploadBtn = document.getElementById('upload-confirm-btn');
-            
-            // 1. ファイル選択状況のチェック (selectedPaths を確認)
-            // 必須：CSV（訓練データ）と Altitude（標高データ）
-            const filesSelected = selectedPaths.csv && selectedPaths.csv.length > 0 && 
+
+            // 1. Check file selection status in selectedPaths
+            // Required: CSV training data and altitude data
+            const filesSelected = selectedPaths.csv && selectedPaths.csv.length > 0 &&
                                 selectedPaths.altitude && selectedPaths.altitude.length > 0;
 
-            // 2. 数値入力項目のチェック
+            // 2. Check numeric input fields
             const requiredInputIds = [
                 'm-frequency', 'm-SF', 'm-EIRP',
-                'm-fixAntenna_lng', 'm-fixAntenna_lat', 
+                'm-fixAntenna_lng', 'm-fixAntenna_lat',
                 'm-fixAntenna_alt', 'm-fixAntenna_height', 'm-moveAntenna_height'
             ];
 
@@ -1352,7 +1352,7 @@
                 return el && el.value.trim() !== "";
             });
 
-            // 3. 両方の条件を満たした場合のみボタンを有効化
+            // 3. Enable the button only when both conditions are met
             if (filesSelected && inputsFilled) {
                 uploadBtn.disabled = false;
                 uploadBtn.style.boxShadow = "0 0 15px cyan";
@@ -1370,40 +1370,40 @@
             const progressPercent = document.getElementById('progress-percent');
             const progressStatus = document.getElementById('progress-status');
 
-            // 1. 显示容器
+            // 1. Show the container
             container.style.display = 'block';
-            
-            // 2. 计算偏移量 (假设 r=50, 周长 C = 2 * π * 50 ≈ 314)
-            const circumference = 314; 
+
+            // 2. Calculate the offset (r=50, circumference C = 2 * pi * 50, approximately 314)
+            const circumference = 314;
             const offset = circumference - (percent / 100 * circumference);
-            
-            // 3. 应用样式
+
+            // 3. Apply styles
             progressBar.style.strokeDashoffset = offset;
-            
-            // 4. 更新文字
+
+            // 4. Update text
             progressPercent.innerText = `${percent}%`;
             progressStatus.innerText = status;
 
-            // 5. 100% 时的特殊处理
+            // 5. Handle completion at 100%
             const resultBtn = document.getElementById('result-btn');
             if (percent >= 100) {
-                progressBar.style.stroke = "#00ffcc"; // 变绿表示完成
-                progressStatus.innerText = "完了";
+                progressBar.style.stroke = "#00ffcc"; // Green indicates completion
+                progressStatus.innerText = "Complete";
                 resultBtn.disabled = false;
                 resultBtn.style.backgroundColor = "#00ffcc";
                 resultBtn.style.boxShadow = "0 0 15px #00ffcc";
                 document.getElementById('reset-btn').disabled = false;
                 document.getElementById('m-reset-btn').disabled = false;
             } else if (percent === -1) {
-                progressBar.style.stroke = "#ff4444"; // 错误时显示红色
-                progressStatus.innerText = "エラー";
+                progressBar.style.stroke = "#ff4444"; // Red indicates an error
+                progressStatus.innerText = "Error";
                 resultBtn.disabled = false;
                 resultBtn.style.backgroundColor = "#00ffcc";
                 resultBtn.style.boxShadow = "0 0 15px #00ffcc";
                 document.getElementById('reset-btn').disabled = false;
                 document.getElementById('m-reset-btn').disabled = false;
             } else {
-                progressBar.style.stroke = "cyan";    // 进行中保持青色
+                progressBar.style.stroke = "cyan";    // Keep cyan while processing
             }
         }
 
@@ -1413,22 +1413,22 @@
             const rawData = await window.pywebview.api.get_prediction_data();
             if (!rawData || rawData.length === 0) return;
 
-            // 1. 动态获取极值
+            // 1. Determine the data range dynamically
             const values = rawData.map(p => p.Predicted_Value);
             const dataMin = Math.min(...values);
             const dataMax = Math.max(...values);
             const dataMid = (dataMin + dataMax) / 2;
 
-            // 2. 更新图例上的文字
+            // 2. Update legend labels
             document.getElementById('legend-max').innerText = dataMax.toFixed(1);
             document.getElementById('legend-mid').innerText = dataMid.toFixed(1);
             document.getElementById('legend-min').innerText = dataMin.toFixed(1);
 
-            // 3. 动态获取网格规模
+            // 3. Determine the grid dimensions dynamically
             const sizeLng = parseInt(document.getElementById('p-mesh-lng').value) || 30;
             const sizeLat = parseInt(document.getElementById('p-mesh-lat').value) || 30;
 
-            // 4. 地图初始化...
+            // 4. Initialize the map...
             document.getElementById('result-container').style.display = 'flex';
             if (resultMap) resultMap.remove();
             resultMap = L.map('result-map', { preferCanvas: true }).setView([rawData[0].Latitude, rawData[0].Longitude], 15);
@@ -1436,31 +1436,31 @@
 
             const predictMode = document.getElementById('p-predictDataSelect').value;
             if (predictMode === "predictData_file") {
-                // 仅画点：遍历所有原始数据并在地图上打点
+                // Point-only mode: plot every raw data point on the map
                 rawData.forEach(p => {
                     const color = getMatlabColormap(p.Predicted_Value, dataMin, dataMax);
                     L.circleMarker([p.Latitude, p.Longitude], {
-                        radius: 5,           // 点的大小
-                        fillColor: color,    // 根据 RSS 值着色
-                        color: "#000",       // 轮廓颜色
-                        weight: 0.5,         // 轮廓粗细
+                        radius: 5,           // Point size
+                        fillColor: color,    // Color based on the RSS value
+                        color: "#000",       // Outline color
+                        weight: 0.5,         // Outline width
                         opacity: 1,
                         fillOpacity: 0.8
                     })
                     .bindPopup(`RSS: ${p.Predicted_Value.toFixed(2)} dBm<br>Lat: ${p.Latitude}<br>Lon: ${p.Longitude}`)
                     .addTo(resultMap);
                 });
-                // 如果是纯画点模式，直接结束函数，不执行后面的网格排序和绘图逻辑
-                return; 
+                // In point-only mode, skip the grid sorting and rendering logic below
+                return;
             }
 
-            // 5. 排序数据...
+            // 5. Sort the data...
             const sortedData = [...rawData].sort((a, b) => {
                 if (Math.abs(a.Latitude - b.Latitude) > 0.0000001) return a.Latitude - b.Latitude;
                 return a.Longitude - b.Longitude;
             });
 
-            // 6. 绘图循环...
+            // 6. Render the grid...
             for (let i = 0; i < sizeLat - 1; i++) {
                 for (let j = 0; j < sizeLng - 1; j++) {
                     const idx_bl = i * sizeLng + j;
@@ -1476,8 +1476,8 @@
                     if (!p1 || !p2 || !p3 || !p4) continue;
 
                     const avgVal = (p1.Predicted_Value + p2.Predicted_Value + p3.Predicted_Value + p4.Predicted_Value) / 4;
-                    
-                    // 使用动态范围着色
+
+                    // Color using the dynamic range
                     const color = getMatlabColormap(avgVal, dataMin, dataMax);
 
                     L.polygon([
@@ -1493,9 +1493,9 @@
             }
         }
 
-        // 模拟 MATLAB 的 Jet/Turbo Colormap
+        // Approximate MATLAB's Jet/Turbo colormap
         function getMatlabColormap(rss, dynamicMin, dynamicMax) {
-            // 归一化：将当前值映射到 0 (蓝) - 1 (红)
+            // Normalize the current value to 0 (blue) through 1 (red)
             let v = (rss - dynamicMin) / (dynamicMax - dynamicMin);
             v = Math.max(0, Math.min(1, v));
 
@@ -1525,10 +1525,10 @@
                 const el = document.getElementById(id);
                 if (!el) return;
 
-                // 1. 设置禁用状态
+                // 1. Set the disabled state
                 el.disabled = disabled;
 
-                // 2. 如果需要清空，则执行清空逻辑
+                // 2. Clear the field when requested
                 if (shouldClear) {
                     if (el.type === 'file') {
                         el.value = '';
@@ -1553,10 +1553,10 @@
                 const el = document.getElementById(id);
                 if (!el) return;
 
-                // 1. 设置禁用状态
+                // 1. Set the disabled state
                 el.disabled = disabled;
 
-                // 2. 如果需要清空，则执行清空逻辑
+                // 2. Clear the field when requested
                 if (shouldClear) {
                     if (el.type === 'file') {
                         el.value = '';
@@ -1570,7 +1570,7 @@
 
 
         async function uploadTransferData() {
-            // 基础 UI 禁用
+            // Disable the base UI
             document.getElementById('tab-predict').disabled = true;
             document.getElementById('m-reset-btn').disabled = true;
             document.getElementById('m-isGenFV').disabled = true;
@@ -1578,7 +1578,7 @@
             uploadBtn.disabled = true;
             setFormDisabledforMpanal(true);
 
-            // 获取坐标
+            // Read coordinates
             const coords = {
                 frequency: document.getElementById('m-frequency').value,
                 SF: document.getElementById('m-SF').value,
@@ -1590,16 +1590,16 @@
                 moveAntenna_height: document.getElementById('m-moveAntenna_height').value,
             };
 
-            // 检查路径变量 (selectedPaths 必须在全局定义)
+            // Check path variables (selectedPaths must be defined globally)
             if (selectedPaths.csv.length === 0 || selectedPaths.altitude.length === 0) {
-                alert("文件未选择！");
+                alert("Required files have not been selected.");
                 uploadBtn.disabled = false;
                 document.getElementById('m-reset-btn').disabled = false;
                 return;
             }
 
             try {
-                // 调用 Python 接口
+                // Call the Python API
                 const result = await window.pywebview.api.upload_csv_files(
                     selectedPaths.csv,
                     selectedPaths.altitude,
@@ -1608,7 +1608,7 @@
                 );
 
                 if (result.status === "success") {
-                    // 继续后续处理
+                    // Continue processing
                     let result_DP = await window.pywebview.api.executeDataProcessing(coords);
                     if (result_DP.user_choice) {
                         setFormDisabledforMpanal(false, true);
@@ -1616,11 +1616,11 @@
                         document.getElementById('generate-btn').disabled = false;
                         document.getElementById('m-model').disabled = false;
                     } else {
-                        alert("データ処理中にエラーが発生しました。");
+                        alert("An error occurred during data processing.");
                     }
                     document.getElementById('m-reset-btn').disabled = false;
                 } else {
-                    alert("错误: " + result.message);
+                    alert("Error: " + result.message);
                 }
             } catch (error) {
                 console.error(error);
@@ -1635,62 +1635,62 @@
             const content = document.getElementById('terminal-content');
             if (!terminal || !content) return;
 
-            // 1. 创建行容器
+            // 1. Create a line container
             const newLine = document.createElement('div');
             newLine.style.marginBottom = '2px';
-            newLine.style.whiteSpace = 'pre-wrap'; // 保持插件输出的空格
-            newLine.style.wordBreak = 'break-all'; // 强制换行防止横向滚动
+            newLine.style.whiteSpace = 'pre-wrap'; // Preserve spacing in plugin output
+            newLine.style.wordBreak = 'break-all'; // Force wrapping to prevent horizontal scrolling
 
-            // 2. 时间戳部分
+            // 2. Timestamp
             const now = new Date();
             const timeStr = `[${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}] `;
-            
+
             const timeSpan = document.createElement('span');
             timeSpan.style.color = '#888';
             timeSpan.innerText = timeStr;
 
-            // 3. 消息内容部分 (安全处理)
+            // 3. Message content with safe text handling
             const msgSpan = document.createElement('span');
-            msgSpan.style.color = '#00ffcc'; // 使用你 UI 中的青色
+            msgSpan.style.color = '#00ffcc'; // Use the UI's cyan accent
             msgSpan.innerText = message;
 
-            // 4. 组装并添加
+            // 4. Assemble and append
             newLine.appendChild(timeSpan);
             newLine.appendChild(msgSpan);
             content.appendChild(newLine);
 
-            // 5. 性能管理：保留 300 行
+            // 5. Retain 300 lines for performance
             if (content.children.length > 300) {
                 content.removeChild(content.firstChild);
             }
 
-            // 6. 自动滚动
+            // 6. Scroll automatically
             terminal.scrollTop = terminal.scrollHeight;
         }
 
         function validateRssInput(input) {
-            // 简单的正则检查，只允许数字、逗号、负号和空格
+            // Allow only numbers, commas, minus signs, decimal points, and spaces
             const regex = /^[0-9, \-\.]+$/;
             if (input.value && !regex.test(input.value)) {
-                alert("微調整には数字とカンマ（,）のみ入力してください。");
+                alert("Fine-tuning values may contain only numbers and commas (,).");
                 input.value = "";
             }
         }
 
         async function loadAndShowPdf() {
-            // 调用 Python 暴露的 get_help_pdf 函数
-            // 注意：pywebview 会把所有暴露的函数放在 pywebview.api 下
+            // Call the get_help_pdf function exposed by Python
+            // pywebview places all exposed functions under pywebview.api
             const response = await pywebview.api.get_help_pdf();
-            
+
             if (response.status === "success") {
                 const iframe = document.getElementById('pdf-viewer');
                 const dialog = document.getElementById('pdf-dialog');
-                
-                // 使用 Base64 数据流填充 iframe
+
+                // Populate the iframe with the Base64 data stream
                 iframe.src = `data:application/pdf;base64,${response.data}`;
                 dialog.showModal();
             } else {
-                alert("无法加载 PDF: " + response.message);
+                alert("Unable to load PDF: " + response.message);
             }
         }
 

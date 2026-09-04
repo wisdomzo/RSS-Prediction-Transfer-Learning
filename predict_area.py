@@ -19,33 +19,34 @@ if APP_ROOT not in sys.path:
 
 def copy_prediction_data(source_path, target_folder='selected_folder_csv'):
     """
-    如果 source_path 存在且不为空，则拷贝文件到目标文件夹。
-    
-    参数:
-    source_path (str): 源文件路径（可能是 '' 或 None）
-    target_folder (str): 目标文件夹，默认为 'selected_folder_csv'
+    Copy a source file to the target folder when the source path is nonempty
+    and points to an existing file.
+
+    Args:
+        source_path (str): Source file path, which may be '' or None.
+        target_folder (str): Target folder. Defaults to 'selected_folder_csv'.
     """
-    
-    # 1. 预检查：如果路径为空字符串、None 或者全是空格，直接跳过
+
+    # 1. Skip empty, None, or whitespace-only paths.
     if not source_path or not str(source_path).strip():
         print("Source path is empty. Copy task skipped.")
         return False
 
-    # 2. 检查物理文件是否存在
+    # 2. Verify that the source is an existing file.
     if os.path.exists(source_path) and os.path.isfile(source_path):
         try:
-            # 3. 确保目标目录存在
+            # 3. Ensure the target directory exists.
             if not os.path.exists(target_folder):
                 os.makedirs(target_folder)
-            
-            # 4. 执行拷贝（保留元数据）
+
+            # 4. Copy the file while preserving metadata.
             file_name = os.path.basename(source_path)
             dest_path = os.path.join(target_folder, file_name)
-            
+
             shutil.copy2(source_path, dest_path)
             print(f"Copied file successfully: {file_name} -> {target_folder}")
             return True
-            
+
         except Exception as e:
             print(f"Error during copy: {e}")
             return False
@@ -75,20 +76,20 @@ def run_prediction_process(args_list):
     predictDataSelectValue = args_list[17]
 
     if not predictDataSelectValue or not str(predictDataSelectValue).strip():
-        # 网格采样逻辑
+        # Configure grid sampling.
         if lon_min == lon_max and lat_min == lat_max:
             N, M = 1, 1
         else:
             N, M = int(args_list[7]), int(args_list[8])
-        # 生成网格点
+        # Generate grid points.
         generate_grid_points(lon_min, lon_max, lat_min, lat_max, N, M, selected_folder_csv)
     else:
         copy_prediction_data(predictDataSelectValue, selected_folder_csv)
 
     try:
         main_collect_data.start_collect_logic(
-            selected_folder_csv, 
-            selected_folder_map, 
+            selected_folder_csv,
+            selected_folder_map,
             selected_folder_fun,
             frequency,
             SF,

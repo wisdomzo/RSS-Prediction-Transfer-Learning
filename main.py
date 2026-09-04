@@ -1,5 +1,5 @@
 import os
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'  # 0为显示所有，1为屏蔽INFO，2为屏蔽INFO和WARNING
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'  # 0 shows all messages, 1 suppresses INFO, and 2 suppresses INFO and WARNING.
 import sys
 import webview
 import main_collect_data
@@ -36,31 +36,32 @@ PREDICTION_RESULT_MODE_FILE = "predict_RSS_result_mode.json"
 
 def connect_to_existing_cluster(coords):
     """
-    稳健版 Dask 连接函数：
-    1. 校验输入地址
-    2. 自动补全 tcp:// 协议
-    3. 连接失败或地址为空时安全返回，触发单机模式
+    Establish a resilient Dask connection.
+
+    1. Validate the supplied address.
+    2. Add the tcp:// scheme when omitted.
+    3. Return safely on an empty address or connection failure so local mode can be used.
     """
-    # 1. 获取并清洗地址输入
+    # 1. Retrieve and normalize the address.
     raw_addr = coords.get('scheduler', "").strip()
-    
-    # 如果用户没填，直接返回 None，下游 get_client() 报错会触发单机逻辑
+
+    # Return None for an empty address; the downstream get_client() failure activates local mode.
     if not raw_addr:
         print(">>> No scheduler address was provided. Running in single-machine mode.")
         return None
 
-    # 自动处理协议头：防止用户填了 "192.168.1.1" 或重复填了 "tcp://192.168.1.1"
+    # Normalize the scheme so both "192.168.1.1" and "tcp://192.168.1.1" are accepted.
     if "://" in raw_addr:
         scheduler_addr = raw_addr
     else:
         scheduler_addr = f"tcp://{raw_addr}"
 
     try:
-        # 尝试获取已存在的客户端 (防止在一个 Session 里重复初始化)
+        # Reuse an existing client to avoid repeated initialization within one session.
         from dask.distributed import Client, get_client
         try:
             client = get_client()
-            # 检查当前连接的地址是否和用户输入的一致，如果不一致则关闭旧的开新的
+            # Replace the existing client when it is connected to a different address.
             if client.scheduler.address == scheduler_addr:
                 print(f">>> Connected to target cluster: {scheduler_addr}")
                 return client
@@ -69,7 +70,7 @@ def connect_to_existing_cluster(coords):
         except:
             pass
 
-        # 2. 准备代码提取路径 (BRIDGE_PATH)
+        # 2. Prepare the code extraction path (BRIDGE_PATH).
         important_files = [
             'subFun_TL.py', 'subFun.py', 'main_collect_data.py', 'main_multiple_processes.py',
             'predict_area.py', 'training_history_database.py', 'transfer_learning_main.py',
@@ -77,47 +78,47 @@ def connect_to_existing_cluster(coords):
         ]
 
         RAW_ROOT = get_app_root_directory()
-        # 兼容 macOS 打包后的路径
+        # Support the path layout of a packaged macOS application.
         if "Contents/Frameworks" in RAW_ROOT:
             APP_ROOT = RAW_ROOT.replace("Contents/Frameworks", "Contents/Resources")
             BRIDGE_PATH = os.path.join(os.path.expanduser("~"), "Library", "Application Support", "RSS_PredictApp", "tempPythonBridge")
             if not os.path.exists(BRIDGE_PATH): os.makedirs(BRIDGE_PATH)
-            # 物理拷贝文件到桥接路径
+            # Copy the file into the bridge path.
             for f in important_files:
                 src_f = os.path.join(APP_ROOT, f)
                 if os.path.exists(src_f): shutil.copy2(src_f, BRIDGE_PATH)
         else:
-            BRIDGE_PATH = RAW_ROOT 
+            BRIDGE_PATH = RAW_ROOT
 
-        # 3. 建立连接 (设置 5 秒超时，地址填错时能迅速返回)
+        # 3. Connect with a five-second timeout so invalid addresses fail quickly.
         print(f">>> Attempting to connect to cluster: {scheduler_addr} ...")
         client = Client(scheduler_addr, timeout="5s")
-        
-        # 4. 同步代码至远程节点
+
+        # 4. Synchronize code with the remote workers.
         for f in important_files:
             target_f = os.path.join(BRIDGE_PATH, f)
             if os.path.exists(target_f):
                 try:
-                    # upload_file 是分发脚本到远程 Worker 的核心
+                    # upload_file distributes the script to remote workers.
                     client.upload_file(target_f)
                 except Exception:
-                    # 本地 Worker 可能会因为文件占用报错，通常可以直接忽略
+                    # A local worker may report a harmless file-in-use error.
                     continue
-        
+
         print(">>> Dask cluster connected and code synchronized successfully.")
         return client
 
     except Exception as e:
-        # 无论是因为超时、IP 填错、还是网络不通，都统一拦截并打印
+        # Report timeouts, invalid IP addresses, and unreachable networks consistently.
         print(f">>> Unable to connect to cluster ({scheduler_addr}). Error: {e}")
         print(">>> Falling back to single-machine mode.")
         return None
-    
+
 class QueueLogger:
     def __init__(self, queue):
         self.queue = queue
     def write(self, message):
-        # 只要不是纯空行，就把消息丢进队列
+        # Enqueue every nonblank message.
         if message.strip():
             self.queue.put(message)
     def flush(self):
@@ -275,14 +276,14 @@ def terminate_current_model_training():
 
 class Api:
     def __init__(self):
-        # 初始时 window 可能还没创建
+        # The window may not exist during initialization.
         pass
 
     def select_files_native(self, type):
-        # 使用最新的常量和兼容的过滤器格式
+        # Use the current constant and a compatible filter format.
         if type == "csv":
             file_types = (
-                'CSV files (*.csv)', 'All files (*.*)' 
+                'CSV files (*.csv)', 'All files (*.*)'
             )
             multipleFiles = True
         elif type == "altitude":
@@ -302,8 +303,8 @@ class Api:
             multipleFiles = True
         try:
             result = window.create_file_dialog(
-                webview.FileDialog.OPEN, # 使用最新常量
-                allow_multiple=multipleFiles, 
+                webview.FileDialog.OPEN, # Use the current constant.
+                allow_multiple=multipleFiles,
                 file_types=file_types
             )
             return result
@@ -329,19 +330,19 @@ class Api:
         except Exception as e:
             print(f"Folder dialog error: {e}")
             return None
-    
+
     def start_log_proxy(self):
         from dask.distributed import Queue
-        # 确保这里的名字和 Worker 那边完全一致
-        self.remote_q = Queue("app_terminal_logs") 
-        
+        # Keep this name identical to the name used by the worker.
+        self.remote_q = Queue("app_terminal_logs")
+
         def _listen():
             while True:
                 try:
-                    msg = self.remote_q.get() # 阻塞接收
+                    msg = self.remote_q.get() # Block until a message is available.
                     print(msg) # Trigger the local WebviewLogger on machine A and forward to the GUI.
                 except: break
-                
+
         threading.Thread(target=_listen, daemon=True).start()
 
     def executeModelGeneration(self, coords):
@@ -376,20 +377,20 @@ class WebviewLogger:
 
     def write(self, message):
         self.terminal.write(message)
-        
-        # 1. 过滤掉 Keras 进度条中常见的 \r (回车符)，它会导致字符串异常断开
+
+        # 1. Remove carriage returns emitted by Keras progress bars; they can split strings unexpectedly.
         msg = message.replace('\r', '').replace('\n', '')
-        
+
         if msg.strip():
             try:
-                # 2. 【核心修复】使用 json.dumps 将 Python 字符串安全地转为 JS 字符串
-                # 它会自动处理引号、斜杠和特殊不可见字符
-                safe_msg_json = json.dumps(msg) 
-                
-                # 3. 注入 JS。注意这里不需要在 {safe_msg_json} 外面加引号了，因为 dumps 已经带了
+                # 2. Use json.dumps to encode the Python string safely as a JavaScript string.
+                # It escapes quotes, slashes, and nonprinting characters automatically.
+                safe_msg_json = json.dumps(msg)
+
+                # 3. Inject the JavaScript. safe_msg_json already includes its surrounding quotes.
                 self.window.evaluate_js(f"updateTerminal({safe_msg_json})")
             except Exception as e:
-                # 防止由于日志重定向导致的循环报错
+                # Prevent recursive errors caused by log redirection.
                 self.terminal.write(f"\nLogger Error: {str(e)}\n")
 
     def flush(self):
@@ -399,7 +400,7 @@ class WebviewLogger:
 
 
 if hasattr(sys, '_MEIPASS'):
-    # 设置 GDAL 数据路径
+    # Configure the GDAL data path.
     os.environ['GDAL_DATA'] = os.path.join(sys._MEIPASS, 'rasterio', 'gdal_data')
     os.environ['PROJ_LIB'] = os.path.join(sys._MEIPASS, 'rasterio', 'proj_data')
 
@@ -419,18 +420,18 @@ def get_resource_path(relative_path):
 
 
 def get_writable_temp_path():
-    """使用 Downloads 避开 macOS 权限封锁"""
+    """Use the Downloads directory to avoid macOS permission restrictions."""
     if getattr(sys, 'frozen', False):
         base_path = os.path.join(
-            os.path.expanduser("~"), 
-            "Library", 
-            "Application Support", 
+            os.path.expanduser("~"),
+            "Library",
+            "Application Support",
             "RSS_PredictApp",
             "tempData"
         )
     else:
         base_path = os.path.join(APP_ROOT, "tempData")
-    
+
     os.makedirs(base_path, exist_ok=True)
     return base_path
 
@@ -461,9 +462,9 @@ def load_prediction_result_mode():
         return "predictData_map"
 
 
-# 定义供前端调用的Python接口
+# Define the Python API exposed to the frontend.
 def worker_thread(coords):
-    """在后台线程中运行机器学习任务，防止卡死 UI"""
+    """Run the machine-learning task in a background thread to keep the UI responsive."""
     try:
         selected_folder_csv = get_writable_temp_path()
         DATABASE_MAP = {
@@ -483,10 +484,10 @@ def worker_thread(coords):
         else:
             print(f"Unknown database: {db_key}")
             return False
-        subFun.clean_folder_except(selected_folder_csv, "keep_nothing")  # 清理临时文件夹，保留特定前缀的文件
+        subFun.clean_folder_except(selected_folder_csv, "keep_nothing")  # Clear temporary files except those with the specified prefix.
         save_prediction_result_mode(coords.get("predictDataSelectValue", "predictData_map"))
-        
-        # 准备参数列表
+
+        # Prepare the argument list.
         if coords['predictDataSelectValue'] == "predictData_file":
             select_prediction_file_path = coords.get("prediction_file_path") or select_prediction_file(window)
         else:
@@ -499,7 +500,7 @@ def worker_thread(coords):
             coords['fixAntenna_lng'], coords['fixAntenna_lat'], coords['fixAntenna_alt'],
             coords['fixAntenna_height'], coords['moveAntenna_height'], select_prediction_file_path
         ]
-        
+
         if coords['model'] == "NICT_latest_model":
             baseModel = subFun.get_gpkg_files(os.path.join(APP_ROOT, "models"), "*NICT*")
         elif coords['model'] == "customized_model":
@@ -508,11 +509,11 @@ def worker_thread(coords):
 
         window.evaluate_js("updateProgress(30, 'Generating prediction area...')")
         predict_area.run_prediction_process(args)
-        # 获取匹配的文件列表
+        # Collect matching files.
         contentReadDataIndex = subFun.get_ML_files(selected_folder_csv, "ML_myTempExp_*")
         window.evaluate_js("updateProgress(40, 'Preparing prediction model parameters...')")
         try:
-            # 直接传入参数，不再需要 python_exe 和命令行字符串化
+            # Pass arguments directly; python_exe and command-line serialization are no longer required.
             transfer_learning_main.run_transfer_learning(
                 selected_folder_csv,
                 num_test_per = str(1),
@@ -525,7 +526,7 @@ def worker_thread(coords):
         except Exception as e:
             print(f"Transfer learning execution failed: {e}")
             raise e
-        
+
         selected_name = subFun.get_gpkg_files(selected_folder_csv, "Predict_model_for_*")
         window.evaluate_js("updateProgress(70, 'Predicting received signal strength...')")
         rxData_Altitude_TL, _, _ = subFun_TL.show_Predict_model(selected_name)
@@ -550,7 +551,7 @@ def worker_thread_modelGen(api_instance, coords, auto_download=True):
     selected_folder_csv = get_writable_temp_path()
     copy_selected_files(coords, selected_folder_csv)
     if coords['model'] != "noModel":
-        # 转移学习方法
+        # Transfer-learning workflow.
         if coords['model'] == "NICT_latest_model":
             selected_predict_model = subFun.get_gpkg_files(os.path.join(APP_ROOT, "models"), "*NICT*")
         if coords['model'] == "customized_model":
@@ -561,7 +562,7 @@ def worker_thread_modelGen(api_instance, coords, auto_download=True):
         try:
             transfer_learning_main.run_transfer_learning(
                 selected_folder_csv,
-                num_test_per = str(0.01), #对于新数据的预测比例，如果是0.01，则表示用1%的数据进行预测，剩余99%用于生成模型
+                num_test_per = str(0.01), # Fraction of new data used for prediction; 0.01 uses 1% and reserves 99% for model generation.
                 user_input = 1,
                 model_path = selected_predict_model,
                 data_index = list(range(1,len(contentReadDataIndex)+1)),
@@ -582,7 +583,7 @@ def worker_thread_modelGen(api_instance, coords, auto_download=True):
             print(f"Transfer learning execution failed: {e}")
             raise e
     else:
-        # 不使用迁移学习方法，直接生成模型
+        # Generate the model directly without transfer learning.
         contentReadDataIndex = subFun.get_ML_files(selected_folder_csv, "ML_myTempExp_*")
         window.evaluate_js("updateProgress(10, 'Generating model with machine learning. This may take some time...')")
         try:
@@ -612,33 +613,33 @@ def worker_thread_modelGen(api_instance, coords, auto_download=True):
 
 def copy_selected_files(coords, target_folder='selected_folder_csv'):
     """
-    将 coords['selectedPaths'] 中的文件拷贝到指定文件夹下。
-    
-    参数:
-    coords (dict): 包含 'selectedPaths' 键的字典，其值为路径列表。
-    target_folder (str): 目标文件夹名称，默认为 'selected_folder_csv'。
+    Copy files from coords['selectedPaths'] into the specified directory.
+
+    Args:
+        coords (dict): Dictionary whose 'selectedPaths' value is a list of paths.
+        target_folder (str): Destination directory name. Defaults to 'selected_folder_csv'.
     """
-    
-    # 1. 确保目标文件夹存在，如果不存在则创建
+
+    # 1. Create the destination directory if it does not exist.
     if not os.path.exists(target_folder):
         os.makedirs(target_folder)
         print(f"Created target folder: {target_folder}")
 
-    # 2. 获取路径列表
+    # 2. Retrieve the path list.
     selected_paths = coords.get('selectedPaths', [])
-    
+
     copy_count = 0
-    
-    # 3. 遍历并拷贝
+
+    # 3. Iterate over the paths and copy each file.
     for source_path in selected_paths:
         if os.path.exists(source_path):
-            # 获取文件名（不带路径部分）
+            # Extract the file name without its parent path.
             file_name = os.path.basename(source_path)
-            # 拼接目标完整路径
+            # Construct the complete destination path.
             dest_path = os.path.join(target_folder, file_name)
-            
+
             try:
-                # 执行拷贝 (shutil.copy 会保留权限，shutil.copy2 会尽量保留元数据如修改时间)
+                # Copy the file. shutil.copy preserves permissions; shutil.copy2 also attempts to preserve metadata such as modification time.
                 shutil.copy2(source_path, dest_path)
                 print(f"Copied successfully: {file_name}")
                 copy_count += 1
@@ -653,19 +654,19 @@ def copy_selected_files(coords, target_folder='selected_folder_csv'):
 
 def select_custom_model_file(window):
     """
-    弹出文件选择对话框，返回用户选择的 .xz 文件路径
+    Display a file-selection dialog and return the selected .xz file path.
     """
     window.evaluate_js("alert('Please select a model file (.xz format).')")
     file_types = ('Model files (*.xz)', 'All files (*.*)')
-    
-    # 弹出对话框
+
+    # Display the dialog.
     result = window.create_file_dialog(
         webview.FileDialog.OPEN,
-        allow_multiple=False, 
+        allow_multiple=False,
         file_types=file_types
     )
-    
-    # 如果用户点击了取消，result 会是 None
+
+    # result is None when the user cancels.
     if result and len(result) > 0:
         return result[0]
     return None
@@ -673,19 +674,19 @@ def select_custom_model_file(window):
 
 def select_prediction_file(window):
     """
-    弹出文件选择对话框，返回用户选择的 .csv 文件路径
+    Display a file-selection dialog and return the selected .csv file path.
     """
     window.evaluate_js("alert('Please select a prediction CSV file (.csv format).')")
     file_types = ('CSV files (*.csv)', 'All files (*.*)')
-    
-    # 弹出对话框
+
+    # Display the dialog.
     result = window.create_file_dialog(
         webview.FileDialog.OPEN,
-        allow_multiple=False, 
+        allow_multiple=False,
         file_types=file_types
     )
-    
-    # 如果用户点击了取消，result 会是 None
+
+    # result is None when the user cancels.
     if result and len(result) > 0:
         return result[0]
     return None
@@ -694,7 +695,7 @@ def select_prediction_file(window):
 
 
 def executeRssPrediction(coords):
-    """JS 接口：启动可被 Reset 终止的后台预测进程。"""
+    """JavaScript API: start a background prediction process that Reset can terminate."""
     global current_prediction_process, current_prediction_queue, prediction_monitor_thread
     terminate_current_prediction()
     coords = dict(coords)
@@ -728,17 +729,18 @@ def executeRssPrediction(coords):
 
 def executeDataProcessing(coords):
     """
-    JS 接口：直接执行逻辑。
-    由于 pywebview 调用此函数时已在独立线程中，
-    所以这里直接写逻辑，JS 端的 await 就会等待到执行结束。
+    JavaScript API: execute the operation directly.
+
+    pywebview invokes this function on a separate thread, so the operation can run
+    synchronously here while the JavaScript await waits for completion.
     """
     try:
         selected_folder_csv = get_writable_temp_path()
-        
-        # 直接调用逻辑，不使用 threading.Thread
+
+        # Invoke the operation directly without threading.Thread.
         main_collect_data.start_collect_logic(
-            selected_folder_csv, 
-            selected_folder_csv, 
+            selected_folder_csv,
+            selected_folder_csv,
             selected_folder_csv,
             float(coords['frequency']),
             int(coords['SF']),
@@ -749,21 +751,21 @@ def executeDataProcessing(coords):
             float(coords['fixAntenna_height']),
             float(coords['moveAntenna_height'])
         )
-        
+
         reset_temp_data("ML_")
 
-        user_confirmed = window.create_confirmation_dialog('提示', '他のデータを処理しますか？\n\nYes: はい\nCancel: キャンセル')
-        
-        # 返回给 JS 的结果，可以是布尔值或处理后的数据
+        user_confirmed = window.create_confirmation_dialog('Confirmation', 'Process another dataset?\n\nYes: continue\nCancel: stop')
+
+        # Return either a Boolean result or processed data to JavaScript.
         return {
-            "status": "success", 
+            "status": "success",
             "message": "Processing completed",
             "user_choice": user_confirmed
         }
-        
+
     except Exception as e:
         print(f"Execution failed: {e}")
-        # 返回错误信息，让 JS 的 try-catch 能捕获到逻辑错误
+        # Return the error so the JavaScript try-catch can handle the operation failure.
         return {"status": "error", "message": str(e)}
 
 
@@ -774,7 +776,7 @@ def get_prediction_data():
         files = glob.glob(os.path.join(folder, "predict_RSS_*.csv"))
         if not files:
             return None
-        
+
         latest_file = max(files, key=os.path.getctime)
         df = pd.read_csv(latest_file)
 
@@ -817,25 +819,25 @@ def get_prediction_data():
 
 
 def download_csv():
-    """使用 pywebview 原生对话框保存文件"""
+    """Save a file with the native pywebview dialog."""
     try:
         folder = get_writable_temp_path()
         files = glob.glob(os.path.join(folder, "predict_RSS_*.csv"))
         if not files:
             return False
-            
+
         latest_file = max(files, key=os.path.getctime)
-        
-        # 调用 pywebview 的原生保存对话框
+
+        # Open the native pywebview save dialog.
         file_path = window.create_file_dialog(
-            webview.FileDialog.SAVE, 
-            directory=os.path.expanduser("~"), 
+            webview.FileDialog.SAVE,
+            directory=os.path.expanduser("~"),
             save_filename=os.path.basename(latest_file),
             file_types=('CSV Files (*.csv)', 'All files (*.*)')
         )
 
         if file_path:
-            # 兼容不同操作系统的返回格式
+            # Support the return formats used by different operating systems.
             actual_path = file_path[0] if isinstance(file_path, (list, tuple)) else file_path
             shutil.copy(latest_file, actual_path)
             return True
@@ -848,51 +850,52 @@ def download_csv():
 def download_dataset_output():
     """Save the latest generated feature-vector output from Dataset Prep."""
     return download_model("ML_")
-    
+
 
 def download_model(file_head):
     """
-    根据指定的前缀 (file_head) 弹出对话框保存模型文件
-    :param file_head: 字符串，如 "TL_model_" 或 "ML_model_"
+    Display a dialog to save the model file matching the specified prefix (file_head).
+
+    :param file_head: Prefix string such as "TL_model_" or "ML_model_".
     """
     try:
-        # 1. 定位临时文件夹
+        # 1. Locate the temporary directory.
         folder = get_writable_temp_path()
-        
-        # 2. 搜索匹配前缀的文件（匹配所有后缀，如 .gpkg, .pth, .onnx 等）
+
+        # 2. Find files with the prefix, accepting any suffix such as .gpkg, .pth, or .onnx.
         search_pattern = os.path.join(folder, f"{file_head}*")
         files = glob.glob(search_pattern)
-        
+
         if not files:
             print(f"No model file found with prefix {file_head}")
-            # 可选：通知前端
+            # Optionally notify the frontend.
             window.evaluate_js(f"alert('Save failed: no file starting with {file_head} was found.')")
             return False
-            
-        # 3. 获取该类文件中最新生成的一个
+
+        # 3. Select the most recently generated matching file.
         latest_file = max(files, key=os.path.getctime)
         original_filename = os.path.basename(latest_file)
-        
-        # 4. 调用 pywebview 原生保存对话框
-        # 注意：部分版本使用 webview.SAVE_DIALOG，部分使用 webview.FileDialog.SAVE
+
+        # 4. Open the native pywebview save dialog.
+        # Some versions use webview.SAVE_DIALOG, while others use webview.FileDialog.SAVE.
         file_path = window.create_file_dialog(
-            webview.FileDialog.SAVE, 
-            directory=os.path.expanduser("~"), 
+            webview.FileDialog.SAVE,
+            directory=os.path.expanduser("~"),
             save_filename=original_filename,
             file_types=('Model Files (*.pkl.xz)', 'All files (*.*)')
         )
 
-        # 5. 用户确认保存路径后执行拷贝
+        # 5. Copy the file after the user confirms the destination.
         if file_path:
-            # 兼容不同系统的返回格式（str 或 list）
+            # Support platform-specific return formats (str or list).
             actual_destination = file_path[0] if isinstance(file_path, (list, tuple)) else file_path
-            
+
             shutil.copy(latest_file, actual_destination)
             print(f"Saved {original_filename} to: {actual_destination}")
             return True
-            
+
         return False
-        
+
     except Exception as e:
         print(f"Error during save: {e}")
         return False
@@ -900,29 +903,30 @@ def download_model(file_head):
 
 def upload_csv_files(file_data_list, altitude_file_data_list, building_file_data_list, landuse_file_data_list):
     """
-    现在接收的是文件路径列表 (List of strings)。
-    1. 将 Altitude 路径指向的文件复制并重命名为 fine_tuning_database_altitude.tif
-    2. 处理各路 GPKG 文件
-    3. 读取 CSV 路径并合并
+    Process lists of file paths.
+
+    1. Copy the file referenced by the Altitude path and rename it to fine_tuning_database_altitude.tif.
+    2. Process the GPKG files.
+    3. Read and merge the CSV files.
     """
     try:
-        # 获取保存路径（临时文件夹）
-        selected_folder_csv = get_writable_temp_path() 
+        # Obtain the temporary output directory.
+        selected_folder_csv = get_writable_temp_path()
         if not os.path.exists(selected_folder_csv):
             os.makedirs(selected_folder_csv)
 
-        # --- 1. 处理 Altitude TIF 文件 (此时 altitude_file_data_list 是路径列表) ---
+        # --- 1. Process the Altitude TIF file (altitude_file_data_list is a path list). ---
         if altitude_file_data_list and len(altitude_file_data_list) > 0:
-            src_path = altitude_file_data_list[0] # 取第一个文件的路径字符串
+            src_path = altitude_file_data_list[0] # Use the first file path.
             try:
                 save_path_altitude = os.path.join(selected_folder_csv, "fine_tuning_database_altitude.tif")
-                # 【核心修改】：直接从原始路径复制文件，不再需要 Base64 解码
+                # Copy directly from the source path; Base64 decoding is no longer required.
                 shutil.copy(src_path, save_path_altitude)
                 print(f"Altitude file copied to: fine_tuning_database_altitude.tif")
             except Exception as e:
                 print(f"Altitude saving error: {e}")
-        
-        # --- 2. 处理 building gpkg 文件 ---
+
+        # --- 2. Process the building GPKG file. ---
         if building_file_data_list and len(building_file_data_list) > 0:
             src_path = building_file_data_list[0]
             try:
@@ -932,7 +936,7 @@ def upload_csv_files(file_data_list, altitude_file_data_list, building_file_data
             except Exception as e:
                 print(f"Building saving error: {e}")
 
-        # --- 3. 处理 landuse gpkg 文件 ---
+        # --- 3. Process the land-use GPKG file. ---
         if landuse_file_data_list and len(landuse_file_data_list) > 0:
             src_path = landuse_file_data_list[0]
             try:
@@ -942,42 +946,42 @@ def upload_csv_files(file_data_list, altitude_file_data_list, building_file_data
             except Exception as e:
                 print(f"Landuse saving error: {e}")
 
-        # --- 4. 处理 CSV 文件列表 ---
-        all_dataframes = [] 
-        skipped_files = [] 
+        # --- 4. Process the list of CSV files. ---
+        all_dataframes = []
+        skipped_files = []
         total_dropped_rows = 0
-        
-        # 关键词定义（识别用户上传的不同列名）
+
+        # Define keywords used to recognize alternate uploaded column names.
         lon_k = ['longitude', 'lon', 'lng', 'x']
         lat_k = ['latitude', 'lat', 'y']
-        rssi_k = ['rssi', 'dn', 'predicted_value'] 
+        rssi_k = ['rssi', 'dn', 'predicted_value']
 
         for csv_path in file_data_list:
-            # csv_path 现在是字符串路径
+            # csv_path is now a path string.
             file_name = os.path.basename(csv_path)
             if not file_name.lower().endswith('.csv'):
                 continue
-            
+
             try:
-                # 【核心修改】：直接使用 pandas 读取本地路径
+                # Read the local path directly with pandas.
                 df = pd.read_csv(csv_path)
-                
+
                 cols = df.columns.tolist()
                 cols_lower = [c.lower() for c in cols]
-                
-                # 寻找匹配的列
+
+                # Find matching columns.
                 target_lon = next((cols[i] for i, c in enumerate(cols_lower) if c in lon_k), None)
                 target_lat = next((cols[i] for i, c in enumerate(cols_lower) if c in lat_k), None)
                 target_rssi = next((cols[i] for i, c in enumerate(cols_lower) if c in rssi_k), None)
-                
+
                 if not (target_lon and target_lat and target_rssi):
-                    skipped_files.append(f"{file_name} (列名不匹配)")
+                    skipped_files.append(f"{file_name} (column names do not match)")
                     continue
 
-                # 提取并清洗
+                # Extract and clean the data.
                 df_filtered = df[[target_lon, target_lat, target_rssi]].copy()
                 df_filtered.columns = ['Longitude', 'Latitude', 'RSSI']
-                
+
                 initial_len = len(df_filtered)
                 df_filtered = df_filtered.dropna(subset=['Longitude', 'Latitude', 'RSSI'])
                 total_dropped_rows += (initial_len - len(df_filtered))
@@ -985,48 +989,49 @@ def upload_csv_files(file_data_list, altitude_file_data_list, building_file_data
                 if not df_filtered.empty:
                     all_dataframes.append(df_filtered)
                 else:
-                    skipped_files.append(f"{file_name} (清洗后无有效数据)")
+                    skipped_files.append(f"{file_name} (no valid data after cleaning)")
 
             except Exception as e:
-                skipped_files.append(f"{file_name} (读取错误: {str(e)})")
+                skipped_files.append(f"{file_name} (read error: {str(e)})")
 
-        # --- 5. 合并并保存总 CSV ---
+        # --- 5. Merge and save the combined CSV file. ---
         if all_dataframes:
             combined_df = pd.concat(all_dataframes, ignore_index=True)
             save_path_total = os.path.join(selected_folder_csv, "fine_tuning_total.csv")
             combined_df.to_csv(save_path_total, index=False, encoding='utf-8')
-            
-            msg = f"已将 {len(all_dataframes)} 个文件整合为 'fine_tuning_total.csv'。"
+
+            msg = f"Combined {len(all_dataframes)} files into 'fine_tuning_total.csv'."
             if total_dropped_rows > 0:
-                msg += f"\n(剔除了 {total_dropped_rows} 条含空值的记录)"
+                msg += f"\n(Removed {total_dropped_rows} records containing null values.)"
             if skipped_files:
-                msg += "\n跳过文件: " + ", ".join(skipped_files)
-                
+                msg += "\nSkipped files: " + ", ".join(skipped_files)
+
             return {"status": "success", "message": msg}
         else:
-            return {"status": "error", "message": "未发现有效的 CSV 数据。"}
+            return {"status": "error", "message": "No valid CSV data was found."}
 
     except Exception as e:
         print(f"Fatal Upload Error: {e}")
         return {"status": "error", "message": str(e)}
-    
+
 
 def reset_temp_data(prefix_to_keep=None):
     """
-    重置时清理临时文件夹
-    :param prefix_to_keep: 需要保留的文件前缀。如果不传，默认清理所有。
+    Clear the temporary directory during reset.
+
+    :param prefix_to_keep: Prefix of files to retain. If omitted, remove all files.
     """
     try:
         terminate_current_prediction()
         terminate_current_model_training()
-        # 如果 JS 调用时没传参数，prefix_to_keep 会是 None
+        # prefix_to_keep is None when the JavaScript caller omits the argument.
         target_prefix = prefix_to_keep if prefix_to_keep is not None else "KEEP_NOTHING"
-        
+
         selected_folder_csv = get_writable_temp_path()
-        
-        # 调用 subFun 执行逻辑
-        subFun.clean_folder_except(selected_folder_csv, target_prefix) 
-        
+
+        # Delegate the operation to subFun.
+        subFun.clean_folder_except(selected_folder_csv, target_prefix)
+
         print(f"Cleanup complete. Prefix retained: {target_prefix}, path: {selected_folder_csv}")
         return True
     except Exception as e:
@@ -1035,12 +1040,12 @@ def reset_temp_data(prefix_to_keep=None):
 
 
 def get_help_pdf():
-    """读取根目录下的 guide.pdf 并转为 base64"""
-    # 确保文件名和你放在根目录下的文件名一致
-    pdf_path = os.path.join(APP_ROOT, 'assets/fine_tuning_guide.pdf') 
-    
+    """Read guide.pdf from the project root and encode it as Base64."""
+    # Keep this file name synchronized with the file stored in the project root.
+    pdf_path = os.path.join(APP_ROOT, 'assets/fine_tuning_guide.pdf')
+
     if not os.path.exists(pdf_path):
-        return {"status": "error", "message": f"未找到文件: {pdf_path}"}
+        return {"status": "error", "message": f"File not found: {pdf_path}"}
 
     try:
         with open(pdf_path, "rb") as f:
@@ -1180,14 +1185,14 @@ def download_data_analysis_svg():
 
 def download_data_analysis_png():
     return download_analysis_output("png")
-    
+
 
 def start_logic():
     # Start in a resizable normal window; the UI expands to a three-column layout when the user maximizes it.
-    # 重定向标准输出
+    # Redirect standard output.
     sys.stdout = WebviewLogger(window)
-    # 执行初始化
-    # 定义 ANSI 颜色转义字符
+    # Perform initialization.
+    # Define ANSI color escape sequences.
     print("Initializing Application...")
     reset_temp_data()
     print("System environment check complete...")
@@ -1199,20 +1204,20 @@ def main():
     global window
     api = Api()
 
-    # 获取HTML入口文件的绝对路径（适配打包前后）。
-    # 默认使用新版产品套件；需要回退旧界面时可设置 ASSET_UI_ENTRY=web/index.html。
+    # Resolve the absolute HTML entry-point path for source and packaged execution.
+    # Use the product suite by default; set ASSET_UI_ENTRY=web/index.html to restore the legacy UI.
     ui_entry = os.environ.get("ASSET_UI_ENTRY", "web/app-suite.html")
     html_path = get_resource_path(ui_entry)
-    
-    # 配置PyWebView窗口（可自定义大小、标题、是否可缩放等）
+
+    # Configure the PyWebView window, including its size, title, and resizability.
     window = webview.create_window(
-        title="ASSET Framework",  # 窗口标题
-        url=html_path,               # 加载你的HTML文件
+        title="ASSET Framework",  # Window title.
+        url=html_path,               # HTML file to load.
         js_api=api,
-        resizable=True               # 是否允许缩放
+        resizable=True               # Allow window resizing.
     )
 
-    # 暴露Python函数给前端JS（关键！）
+    # Expose Python functions to the frontend JavaScript.
     window.expose(executeRssPrediction)
     window.expose(get_prediction_data)
     window.expose(download_csv)
@@ -1227,7 +1232,7 @@ def main():
     window.expose(download_data_analysis_svg)
     window.expose(download_data_analysis_png)
 
-    # 启动窗口（Mac下用webkit引擎）
+    # Start the window with the WebKit engine on macOS.
     webview.start(start_logic, debug=False, gui='webkit2')
 
 if __name__ == "__main__":

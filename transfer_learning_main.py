@@ -30,7 +30,7 @@ if APP_ROOT not in sys.path:
 
 
 def run_transfer_learning(selected_folder_csv, num_test_per, user_input, model_path, data_index, content_data_index, learning_type=None, api_instance=None, freeze_layer=9, learning_rate=1e-4, train_judge_model=False):
-    #读取数据
+    # Read data.
     # region
     numTestPer_TL = float(num_test_per)
     history_model_index = user_input
@@ -40,7 +40,7 @@ def run_transfer_learning(selected_folder_csv, num_test_per, user_input, model_p
     readDataIndex_TL = data_index_for_TL
     dataPath = history_model_name
 
-    #读取历史模型
+    # Read the historical model.
     with lzma.open(dataPath, 'rb') as saveFile:
         dataStrick = pickle.load(saveFile)
     numNetworks = dataStrick['numNetworks']
@@ -53,7 +53,7 @@ def run_transfer_learning(selected_folder_csv, num_test_per, user_input, model_p
     numCore3 = dataStrick['numCore3']
     del dataStrick
 
-    #读取数据
+    # Read data.
     readDataIndex = data_index_for_TL
     for i, arg in enumerate(readDataIndex):
         globals()[f'origFV_{arg}'], globals()[f'origTV_{arg}'], globals()[
@@ -64,24 +64,24 @@ def run_transfer_learning(selected_folder_csv, num_test_per, user_input, model_p
     init_origTV_TL = np.concatenate([globals()[f'origTV_{i}'] for i in readDataIndex_TL], axis=1)
     init_origRxData_Altitude_TL = pd.concat([globals()[f'origRxData_Alt_{i}'] for i in readDataIndex_TL], axis=0)
     if numTestPer_TL == 1:
-        # 预测模式不需要增强，直接使用原始数据进行预测
+        # Prediction mode uses the original data directly without augmentation.
         origFV_TL, origTV_TL, origRxData_Altitude_TL = init_origFV_TL, init_origTV_TL, init_origRxData_Altitude_TL
     else:
-        # 信道可逆性补强：中心对称翻转增强
+        # Reinforce channel reciprocity through centrosymmetric-flip augmentation.
         origFV_TL, origTV_TL, origRxData_Altitude_TL = subFun.augment_centrosymmetric(init_origFV_TL, init_origTV_TL, init_origRxData_Altitude_TL)
 
-    # 打乱元素顺序
+    # Shuffle sample order.
     numSample_TL = origFV_TL.shape[3]
     randIndex_TL = np.random.permutation(numSample_TL)
     FV_TL = origFV_TL[:, :, :, randIndex_TL]
     TV_TL = origTV_TL[:, randIndex_TL].T
     rxData_Altitude_TL = origRxData_Altitude_TL.iloc[randIndex_TL, :]
 
-    # 指定训练特征
+    # Select training features.
     FV_TL, Q_TL = subFun_TL.selectProperty(markVector, FV_TL)
 
     ##########
-    #设定训练，验证，测试等数据数据 for Model Generation
+    # Prepare training, validation, and test datasets for model generation.
     ##########
     # region
     #numTestPer_TL = 0.9
@@ -119,7 +119,7 @@ def run_transfer_learning(selected_folder_csv, num_test_per, user_input, model_p
         )
         print("Linear prediction...Done.")
 
-        # --- 第一阶段：训练 numNetworks 个专家 ---
+        # --- Stage 1: Train numNetworks expert models. ---
         print("\nDeep neural network prediction...Start.")
         # predictRSSI_TL is model
         predictRSSI_TL = [{} for _ in range(numNetworks)]
@@ -128,9 +128,9 @@ def run_transfer_learning(selected_folder_csv, num_test_per, user_input, model_p
 
         should_train_judge = learning_type == "type_TL" and train_judge_model
         if should_train_judge:
-            # 中场休息，等待所有专家训练完成并清理资源
+            # Wait for every expert to finish training, then release intermediate resources.
             subFun.barrier_and_cleanup(futures_to_wait=predictRSSI_TL)
-            # --- 第二阶段：训练裁判 ---
+            # --- Stage 2: Train the judge model. ---
             print("Judge model training...Start.")
             judge_model = subFun_TL.trainJudgeModel_cnn(numNetworks, historyModels, FV_forTraining_TL, TV_forTraining_TL, rxData_Altitude_forTraining_TL, numCore1, numCore2, numCore3, learning_type, freeze_layer, learning_rate)
             print("Judge model training...Done.")
@@ -143,12 +143,12 @@ def run_transfer_learning(selected_folder_csv, num_test_per, user_input, model_p
         to_save = {}
         exclude_prefixes = (
             '__', 'FV', 'TV', 'init_', 'orig', 'rxData_', 'test', 'valIndex',
-            'trainIndex', 'tempSqr', 'readDataIndex', 'content_data_index', 
-            'randIndex', 'data_index', 'arg', 'i', 'numSample', 'Q', 'numVal', 
+            'trainIndex', 'tempSqr', 'readDataIndex', 'content_data_index',
+            'randIndex', 'data_index', 'arg', 'i', 'numSample', 'Q', 'numVal',
             'numTest', 'machineLearningData', 'to_save'
         )
         to_save.update({
-            k: v for k, v in locals().items() 
+            k: v for k, v in locals().items()
             if not k.startswith(exclude_prefixes) and subFun.is_picklable(v)
         })
         with lzma.open(save_file_path, 'wb') as saveFile:
@@ -156,13 +156,13 @@ def run_transfer_learning(selected_folder_csv, num_test_per, user_input, model_p
         for key in list(globals().keys()):
             if key.startswith('orig') and not key.startswith('__'):
                 del globals()[key]
-        del to_save 
+        del to_save
         import gc
         gc.collect()
         #########
         print("\nSaving model...Done.")
     elif numTestPer_TL == 1:
-        #TBD追缴n系列空间渐衰预测
+        # TODO: Add spatial-decay prediction for the n-series models.
         predictRSSI_TL = historyModels
         judge_model = judge_model
         print("\nSaving model...Start.")
@@ -170,19 +170,19 @@ def run_transfer_learning(selected_folder_csv, num_test_per, user_input, model_p
         #########
         to_save = {}
         allowed_prefixes = (
-            'numNetworks', 
-            'Pt', 
-            'testDistance_TL', 
-            'predictRSSI_TL', 
-            'testData_TL', 
-            'rxData_Altitude_TL', 
+            'numNetworks',
+            'Pt',
+            'testDistance_TL',
+            'predictRSSI_TL',
+            'testData_TL',
+            'rxData_Altitude_TL',
             'testRulData_TL',
             'judge_model'
         )
         to_save.update({
-            k: v for k, v in locals().items() 
-            if not k.startswith('__') and 
-            k.startswith(allowed_prefixes) and  # 只要匹配元组中任意一个即可
+            k: v for k, v in locals().items()
+            if not k.startswith('__') and
+            k.startswith(allowed_prefixes) and  # Accept a match against any prefix in the tuple.
             subFun.is_picklable(v)
         })
         with lzma.open(save_file_path, 'wb') as saveFile:
@@ -190,7 +190,7 @@ def run_transfer_learning(selected_folder_csv, num_test_per, user_input, model_p
         for key in list(globals().keys()):
             if key.startswith('orig') and not key.startswith('__'):
                 del globals()[key]
-        del to_save 
+        del to_save
         import gc
         gc.collect()
         #########
@@ -201,7 +201,7 @@ def run_transfer_learning(selected_folder_csv, num_test_per, user_input, model_p
 
 
 if __name__ == "__main__":
-    # 保留命令行调用能力
+    # Retain command-line invocation support.
     import sys
-    # 解析命令行参数的逻辑...
+    # Command-line argument parsing logic.
     # run_transfer_learning(...)

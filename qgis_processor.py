@@ -7,7 +7,7 @@ import platform
 
 if platform.system() == "Darwin":
     print("macOS system detected.")
-    # 1. 设置 QGIS 环境
+    # 1. Configure the QGIS environment.
     qgis_path = "/Applications/QGIS-LTR.app/Contents"
     os.environ['QGIS_PREFIX_PATH'] = f"{qgis_path}/MacOS"
     sys.path.extend([
@@ -16,13 +16,13 @@ if platform.system() == "Darwin":
         f"{qgis_path}/Resources/python/qgis"
     ])
 
-    # 2. 初始化 Processing
+    # 2. Initialize QGIS Processing.
     from qgis.analysis import QgsNativeAlgorithms
     QgsApplication.setPrefixPath(f"{qgis_path}/MacOS", True)
     qgs = QgsApplication([], False)
     qgs.initQgis()
 
-    # 3. 导入 Processing
+    # 3. Import and initialize Processing.
     import processing
     from processing.core.Processing import Processing
     Processing.initialize()
@@ -33,21 +33,21 @@ if platform.system() == "Darwin":
 
 if platform.system() == "Linux":
     print("Linux Raspberry Pi system detected.")
-    # 1. 设置 QGIS 环境（树莓派路径）
-    qgis_path = "/usr"  # 树莓派默认安装路径
+    # 1. Configure the QGIS environment for Raspberry Pi paths.
+    qgis_path = "/usr"  # Default Raspberry Pi installation path.
     os.environ['QGIS_PREFIX_PATH'] = qgis_path
     sys.path.extend([
         "/usr/share/qgis/python",
-        "/usr/lib/python3/dist-packages",  # 关键：PyQGIS 模块路径
-        "/usr/share/qgis/python/plugins",  # 关键：Processing 插件路径
+        "/usr/lib/python3/dist-packages",  # Required PyQGIS module path.
+        "/usr/share/qgis/python/plugins",  # Required Processing plugin path.
     ])
 
-    # 2. 初始化 QGIS 应用
+    # 2. Initialize the QGIS application.
     QgsApplication.setPrefixPath(qgis_path, True)
     qgs = QgsApplication([], False)
     qgs.initQgis()
 
-    # 3. 初始化 Processing
+    # 3. Initialize QGIS Processing.
     from qgis.analysis import QgsNativeAlgorithms
 
     try:
@@ -68,24 +68,24 @@ if platform.system() == "Linux":
 if platform.system() == "Windows":
     print("Windows system detected.")
 
-    # 1. 设置 QGIS 环境
-    # 默认安装路径（根据你的QGIS版本调整）
-    qgis_path = r"C:\Program Files\QGIS 3.40.5"  # 替换3.xx为你的QGIS版本号
+    # 1. Configure the QGIS environment.
+    # Default installation path; adjust it for the installed QGIS version.
+    qgis_path = r"C:\Program Files\QGIS 3.40.5"  # Replace 3.xx with the installed QGIS version.
 
     os.environ['QGIS_PREFIX_PATH'] = os.path.join(qgis_path, "apps", "qgis-ltr")
     sys.path.extend([
         os.path.join(qgis_path, "apps", "qgis-ltr", "python"),
         os.path.join(qgis_path, "apps", "qgis-ltr", "python", "plugins"),
-        os.path.join(qgis_path, "apps", "Python312", "Lib", "site-packages")  # 替换XX为Python版本号
+        os.path.join(qgis_path, "apps", "Python312", "Lib", "site-packages")  # Replace XX with the installed Python version.
     ])
 
-    # 2. 初始化 QGIS 应用
+    # 2. Initialize the QGIS application.
     from qgis.core import QgsApplication
     QgsApplication.setPrefixPath(os.path.join(qgis_path, "apps", "qgis-ltr"), True)
     qgs = QgsApplication([], False)
     qgs.initQgis()
 
-    # 3. 导入并初始化 Processing
+    # 3. Import and initialize Processing.
     from qgis.analysis import QgsNativeAlgorithms
     import processing
     from processing.core.Processing import Processing
@@ -95,22 +95,22 @@ if platform.system() == "Windows":
 
 
 def process_data(csv_path, gpkg_path, output_path):
-    # 加载 CSV（确保有 X/Y 列）
+    # Load the CSV and require X/Y coordinate columns.
     csv_uri = (
         f"file://{csv_path}?"
-        "delimiter=,&"  # 分隔符（逗号）
-        "xField=Longitude&"  # 经度字段名（可替换为你的实际列名）
-        "yField=Latitude&"  # 纬度字段名
-        "crs=EPSG:6668&"  # 坐标系（WGS84）
-        "encoding=UTF-8"  # 文件编码
+        "delimiter=,&"  # Comma delimiter.
+        "xField=Longitude&"  # Longitude field; replace with the actual column name if needed.
+        "yField=Latitude&"  # Latitude field.
+        "crs=EPSG:6668&"  # Coordinate reference system (WGS84).
+        "encoding=UTF-8"  # File encoding.
     )
     csv_layer = QgsVectorLayer(csv_uri, "orig_CSV", "delimitedtext")
     if not csv_layer.isValid():
         print("Error: CSV loading failed.")
         return
 
-    # 加载GPKG文件（自动加载第一个图层）
-    gpkg_layer = QgsVectorLayer(gpkg_path, "open_map", "ogr")  # 不指定图层名
+    # Load the GPKG file; the first layer is selected automatically.
+    gpkg_layer = QgsVectorLayer(gpkg_path, "open_map", "ogr")  # No explicit layer name.
     if not gpkg_layer.isValid():
         print("Error: GPKG loading failed.")
         return
@@ -118,7 +118,7 @@ def process_data(csv_path, gpkg_path, output_path):
         print(f"GPKG layer loaded successfully: {gpkg_layer.name()}")
 
 
-    # 修复几何（关键步骤）
+    # Repair geometries when this optional processing step is enabled.
     #fixed_result = processing.run("native:fixgeometries", {
     #    'INPUT': gpkg_layer,
     #    'METHOD': 0,
@@ -127,7 +127,7 @@ def process_data(csv_path, gpkg_path, output_path):
     #fixed_layer = fixed_result['OUTPUT']
 
 
-    # 创建空间索引（添加错误处理）
+    # Create spatial indexes with error handling.
     try:
         processing.run("native:createspatialindex", {'INPUT': csv_layer})
         processing.run("native:createspatialindex", {'INPUT': gpkg_layer})
@@ -135,13 +135,13 @@ def process_data(csv_path, gpkg_path, output_path):
         print(f"Spatial index creation failed: {str(e)}")
 
 
-    # 执行按位置连接
+    # Join attributes by location.
     join_params = {
-        'INPUT': csv_layer,  # 可以直接使用图层对象
+        'INPUT': csv_layer,  # A layer object can be passed directly.
         'JOIN': gpkg_layer,
-        'PREDICATE': [5],  # 5=相交
-        'JOIN_FIELDS': [],  # 所有字段
-        'METHOD': 2,  # 创建匹配要素0=创建匹配要素（多对一），1=仅保留匹配要素（一对一）2=仅采用重叠最大的要素属性（一对一）
+        'PREDICATE': [5],  # 5 = intersects.
+        'JOIN_FIELDS': [],  # Include all fields.
+        'METHOD': 2,  # 0=create separate features (one-to-many), 1=first match only (one-to-one), 2=largest overlap only (one-to-one).
         'DISCARD_NONMATCHING': False,
         'OUTPUT': 'memory:joined_layer'
     }
@@ -150,13 +150,13 @@ def process_data(csv_path, gpkg_path, output_path):
         join_result = processing.run("qgis:joinattributesbylocation", join_params)
         joined_layer = join_result['OUTPUT']
 
-        # 使用 QgsVectorFileWriter 导出 CSV
+        # Export the CSV with QgsVectorFileWriter.
         options = QgsVectorFileWriter.SaveVectorOptions()
         options.driverName = "CSV"
         options.fileEncoding = "UTF-8"
-        #options.layerOptions = ["GEOMETRY=AS_XYZ"]  # 如果需要保留坐标
+        #options.layerOptions = ["GEOMETRY=AS_XYZ"]  # Enable this option to retain coordinates.
 
-        # 执行导出
+        # Perform the export.
         transform_context = QgsProject.instance().transformContext()
         result = QgsVectorFileWriter.writeAsVectorFormatV3(
             joined_layer,

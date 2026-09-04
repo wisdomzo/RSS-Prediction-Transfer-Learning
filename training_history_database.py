@@ -24,32 +24,32 @@ if APP_ROOT not in sys.path:
 def get_optimized_num_networks():
     total_logical_cores = multiprocessing.cpu_count()
     sys_platform = platform.system()
-    
-    # 默认值（防止意外情况）
+
+    # Default value for unexpected platforms or configurations.
     target_count = total_logical_cores
 
     if sys_platform == 'Linux':
-        # Linux 通常是服务器，倾向于多用资源，但设置上限
+        # Linux usually runs on a server, so use more resources while retaining the global cap.
         target_count = total_logical_cores * 1.0
-        
+
     elif sys_platform == 'Darwin':  # macOS
-        # 检查是否为 Apple Silicon (M1/M2/M3/M4)
-        # 也可以通过 platform.processor() == 'arm' 判断
+        # Detect Apple Silicon (M1/M2/M3/M4).
+        # platform.processor() == 'arm' is an alternative check.
         is_apple_silicon = os.uname().machine.startswith('arm')
-        
+
         if is_apple_silicon:
-            # M2 Pro 核心都是实打实的，建议保留 2 个核心给系统，其余 80% 用于计算
-            # 这样既不会让系统卡顿，也能充分利用 P-Core
+            # Reserve two Apple Silicon cores for the system and use 80% of the remainder.
+            # This limits system contention while making effective use of performance cores.
             target_count = (total_logical_cores - 2) * 0.8
         else:
-            # Intel Mac 带有超线程，使用总线程数的 75% 左右，或者物理核的 1.2 倍
+            # Intel Macs use Hyper-Threading; target approximately 1.2 times the physical core count.
             target_count = (total_logical_cores / 2) * 1.2
-            
+
     elif sys_platform == 'Windows':
-        # Windows 同样建议参考物理核心数
-        target_count = total_logical_cores * 0.6  # 比较稳妥的折中方案
-    
-    # 统一计算：向下取整，限制在 1 到 30 之间
+        # On Windows, estimate capacity from the physical-core equivalent.
+        target_count = total_logical_cores * 0.6  # Conservative utilization compromise.
+
+    # Round down and clamp the result to the range 1 through 30.
     res = int(np.floor(target_count))
     return max(1, min(30, res))
 
@@ -60,13 +60,13 @@ def get_optimized_num_networks():
 
 def run_training_history_database(selected_folder_csv, numCore1, numCore2, numCore3, numTestPer, data_index, content_data_index, learning_type=None, api_instance=None):
     ##########
-    #读取数据
+    # Read data.
     ##########
     # region
-    #城市类型：0是【地表】，1是【城市】，2是【郊区】，3是【小镇】，4是【农村】
+    # City types: 0=surface, 1=urban, 2=suburban, 3=town, 4=rural.
     seed_value = 6666
     np.random.seed(seed_value)
-    K = 5 #图片维度。0代表海拔+建筑物高层。1代表梯度。2代表城市类型。3代表SF(or 频率)。4代表步长。
+    K = 5 # Image channels: 0=elevation + building height, 1=gradient, 2=city type, 3=SF (or frequency), 4=step length.
     numNetworks = get_optimized_num_networks()
     readDataIndex = data_index
     for i, arg in enumerate(readDataIndex):
@@ -76,17 +76,17 @@ def run_training_history_database(selected_folder_csv, numCore1, numCore2, numCo
     init_origFV = np.concatenate([globals()[f'origFV_{i}'] for i in readDataIndex], axis=3)
     init_origTV = np.concatenate([globals()[f'origTV_{i}'] for i in readDataIndex], axis=1)
     init_origRxData_Altitude = pd.concat([globals()[f'origRxData_Alt_{i}'] for i in readDataIndex], axis=0)
-    # 信道可逆性补强：中心对称翻转增强
+    # Reinforce channel reciprocity through centrosymmetric-flip augmentation.
     origFV, origTV, origRxData_Altitude = subFun.augment_centrosymmetric(init_origFV, init_origTV, init_origRxData_Altitude)
 
-    # 打乱元素顺序
+    # Shuffle sample order.
     numSample = origFV.shape[3]
     randIndex = np.random.permutation(numSample)
     FV = origFV[:, :, :, randIndex]
     TV = origTV[:, randIndex].T
     rxData_Altitude = origRxData_Altitude.iloc[randIndex, :]
 
-    # 指定训练特征
+    # Select training features.
     markAltitude = 1
     mark3DBuilding = 1
     markCityType = 1
@@ -97,7 +97,7 @@ def run_training_history_database(selected_folder_csv, numCore1, numCore2, numCo
     # endregion
 
     ##########
-    #设定训练，验证，测试等数据数据 for Model Generation
+    # Prepare training, validation, and test datasets for model generation.
     ##########
     # region
     numTest = int(np.floor(numSample * numTestPer))
@@ -140,12 +140,12 @@ def run_training_history_database(selected_folder_csv, numCore1, numCore2, numCo
     to_save = {}
     exclude_prefixes = (
         '__', 'FV', 'TV', 'init_', 'orig', 'rxData_', 'test', 'valIndex',
-        'trainIndex', 'tempSqr', 'readDataIndex', 'content_data_index', 
-        'randIndex', 'data_index', 'arg', 'i', 'numSample', 'Q', 'numVal', 
+        'trainIndex', 'tempSqr', 'readDataIndex', 'content_data_index',
+        'randIndex', 'data_index', 'arg', 'i', 'numSample', 'Q', 'numVal',
         'numTest', 'machineLearningData', 'to_save'
     )
     to_save.update({
-        k: v for k, v in locals().items() 
+        k: v for k, v in locals().items()
         if not k.startswith(exclude_prefixes) and subFun.is_picklable(v)
     })
     with lzma.open(save_file_path, 'wb') as saveFile:
@@ -153,7 +153,7 @@ def run_training_history_database(selected_folder_csv, numCore1, numCore2, numCo
     for key in list(globals().keys()):
         if key.startswith('orig') and not key.startswith('__'):
             del globals()[key]
-    del to_save 
+    del to_save
     import gc
     gc.collect()
     #########
@@ -164,7 +164,7 @@ def run_training_history_database(selected_folder_csv, numCore1, numCore2, numCo
 
 
 ##########
-#训练模型和预测数据
+# Train the model and predict data.
 ##########
 # region
 if __name__ == '__main__':

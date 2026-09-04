@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# --- 配置区 ---
-# 获取命令行传入的第一个参数作为版本号
+# --- Configuration ---
+# Use the first command-line argument as the version number
 VERSION=$1
 
 OS=$(uname)
@@ -21,7 +21,7 @@ else
     BASE_NAME="RSS_Predictor_Unknown"
 fi
 
-# --- 核心修改：处理版本号后缀 ---
+# --- Core update: handle the version suffix ---
 if [ -n "$VERSION" ]; then
     APP_NAME="${BASE_NAME}_${VERSION}"
 else
@@ -32,14 +32,14 @@ MAIN_SCRIPT="main.py"
 ICON_FILE="wave.icns"
 echo "APP_NAME=${APP_NAME}"
 
-echo "🚀 开始打包流程: $APP_NAME"
+echo "🚀 Starting packaging process: $APP_NAME"
 
-# 1. 清理旧的构建文件
-echo "🧹 正在清理旧的 build 和 dist 文件夹..."
+# 1. Clean old build files
+echo "🧹 Cleaning old build and dist directories..."
 rm -rf build dist *.spec
 
-# 2. 执行 PyInstaller 打包命令 (保持不变)
-echo "📦 正在调用 PyInstaller 进行打包 (这可能需要几分钟)..."
+# 2. Run the PyInstaller packaging command (unchanged)
+echo "📦 Running PyInstaller packaging (this may take a few minutes)..."
 
 pyinstaller --noconfirm --onedir --windowed \
   --icon="$ICON_FILE" \
@@ -78,11 +78,11 @@ pyinstaller --noconfirm --onedir --windowed \
   --collect-all "fiona" \
   "$MAIN_SCRIPT"
 
-# 3. 检查打包结果
+# 3. Check the packaging result
 if [ $? -eq 0 ]; then
-    echo "✅ 打包成功！"
-    echo "📂 应用位置: $(pwd)/dist/$APP_NAME"
+    echo "✅ Packaging completed successfully."
+    echo "📂 Application location: $(pwd)/dist/$APP_NAME"
 else
-    echo "❌ 打包失败，请检查上方报错信息。"
+    echo "❌ Packaging failed. Review the error messages above."
     exit 1
 fi

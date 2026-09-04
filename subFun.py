@@ -31,42 +31,42 @@ def integrateExpData(exp_data_path):
 
     for file_name in csv_files:
         try:
-            # 1. 探测列名
-            full_df = pd.read_csv(file_name, nrows=0) # nrows=0 比 nrows=1 更快，只读表头
+            # 1. Detect column names.
+            full_df = pd.read_csv(file_name, nrows=0) # nrows=0 reads only the header and is faster than nrows=1.
             columns_lower = [col.lower() for col in full_df.columns]
-            
-            # 2. 检查列是否存在
+
+            # 2. Verify that the required columns exist.
             if not all(k in columns_lower for k in ['latitude', 'longitude', 'rssi']):
                 print(f"File {file_name} is missing required columns and was skipped.")
                 continue
 
-            # 3. 获取原始列名映射
-            # 这样可以确保无论 CSV 里这三列在什么位置，都能准确提取
+            # 3. Build a mapping from the original column names.
+            # This extracts all three columns correctly regardless of their positions in the CSV file.
             name_map = {
                 full_df.columns[columns_lower.index('latitude')]: 'Latitude',
                 full_df.columns[columns_lower.index('longitude')]: 'Longitude',
                 full_df.columns[columns_lower.index('rssi')]: 'RSSI'
             }
 
-            # 4. 只读取需要的列
+            # 4. Read only the required columns.
             temp_df = pd.read_csv(
                 file_name,
                 usecols=list(name_map.keys()),
                 dtype='float64'
-            ).dropna(how='any') # 只要经纬度或RSSI有一个为空，这一行就没意义
+            ).dropna(how='any') # Discard rows missing longitude, latitude, or RSSI.
 
-            # 5. 【关键修复】使用 rename 而不是直接覆盖 columns
-            # rename 会根据“键值对”匹配列名，不会受原始顺序影响
+            # 5. Rename columns by mapping instead of overwriting columns positionally.
+            # rename matches source and destination names without depending on the original order.
             temp_df = temp_df.rename(columns=name_map)
 
-            # 6. 统一列顺序，确保 concat 时不会出错
+            # 6. Standardize column order before concatenation.
             temp_df = temp_df[['Latitude', 'Longitude', 'RSSI']]
 
-            # 7. 合并与去重
+            # 7. Merge and remove duplicates.
             if fin_data.empty:
                 fin_data = temp_df
             else:
-                # 使用 drop_duplicates 可能比 isin 更高效（视数据量而定）
+                # drop_duplicates can be more efficient than isin, depending on the dataset size.
                 fin_data = pd.concat([fin_data, temp_df], ignore_index=True)
                 fin_data = fin_data.drop_duplicates().reset_index(drop=True)
 
@@ -80,10 +80,10 @@ def integrateExpData(exp_data_path):
 
 
 def backup_integrateExpData(exp_data_path):
-    # 获取指定路径下的所有 CSV 文件
+    # Find all CSV files under the specified path.
     csv_files = sorted(glob(os.path.join(exp_data_path, '*.csv')))
 
-    fin_data = pd.DataFrame()  # 初始化空的 DataFrame
+    fin_data = pd.DataFrame()  # Initialize an empty DataFrame.
 
     for i in range(len(csv_files)):
         fileName = csv_files[i]
@@ -120,18 +120,18 @@ def backup_integrateExpData(exp_data_path):
 
 
 def oneGrid(D, FresnelR_H, N, M, exM, kapa):
-    #N是NxN个方阵，M是TxRx之间连线的抽样数
+    # N defines an N-by-N matrix; M is the number of samples along the Tx-Rx path.
     numEx = int(np.floor(M * kapa))
     tempMatrix = np.zeros((N, M), dtype=complex)
     exTxRxMatrix_Tx = np.zeros((N, numEx), dtype=complex)
     exTxRxMatrix_Rx = np.zeros((N, numEx), dtype=complex)
     for count1 in range(N):
-        #计算主体
+        # Compute the central region.
         for count2 in range(M):
             x = (2 * count2 - 1) / (2 * M) * D
             y = (1 + 1 / N - (2 * count1) / N) * FresnelR_H
             tempMatrix[count1, count2] = x + 1j * y
-        #计算前后背景
+        # Compute the surrounding context before and after the central region.
         for k in range(numEx):
             xEx_Tx = (1 / (2 * M) - (numEx + 1 - k) / M) * D
             xEx_Rx = (1 - 1 / (2 * M) + k / M) * D
@@ -205,7 +205,7 @@ def calMaxFresnelZoneRadius(frequency_MHz, visualAngle, Tx_longitude, Tx_latitud
 
 def formatMap(frequency_MHz, visualAngle, Tx_longitude, Tx_latitude, Tx_altitude, Tx_antennaHeight, Rx_longitude, Rx_latitude, Rx_altitude, Rx_antennaHeight, N, M, exM, kapa):
     #longitude is x; latitude is y
-    #求旋转后坐标
+    # Compute the rotated coordinates.
     FresnelR_H, FresnelR_V, disBtwTxRx = calMaxFresnelZoneRadius(
         frequency_MHz, visualAngle, Tx_longitude, Tx_latitude, Tx_altitude, Tx_antennaHeight,
         Rx_longitude, Rx_latitude, Rx_altitude, Rx_antennaHeight
@@ -214,14 +214,14 @@ def formatMap(frequency_MHz, visualAngle, Tx_longitude, Tx_latitude, Tx_altitude
     px, py, pz = position['x'], position['y'], position['z']
     rotatedXYZ = np.concatenate((px.reshape(1,-1), py.reshape(1,-1), pz.reshape(1,-1)), axis=0)
 
-    #求反向旋转矩阵invH
+    # Compute the inverse rotation matrix invH.
     H = calRotateH(Tx_longitude, Tx_latitude, Tx_altitude, Tx_antennaHeight, Rx_longitude, Rx_latitude, Rx_altitude, Rx_antennaHeight)
     invH = np.linalg.pinv(H)
 
-    #求旋转前坐标
+    # Recover the coordinates before rotation.
     XYZ = invH @ rotatedXYZ
 
-    #转换为地球坐标系
+    # Convert to the geographic coordinate system.
     XYZ_degree = 0 * XYZ
     for count in range(XYZ.shape[1]):
         temp_x = XYZ[0, count]
@@ -257,7 +257,7 @@ def is_picklable(obj):
         return False
 
 def genFeatureVector(QGIS_output, QGIS_output_cityType, M, N, numRxData, Tx_longitude, Tx_latitude, Tx_altitude, Tx_antennaHeight, rxData_Altitude, Rx_antennaHeight):
-    #海拔
+    # Altitude.
     lon = np.reshape(QGIS_output['longitude'].values, (M * N, numRxData))
     lat = np.reshape(QGIS_output['latitude'].values, (M * N, numRxData))
     alt = np.reshape(QGIS_output['DN'].values, (M * N, numRxData))
@@ -266,24 +266,24 @@ def genFeatureVector(QGIS_output, QGIS_output_cityType, M, N, numRxData, Tx_long
     rotatedXYZMatrix = np.zeros((3, M * N, numRxData))
     for indSample in range(numRxData):
         lonLatAlt = np.array([lon[:, indSample], lat[:, indSample], alt[:, indSample]])
-        #转换米坐标
+        # Convert to meter-based coordinates.
         XYZ = lonLatAlt * 0
         for count in range(M * N):
             x, y = ll_to_meter(lonLatAlt[0, count].item(), lonLatAlt[1, count].item(), Tx_longitude, Tx_latitude)
             z = lonLatAlt[2, count].item() - (Tx_altitude + Tx_antennaHeight)
             XYZ[:, count] = [x, y, z]
-        #求变换矩阵
+        # Compute the transformation matrix.
         H = calRotateH(
             Tx_longitude, Tx_latitude, Tx_altitude, Tx_antennaHeight, rxData_Altitude['Longitude'].iloc[indSample],
             rxData_Altitude['Latitude'].iloc[indSample], rxData_Altitude['DN'].iloc[indSample], Rx_antennaHeight
         )
-        #矩阵变换
+        # Apply the matrix transformation.
         rotatedXYZ = H @ XYZ
         rotatedXYZMatrix[:,:, indSample] = rotatedXYZ
-        #绝对高度矩阵
+        # Absolute-elevation matrix.
         FV[:, indSample] = rotatedXYZ[2,:]
 
-    #城市类型
+    # Urban-area type.
     cityType = np.reshape(QGIS_output_cityType['Type'].values, (M * N, numRxData))
     return FV, cityType, rotatedXYZMatrix
 
@@ -300,17 +300,17 @@ def genTargetValue(Pt_dBm, frequency_MHz, rxData_Altitude, Tx_longitude, Tx_lati
     return TV
 
 def list_ml_files():
-    """ 列出当前目录下所有以'ML_'开头的文件 """
+    """List all files in the current directory whose names start with 'ML_'."""
     ml_files = [f for f in os.listdir('.') if f.startswith('ML_')]
     return ml_files
 
 def list_history_files():
-    """ 列出当前目录下所有以'history_'开头的文件 """
+    """List all files in the current directory whose names start with 'history_'."""
     history_files = [f for f in os.listdir('.') if f.startswith('history_model_from_')]
     return history_files
 
 def list_history_TL_files():
-    """ 列出当前目录下所有以'history_'和'TL_'开头的文件 """
+    """List files in the current directory whose names start with 'history_' or 'TL_'."""
     history_TL_files = [
         f for f in os.listdir('.')
         if f.startswith('history_model_from_') or f.startswith('TL_model_')
@@ -318,7 +318,7 @@ def list_history_TL_files():
     return history_TL_files
 
 def list_history_TL_Predict_files():
-    """ 列出当前目录下所有以'history_'和'TL_'开头的文件 """
+    """List files in the current directory whose names start with 'history_' or 'TL_'."""
     history_TL_files = [
         f for f in os.listdir('.')
         if f.startswith('history_model_from_') or f.startswith('TL_model_') or f.startswith('Predict_model_')
@@ -327,23 +327,23 @@ def list_history_TL_Predict_files():
 
 
 def list_TL_files():
-    """ 列出当前目录下所有以'TL_' """
+    """List all files in the current directory whose names start with 'TL_'."""
     TL_files = [f for f in os.listdir('.') if f.startswith('TL_')]
     return TL_files
 
 def list_Predict_files():
-    """ 列出当前目录下所有以'Predict_' """
+    """List all files in the current directory whose names start with 'Predict_'."""
     Predict_files = [f for f in os.listdir('.') if f.startswith('Predict_')]
     return Predict_files
 
 def get_user_selection(ml_files):
-    """ 让用户选择多个编号 """
+    """Prompt the user to select multiple numbered entries."""
     for idx, file in enumerate(ml_files, 1):
         print(f"{idx}: {file}")
 
-    user_input = input("请选择一个或多个文件编号进行操作（用逗号分隔）：")
+    user_input = input("Select one or more file numbers, separated by commas: ")
     selections = list(map(int, user_input.split(',')))
-    # 验证用户选择的有效性
+    # Validate the selected entries.
     for selection in selections:
         if selection < 1 or selection > len(ml_files):
             print(f"Invalid selection: {selection}")
@@ -352,11 +352,11 @@ def get_user_selection(ml_files):
 
 def get_folder_path():
     while True:
-        folder_csv_path = input("请输入csv文件夹路径: ").strip()
-        folder_map_path = input("请输入database文件夹路径: ").strip()
-        folder_fun_path = input("请输入functions文件夹路径: ").strip()
+        folder_csv_path = input("Enter the CSV directory path: ").strip()
+        folder_map_path = input("Enter the database directory path: ").strip()
+        folder_fun_path = input("Enter the functions directory path: ").strip()
 
-        # 检查路径是否存在
+        # Verify that the paths exist.
         if not os.path.exists(folder_csv_path):
             print(f"Error: path '{folder_csv_path}' does not exist. Please enter it again.")
             continue
@@ -367,7 +367,7 @@ def get_folder_path():
             print(f"Error: path '{folder_fun_path}' does not exist. Please enter it again.")
             continue
 
-        # 检查是否是文件夹
+        # Verify that each path is a directory.
         if not os.path.isdir(folder_csv_path):
             print(f"Error: '{folder_csv_path}' is not a folder. Please enter it again.")
             continue
@@ -402,26 +402,26 @@ def run_qgis_processing(csv_path, gpkg_path, output_path, fun_path):
     ])
 
 def select_gpkg_file(folder_path):
-    # 检查文件夹是否存在
+    # Verify that the directory exists.
     if not os.path.isdir(folder_path):
         print(f"Error: folder '{folder_path}' does not exist.")
         return None
 
-    # 查找所有 .gpkg 文件
+    # Find all .gpkg files.
     gpkg_files = list(Path(folder_path).glob("*.gpkg"))
     if not gpkg_files:
         print(f"No .gpkg files were found in '{folder_path}'.")
         return None
 
-    # 显示可选项
+    # Display the available choices.
     print("\nFound the following .gpkg files:")
     for i, file in enumerate(gpkg_files, 1):
         print(f"{i}. {file.name}")
 
-    # 让用户选择
+    # Prompt the user to select a file.
     while True:
         try:
-            choice = input("\n请选择文件编号 (输入 q 退出，输入 i 忽略): ").strip()
+            choice = input("\nSelect a file number (q to quit, i to ignore): ").strip()
             if choice.lower() == 'q':
                 return None
             if choice.lower() == 'i':
@@ -437,29 +437,29 @@ def select_gpkg_file(folder_path):
 
 def generate_grid_points(lon_min, lon_max, lat_min, lat_max, N, M, output_file):
     """
-    生成经纬度网格点并保存到CSV文件
+    Generate a longitude-latitude grid and save it to a CSV file.
 
-    参数:
-        lon_min: 经度最小值
-        lon_max: 经度最大值
-        lat_min: 纬度最小值
-        lat_max: 纬度最大值
-        N: 经度方向采样点数
-        M: 纬度方向采样点数
-        output_file: 输出CSV文件名
+    Args:
+        lon_min: Minimum longitude.
+        lon_max: Maximum longitude.
+        lat_min: Minimum latitude.
+        lat_max: Maximum latitude.
+        N: Number of samples along the longitude axis.
+        M: Number of samples along the latitude axis.
+        output_file: Output CSV file name.
     """
 
-    # 如果output_path是目录，自动生成文件名
+    # Generate a file name automatically when output_path is a directory.
     if os.path.isdir(output_file):
         output_file = os.path.join(output_file, "grid_points.csv")
     else:
         output_file = output_file
 
-    # 计算经度和纬度的步长
+    # Compute longitude and latitude increments.
     lon_step = (lon_max - lon_min) / (N - 1) if N > 1 else 0
     lat_step = (lat_max - lat_min) / (M - 1) if M > 1 else 0
 
-    # 生成网格点
+    # Generate the grid points.
     points = []
     point_id = 0
     for i in range(M):
@@ -467,34 +467,34 @@ def generate_grid_points(lon_min, lon_max, lat_min, lat_max, N, M, output_file):
         for j in range(N):
             lon = lon_min + j * lon_step
             point = [
-                0,  # id (默认0)
-                0,  # NodeID (默认0)
-                0,  # RouteInfo (默认0)
-                0,  # DestID (默认0)
-                0,  # SendTime (默认0)
-                0,  # SeqID (默认0)
-                0,  # RecvTime (默认0)
+                0,  # id (default: 0)
+                0,  # NodeID (default: 0)
+                0,  # RouteInfo (default: 0)
+                0,  # DestID (default: 0)
+                0,  # SendTime (default: 0)
+                0,  # SeqID (default: 0)
+                0,  # RecvTime (default: 0)
                 lat,  # Latitude
                 lon,  # Longitude
-                0,  # EncData (默认0)
-                -999  # RSSI (默认-999)
+                0,  # EncData (default: 0)
+                -999  # RSSI (default: -999)
             ]
             points.append(point)
             point_id += 1
 
-    # 确保输出目录存在
+    # Ensure that the output directory exists.
     os.makedirs(os.path.dirname(output_file), exist_ok=True)
 
-    # 写入CSV文件
+    # Write the CSV file.
     with open(output_file, 'w', newline='') as csvfile:
         writer = csv.writer(csvfile)
-        # 写入表头
+        # Write the header.
         writer.writerow([
             'id', 'NodeID', 'RouteInfo', 'DestID', 'SendTime',
             'SeqID', 'RecvTime', 'Latitude', 'Longitude',
             'EncData', 'RSSI'
         ])
-        # 写入数据
+        # Write the data rows.
         writer.writerows(points)
 
     print(f"Generated {len(points)} point(s) and saved them to {output_file}.")
@@ -511,25 +511,25 @@ def cal_Pr_free_show(Pt, fre, d, eta):
 
 
 def merge_csv_files(file_a, file_b, output_file):
-    # 1. 读取 CSV 文件 A 和 B
+    # 1. Read CSV files A and B.
     df_a = pd.read_csv(file_a)
     df_b = pd.read_csv(file_b)
 
-    # 2. 将 A 文件的 measuredHeight 列中的 null 替换为 0
+    # 2. Replace null values in file A's measuredHeight column with zero.
     df_a["measuredHeight"] = df_a["measuredHeight"].fillna(0)
-    # 将 B 文件的 DN 列中的 null 替换为相邻非空值的平均值（线性插值）
-    df_b["DN"] = df_b["DN"].interpolate(method='linear')  # 线性插值
+    # Linearly interpolate null values in file B's DN column from adjacent valid values.
+    df_b["DN"] = df_b["DN"].interpolate(method='linear')  # Linear interpolation.
 
-    # 3. 检查两文件行数是否一致（确保可以逐行相加）
+    # 3. Verify that both files have the same row count before row-wise addition.
     if len(df_a) != len(df_b):
         print("Warning: the two CSV files have different row counts, which may cause calculation errors.")
     else:
-        # 4. 将 A 的 measuredHeight 与 B 的 DN 相加，并覆盖 B 的 DN 列
+        # 4. Add file A's measuredHeight to file B's DN and replace file B's DN column.
         df_b["DN"] = df_b["DN"] + df_a["measuredHeight"]
 
-        # 5. 保存修改后的 B 文件（覆盖原文件或另存为新文件）
-        #df_b.to_csv(file_b, index=False)  # 覆盖原文件
-        df_b.to_csv(output_file, index=False)  # 或另存为新文件
+        # 5. Save the modified file B, either in place or to a separate output file.
+        #df_b.to_csv(file_b, index=False)  # Overwrite the original file.
+        df_b.to_csv(output_file, index=False)  # Save to a separate file.
 
         try:
             os.remove(file_a)
@@ -544,42 +544,42 @@ def merge_csv_files(file_a, file_b, output_file):
 
 
 def input_with_default(prompt, default):
-    user_input = input(f"{prompt}（直接回车使用默认值 {default}）: ").strip()
-    return default if not user_input else type(default)(user_input)  # 自动转换类型
+    user_input = input(f"{prompt} (press Enter to use the default {default}): ").strip()
+    return default if not user_input else type(default)(user_input)  # Convert to the default value's type.
 
 
 
 def get_gpkg_files(folder_path, pattern):
-    # 检查文件夹是否存在
+    # Verify that the directory exists.
     if not os.path.isdir(folder_path):
         print(f"Error: folder '{folder_path}' does not exist.")
         return []
 
-    # 查找所有 .gpkg 文件
-    # 使用 glob 搜索包含 "_building.gpkg" 的文件
-    # rglob 会搜索子目录，glob 只搜索当前层级
+    # Find matching .gpkg files.
+    # Use glob to find files containing "_building.gpkg".
+    # rglob searches recursively; glob searches only the current level.
     gpkg_files = list(Path(folder_path).glob(pattern))
-    # 将结果赋值给 gpkg_path_building
-    # 如果没有找到，glob 会返回空列表 []
+    # Assign the results to gpkg_path_building.
+    # glob returns an empty list when no file matches.
     gpkg_path = [str(p) for p in gpkg_files]
 
-    return gpkg_path[0] if gpkg_path else None  # 返回找到的文件路径，如果没有找到则返回 None
+    return gpkg_path[0] if gpkg_path else None  # Return the matching path, or None if no file was found.
 
 def get_ML_files(folder_path, pattern):
-    # 检查文件夹是否存在
+    # Verify that the directory exists.
     if not os.path.isdir(folder_path):
         print(f"Error: folder '{folder_path}' does not exist.")
         return []
 
-    # 查找所有 .gpkg 文件
-    # 使用 glob 搜索包含 "_building.gpkg" 的文件
-    # rglob 会搜索子目录，glob 只搜索当前层级
+    # Find matching .gpkg files.
+    # Use glob to find files containing "_building.gpkg".
+    # rglob searches recursively; glob searches only the current level.
     gpkg_files = list(Path(folder_path).glob(pattern))
-    # 将结果赋值给 gpkg_path_building
-    # 如果没有找到，glob 会返回空列表 []
+    # Assign the results to gpkg_path_building.
+    # glob returns an empty list when no file matches.
     gpkg_path = [str(p) for p in gpkg_files]
 
-    return gpkg_path if gpkg_path else None  # 返回找到的文件路径，如果没有找到则返回 None
+    return gpkg_path if gpkg_path else None  # Return the matching paths, or None if no file was found.
 
 
 class GeoQueryEngine:
@@ -591,18 +591,18 @@ class GeoQueryEngine:
 
     def sample_raster_fast(self, gdf, lon_name, lat_name):
         """
-        极速栅格采样：一次性提取所有点的高程值
+        Sample the raster efficiently by extracting elevations for all points in one operation.
         """
-        # 生成坐标对列表 [(lon1, lat1), (lon2, lat2), ...]
+        # Generate coordinate pairs: [(lon1, lat1), (lon2, lat2), ...].
         coords = zip(gdf[lon_name], gdf[lat_name])
-        # 使用 sample 批量采样，它直接返回一个生成器，速度极快
+        # Use sample for batch sampling; it returns a generator directly.
         return [float(val[0]) for val in self.raster_data.sample(coords)]
 
 def load_map_data(csv_path, map_path, output_path, pattern):
-    # 1. 读取 CSV 数据
+    # 1. Read the CSV data.
     df = pd.read_csv(csv_path)
-    
-    # --- 自动识别列名 ---
+
+    # --- Detect column names automatically. ---
     col_map = {c.lower(): c for c in df.columns}
     lon_keywords = ['longitude', 'Longitude', 'lon', 'lng', 'x']
     lat_keywords = ['latitude', 'Latitude', 'lat', 'y']
@@ -610,23 +610,23 @@ def load_map_data(csv_path, map_path, output_path, pattern):
     lat_name = next((col_map[k] for k in lat_keywords if k in col_map), None)
 
     if not lon_name or not lat_name:
-        raise KeyError("无法识别 CSV 中的经纬度列。")
+        raise KeyError("Could not identify longitude and latitude columns in the CSV file.")
 
-    # --- 转换为 GeoDataFrame ---
+    # --- Convert to a GeoDataFrame. ---
     gdf_points = gpd.GeoDataFrame(
-        df, 
+        df,
         geometry=gpd.points_from_xy(df[lon_name], df[lat_name]),
-        crs="EPSG:6668" 
+        crs="EPSG:6668"
     )
 
     pattern_lower = pattern.lower()
 
-    # 2. 核心逻辑
+    # 2. Core processing.
     if "building" in pattern_lower or "citytype" in pattern_lower:
         is_building = "building" in pattern_lower
         layer = "building" if is_building else "cityType"
         target_field = "measuredHeight" if is_building else "Type"
-        # 为 cityType 设定默认值 20，为建筑高度设定 0.0
+        # Use 20 as the default cityType and 0.0 as the default building height.
         default_val = 0.0 if is_building else 20
 
         import os
@@ -636,47 +636,47 @@ def load_map_data(csv_path, map_path, output_path, pattern):
             use_default = True
 
         if not use_default:
-            # 正常加载矢量地图逻辑
+            # Load the vector map.
             try:
                 map_gdf = gpd.read_file(map_path, layer=layer)
                 if map_gdf.crs != "EPSG:6668":
                     map_gdf = map_gdf.to_crs("EPSG:6668")
 
-                # 新逻辑
-                # 1. 执行空间连接
-                # sjoin 会保持 gdf_points 的原始索引
+                # Updated workflow.
+                # 1. Perform the spatial join.
+                # sjoin preserves the original gdf_points index.
                 result_gdf = gpd.sjoin(gdf_points, map_gdf[[target_field, 'geometry']], how="left", predicate="within")
 
-                # 2. 【核心修改】按原始索引去重，而不是按经纬度去重
-                # 这样：
-                # - 原始数据中 23 个相同经纬度的点（因为索引不同）会全部保留
-                # - 如果其中某一个点匹配到了 2 个多边形，则只保留第一个匹配结果，确保 1 对 1
+                # 2. Deduplicate by original index rather than by longitude and latitude.
+                # This has two effects:
+                # - All 23 source points at identical coordinates remain because their indices differ.
+                # - If one point matches two polygons, only the first match remains, preserving a one-to-one result.
                 result_gdf = result_gdf[~result_gdf.index.duplicated(keep='first')]
 
-                # 3. 如果需要解决 measuredHeight 只有第一行有值的问题，增加补全逻辑
-                # 这一步会根据经纬度分组，把 20.7 广播给同组所有行
+                # 3. Fill groups where measuredHeight is present only in the first row.
+                # Grouping by coordinates broadcasts a value such as 20.7 to every row in that group.
                 if 'measuredHeight' in result_gdf.columns:
                     result_gdf['measuredHeight'] = result_gdf.groupby([lat_name, lon_name])['measuredHeight'].transform('max')
 
-                # 4. 填充连接失败的缺失值
+                # 4. Fill values missing because the spatial join failed.
                 result_gdf[target_field] = result_gdf[target_field].fillna(default_val)
 
-                # 5. 转换为普通 DataFrame 并清理
+                # 5. Convert to a regular DataFrame and clean it.
                 df = pd.DataFrame(result_gdf.drop(columns=['geometry', 'index_right'], errors='ignore'))
-                # 新逻辑结束
+                # End of the updated workflow.
             except Exception as e:
                 print(f"Error while reading map: {e}. Switching to default-value mode.")
                 use_default = True
 
         if use_default:
-            # 直接给原始 df 分配默认值列
+            # Assign default-value columns directly to the original DataFrame.
             df[target_field] = default_val
-            # 这里的 df 已经是普通的 pandas DataFrame，不需要 drop geometry
+            # df is already a pandas DataFrame, so no geometry column needs to be dropped.
 
-        # --- 统一后期处理 ---
+        # --- Common post-processing. ---
         if not is_building:
             df[target_field] = df[target_field].astype(int)
-            # 如果列名不是 "Type"，重命名它
+            # Rename the column when its name is not "Type".
             if target_field != "Type":
                 df = df.rename(columns={target_field: "Type"})
 
@@ -687,63 +687,63 @@ def load_map_data(csv_path, map_path, output_path, pattern):
         sampled_data = engine.sample_raster_fast(df, lon_name, lat_name)
         df["DN"] = sampled_data
 
-        # --- 补救逻辑：使用区域平均海拔 ---
-        # 首先，将常见的栅格无效值（NoData）转换为 NaN，方便统一处理
-        # 常见的无效值包括 -9999, -32767, -32768 等
+        # --- Fallback: use the area's mean elevation. ---
+        # Convert common raster NoData sentinels to NaN for uniform handling.
+        # Common invalid values include -9999, -32767, and -32768.
         invalid_values = [-9999, -32767, -32768]
         df["DN"] = df["DN"].replace(invalid_values, np.nan)
 
-        # 检查是否有读取失败的点 (NaN)
+        # Identify points whose raster sampling failed (NaN).
         nan_count = df["DN"].isna().sum()
         if nan_count > 0:
-            # 计算当前 CSV 中所有有效采样点的平均海拔
+            # Compute the mean elevation of all valid samples in the current CSV file.
             area_avg_alt = df["DN"].mean()
-            
-            # 如果整个区域都采样失败（均值为 NaN），则保底填充 0
+
+            # Fall back to zero if sampling failed for the entire area and the mean is NaN.
             if pd.isna(area_avg_alt):
                 area_avg_alt = 0.0
                 print("Warning: no valid altitude data found in this area; filled all values with 0.0.")
             else:
                 print(f"Detected {nan_count} failed sample point(s); filled them with area mean altitude {area_avg_alt:.2f} m.")
-            
-            # 执行填充
+
+            # Fill the missing values.
             df["DN"] = df["DN"].fillna(area_avg_alt)
 
-    # 保存
+    # Save the result.
     df.to_csv(output_path, index=False, encoding='utf-8-sig')
     print(f"Task completed. Saved to: {output_path}")
     return df
 
 
 def load_area_max_data(csv_path, map_path, output_path, pattern, M, visualAngle):
-    # 1. 读取 CSV 数据
+    # 1. Read the CSV data.
     df = pd.read_csv(csv_path)
-    
+
     col_map = {c.lower(): c for c in df.columns}
     lon_name = next((col_map[k] for k in ['longitude', 'lon', 'x'] if k in col_map), None)
     lat_name = next((col_map[k] for k in ['latitude', 'lat', 'y'] if k in col_map), None)
     dist_name = next((col_map[k] for k in ['disbtwtxrx', 'distance'] if k in col_map), "disBtwTxRx")
 
     if not lon_name or not lat_name:
-        raise KeyError("无法识别 CSV 中的经纬度列。")
+        raise KeyError("Could not identify longitude and latitude columns in the CSV file.")
 
-    # --- 2. 几何生成 (利用 Shapely 2.x 矢量化加速) ---
+    # --- 2. Generate geometries with Shapely 2.x vectorization. ---
     points = gpd.GeoDataFrame(df, geometry=gpd.points_from_xy(df[lon_name], df[lat_name]), crs="EPSG:6668")
     points_m = points.to_crs(epsg=3857)
     coords = points_m.geometry.get_coordinates()
-    
+
     L = df[dist_name].values / (M - 1)
-    # 确保 visualAngle 是弧度，如果是角度请用 np.deg2rad
+    # visualAngle must be in radians; use np.deg2rad for values expressed in degrees.
     D = L * np.tan(visualAngle)
-    
+
     x, y = coords['x'].values, coords['y'].values
-    # 矢量化创建矩形
+    # Create rectangles using vectorized operations.
     rects = shapely.box(x - L/2, y - D/2, x + L/2, y + D/2)
     gdf_area = gpd.GeoDataFrame(df, geometry=rects, crs="EPSG:3857").to_crs(epsg=6668)
 
     pattern_lower = pattern.lower()
-    
-    # --- 3. 矢量地图优化 (仅保留 Building 的 sjoin) ---
+
+    # --- 3. Optimize vector-map processing by retaining only the Building sjoin. ---
     if "building" in pattern_lower:
         target_field = "measuredHeight"
         default_val = 0.0
@@ -759,42 +759,42 @@ def load_area_max_data(csv_path, map_path, output_path, pattern, M, visualAngle)
 
 
 
-    # --- 4. 栅格逻辑优化 (CityType 和 Altitude 共用) ---
+    # --- 4. Optimize raster processing shared by CityType and Altitude. ---
     elif any(k in pattern_lower for k in ["citytype", "altitude", "dem"]):
         is_citytype = "citytype" in pattern_lower
         target_col = "Type" if is_citytype else "DN"
         if map_path is None or not os.path.exists(map_path):
-            # 如果是 CityType 填充 20，如果是海拔通常填充 0 或 10
-            default_fill = 20 if is_citytype else 0 
+            # Fill CityType with 20; altitude typically uses 0 or 10.
+            default_fill = 20 if is_citytype else 0
             df[target_col] = default_fill
-            if is_citytype: 
+            if is_citytype:
                 df[target_col] = df[target_col].astype(int)
-            # 直接跳过后面的 rasterio 处理块
+            # Skip the subsequent rasterio processing block.
         else:
-            with rasterio.Env(): # 确保环境清洁
+            with rasterio.Env(): # Use an isolated rasterio environment.
                 if is_citytype:
                     print("Converting CityType vector map to a temporary raster for faster extraction...")
-                    # 读取矢量图层
+                    # Read the vector layer.
                     map_gdf = gpd.read_file(map_path, layer="cityType")
                     if map_gdf.crs != "EPSG:6668":
                         map_gdf = map_gdf.to_crs("EPSG:6668")
-                    
-                    # 定义栅格化分辨率（例如 0.0001度 约10米，可根据地图精度调整）
-                    res_deg = 0.0001 
+
+                    # Define rasterization resolution; 0.0001 degrees is approximately 10 meters and can be adjusted to map precision.
+                    res_deg = 0.0001
                     b = map_gdf.total_bounds
-                    # 计算输出形状和变换矩阵
+                    # Compute the output shape and transformation matrix.
                     out_shape = (int((b[3]-b[1])/res_deg) + 1, int((b[2]-b[0])/res_deg) + 1)
                     full_transform = rasterio.transform.from_bounds(*b, out_shape[1], out_shape[0])
-                    
-                    # 核心加速：将矢量转为内存数组
+
+                    # Convert vectors to an in-memory array for the main performance improvement.
                     full_data = features.rasterize(
                         [(shape, val) for shape, val in zip(map_gdf.geometry, map_gdf['Type'])],
-                        out_shape=out_shape, transform=full_transform, fill=20 # 默认填充20
+                        out_shape=out_shape, transform=full_transform, fill=20 # Default fill value: 20.
                     )
                     nodata = -9999
-                    gdf_raster_crs = gdf_area # 已经在 6668
+                    gdf_raster_crs = gdf_area # Already in EPSG:6668.
                 else:
-                    # 海拔/DEM 处理逻辑保持不变
+                    # Keep the altitude/DEM processing unchanged.
                     print("Processing altitude raster...")
                     src = rasterio.open(map_path)
                     nodata = src.nodata if src.nodata is not None else -9999
@@ -805,7 +805,7 @@ def load_area_max_data(csv_path, map_path, output_path, pattern, M, visualAngle)
                     full_transform = src.window_transform(full_window)
                     src.close()
 
-                # --- 统一的切片提取逻辑 (极致加速版) ---
+                # --- Shared, optimized window-extraction logic. ---
                 inv_trans = ~full_transform
                 bounds = gdf_raster_crs.geometry.bounds
                 c1, r1 = inv_trans * (bounds['minx'].values, bounds['maxy'].values)
@@ -823,22 +823,22 @@ def load_area_max_data(csv_path, map_path, output_path, pattern, M, visualAngle)
                         valid = chunk[chunk != nodata]
                         if valid.size > 0:
                             if is_citytype:
-                                # 提取众数 (出现次数最多的 Type)
+                                # Extract the mode (the most frequent Type).
                                 counts = np.bincount(valid.astype(int))
                                 results.append(np.argmax(counts))
                             else:
-                                # 提取最大值 (Altitude)
+                                # Extract the maximum Altitude.
                                 results.append(valid.max())
                         else: results.append(np.nan)
                     else: results.append(np.nan)
-                
+
                 df[target_col] = results
-                # 填充缺失值并格式化
+                # Fill missing values and format the result.
                 fill_val = 20 if is_citytype else df[target_col].mean()
                 df[target_col] = df[target_col].fillna(fill_val)
                 if is_citytype: df[target_col] = df[target_col].astype(int)
 
-    # 5. 保存
+    # 5. Save the result.
     df.to_csv(output_path, index=False, encoding='utf-8-sig')
     print("Processing completed.")
     return df
@@ -846,16 +846,16 @@ def load_area_max_data(csv_path, map_path, output_path, pattern, M, visualAngle)
 
 def clean_folder_except(folder_path, prefix_to_keep):
     """
-    删除指定文件夹下所有文件，但保留以指定前缀开头的文件。
-    
-    参数:
-    folder_path (str or Path): 目标文件夹的路径
-    prefix_to_keep (str): 需要保留的文件名前缀
+    Delete all files in a directory except those whose names start with a specified prefix.
+
+    Args:
+        folder_path (str or Path): Path to the target directory.
+        prefix_to_keep (str): File-name prefix to retain.
     """
-    # 1. 将输入转换为 Path 对象
+    # 1. Convert the input to a Path object.
     folder = Path(folder_path)
-    
-    # 2. 安全检查：确保路径存在且是一个文件夹
+
+    # 2. Verify that the path exists and is a directory.
     if not folder.exists():
         print(f"Skipping cleanup: path does not exist. -> {folder_path}")
         return
@@ -867,19 +867,19 @@ def clean_folder_except(folder_path, prefix_to_keep):
     print(f"Retaining prefix as: '{prefix_to_keep}' file(s)...")
 
     count = 0
-    # 3. 遍历文件夹
+    # 3. Iterate over the directory.
     for file_path in folder.iterdir():
-        # 只处理文件，不处理子文件夹
+        # Process files only, not subdirectories.
         if file_path.is_file():
-            # 判断文件名是否不以指定前缀开头
+            # Check whether the file name lacks the retained prefix.
             if not file_path.name.startswith(prefix_to_keep):
                 try:
-                    file_path.unlink()  # 执行删除
+                    file_path.unlink()  # Delete the file.
                     # print(f"  [Deleted]: {file_path.name}")
                     count += 1
                 except Exception as e:
                     print(f"  [Error] Failed to delete {file_path.name}: {e}")
-    
+
     print(f"Cleanup complete. Deleted {count} file(s).")
 
 
@@ -902,8 +902,8 @@ def runFineTuning(args, modelToBeFineTuned):
 
     genFineTuningCSV(selected_folder_csv, fine_tuning, fine_tuning_lng, fine_tuning_lat)
     main_collect_data.start_collect_logic(
-        selected_folder_csv, 
-        selected_folder_map, 
+        selected_folder_csv,
+        selected_folder_map,
         [],
         frequency,
         SF,
@@ -914,12 +914,12 @@ def runFineTuning(args, modelToBeFineTuned):
         fixAntenna_height,
         moveAntenna_height
     )
-    
+
     contentReadDataIndex = get_ML_files(selected_folder_csv, "ML_myTempExp_*")
     try:
         transfer_learning_main.run_transfer_learning(
             selected_folder_csv,
-            num_test_per = str(0.01), #对于新数据的预测比例，如果是0.01，则表示用1%的数据进行预测，剩余99%用于生成模型
+            num_test_per = str(0.01), # Fraction of new data used for prediction; 0.01 uses 1% and reserves 99% for model generation.
             user_input = 1,
             model_path = modelToBeFineTuned,
             data_index = list(range(1,len(contentReadDataIndex)+1)),
@@ -930,35 +930,35 @@ def runFineTuning(args, modelToBeFineTuned):
     except Exception as e:
         print(f"Fine-tuning process failed: {e}")
         raise e
-    
+
     return True
 
 
 
 def genFineTuningCSV(selected_folder_csv, fine_tuning, fine_tuning_lng, fine_tuning_lat):
     """
-    生成 fine_tuning_nearfield.csv 文件
+    Generate the fine_tuning_nearfield.csv file.
     """
 
-    # 构造文件路径
+    # Construct the file path.
     os.makedirs(selected_folder_csv, exist_ok=True)
     file_path = os.path.join(selected_folder_csv, 'fine_tuning_nearfield.csv')
 
-    # 写入 CSV
+    # Write the CSV file.
     try:
         with open(file_path, mode='w', newline='', encoding='utf-8') as f:
             writer = csv.writer(f)
-            # 如果需要表头，可以取消下面注释
+            # Uncomment the following line if a header is required.
             writer.writerow(['longitude', 'latitude', 'rssi'])
-            
+
             for rssi in fine_tuning:
-                # 这里假设所有点都偏离 1 米（例如向东偏移 1 米）
-                # 你也可以根据需要让它们环绕天线分布
+                # Assume every point is offset by one meter, for example one meter east.
+                # The points can instead be distributed around the antenna if required.
                 new_lng = fine_tuning_lng
                 new_lat = fine_tuning_lat
-                
+
                 writer.writerow([new_lng, new_lat, rssi])
-                
+
         print(f"File generated successfully: {file_path}")
     except Exception as e:
         print(f"File generation failed: {e}")
@@ -967,38 +967,40 @@ def genFineTuningCSV(selected_folder_csv, fine_tuning, fine_tuning_lng, fine_tun
 
 def augment_centrosymmetric(origFV, origTV, origAlt):
     """
-    执行中心对称翻转并处理物理通道一致性
-    origFV 形状: (31, 36, 5, 1498)  <- 注意：你提到有5个通道(0-4)
+    Apply a point-reflection transform while preserving physical channel semantics.
+
+    origFV shape: (31, 36, 5, 1498), with five channels indexed from 0 through 4.
     """
-    # 1. 空间维度的翻转 (Axis 0 和 Axis 1)
-    # 这步会翻转所有通道的矩阵结构
+    # 1. Reverse the spatial dimensions (axes 0 and 1).
+    # This reverses the matrix structure of every channel.
     flippedFV = np.flip(origFV, axis=(0, 1)).copy()
-    
-    # 2. 物理意义修正：针对 Channel 1 (梯度通道)
-    # 因为中心对称意味着从 Rx 向 Tx 看，原本沿 axis 1 计算的梯度方向相反了
-    # 必须取反，否则模型会误以为地形起伏方向没变
+
+    # 2. Correct the physical semantics of channel 1, the gradient channel.
+    # Point reflection reverses the axis-1 gradient direction when viewed from Rx toward Tx.
+    # Negate it so the model does not interpret the terrain-slope direction as unchanged.
     flippedFV[:, :, 1, :] = -flippedFV[:, :, 1, :]
-    
-    # 3. 拼接特征矩阵 (在样本量维度 axis=-1 拼接)
+
+    # 3. Concatenate feature matrices along the sample dimension (axis=-1).
     augFV = np.concatenate([origFV, flippedFV], axis=-1)
-    
-    # 4. 拼接标签 (Target Values)
-    # 假设翻转后 RSS 预测目标不变（互易性原理）
+
+    # 4. Concatenate the target values.
+    # Assume the RSS prediction target is invariant under reflection by reciprocity.
     augTV = np.concatenate([origTV, origTV], axis=-1)
-    
-    # 5. DataFrame 对应倍增
+
+    # 5. Duplicate the corresponding DataFrame rows.
     augAlt = pd.concat([origAlt, origAlt], axis=0).reset_index(drop=True)
-    
+
     return augFV, augTV, augAlt
 
 
 
 def barrier_and_cleanup(futures_to_wait=None, timeout=120):
     """
-    资源隔离墙函数：
-    即使调用时没有传入 client，也会尝试自动获取。
+    Isolate and reset distributed-computing resources.
+
+    Attempt to obtain an active client automatically when none is supplied.
     """
-    # --- 自动获取活跃的 Dask Client ---
+    # --- Obtain the active Dask client automatically. ---
     try:
         client = get_client()
     except ValueError:
@@ -1008,24 +1010,24 @@ def barrier_and_cleanup(futures_to_wait=None, timeout=120):
     print("\n" + "="*50)
     print(">>> [Intermission] Starting resource isolation procedure...")
 
-    # --- 步骤 1: 强制同步 ---
+    # --- Step 1: Force synchronization. ---
     if futures_to_wait is not None:
         print(">>> Waiting for all asynchronous tasks to finish physically...")
-        # 如果是字典或列表，确保 wait 能处理
+        # Normalize dictionaries and lists into a form accepted by wait.
         if isinstance(futures_to_wait, dict):
             futures_to_wait = list(futures_to_wait.values())
         elif not isinstance(futures_to_wait, list):
             futures_to_wait = [futures_to_wait]
-        
-        # 这一步非常重要，防止“正在工作时强制重启”
+
+        # This prevents a forced restart while tasks are still running.
         wait(futures_to_wait)
-    
-    # --- 步骤 2: 主机端清理 ---
+
+    # --- Step 2: Clean up host-side resources. ---
     print(">>> Cleaning main-process memory and session state...")
     tf.keras.backend.clear_session()
     gc.collect()
 
-    # --- 步骤 3: 尝试物理重启 (Hard Reset) ---
+    # --- Step 3: Attempt a worker restart (hard reset). ---
     try:
         print(f">>> Attempting physical worker restart (timeout {timeout}s)...")
         client.restart(timeout=timeout)
@@ -1033,7 +1035,7 @@ def barrier_and_cleanup(futures_to_wait=None, timeout=120):
     except Exception as e:
         print(f">>> Physical restart failed or timed out: {e}")
         print(">>> Falling back to soft cleanup...")
-        
+
         def worker_soft_cleanup():
             import tensorflow as tf
             import gc
@@ -1048,7 +1050,7 @@ def barrier_and_cleanup(futures_to_wait=None, timeout=120):
         except Exception as soft_e:
             print(f">>> Soft cleanup also encountered an exception: {soft_e}")
 
-    # --- 步骤 4: 静默冷却 ---
+    # --- Step 4: Allow a quiet cooldown period. ---
     print(">>> Running a 5-second quiet cooldown to release TCP ports...")
     time.sleep(5)
     print(">>> Resource isolation completed. Ready for the next stage.")

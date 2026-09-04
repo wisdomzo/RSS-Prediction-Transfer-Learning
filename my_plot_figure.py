@@ -18,10 +18,10 @@ import re
 
 
 def compute_cdf(data):
-    # 对数据进行排序
+
     sorted_data = np.sort(data, axis=0)
 
-    # 生成CDF的y值
+
     cdf = np.arange(1, len(sorted_data) + 1) / len(sorted_data)
 
     return sorted_data, cdf
@@ -44,47 +44,38 @@ def plot(*args):
         plt.show()
 
     if len(args) == 3:
-        # 启用交互式绘图（在 Jupyter Notebook 中使用）
-        plt.ion()  # 仅在 Jupyter Notebook 中使用
-        # plt.show()  # 在非交互模式下，可以使用这行
 
-        # 创建 3D 图形
+        plt.ion()
+
+
+
         fig = plt.figure()
         ax = fig.add_subplot(111, projection='3d')
 
-        # 绘制三维散点图
+
         sc = ax.scatter(args[0], args[1], args[2], c='b', marker='.', linestyle='')
 
-        # 添加坐标轴标签
+
         ax.set_xlabel('X Label')
         ax.set_ylabel('Y Label')
         ax.set_zlabel('Z Label')
 
-        # 显示图形
+
         plt.show()
 
-        # 之后可以进行手动编辑，比如使用图形界面的工具进行缩放、平移等
+
     return
 
 
 def plot_Four_Scenarios_Error_CDF(folderAddress, needPNG, needSVG):
-    """
-    读取四个指定切分场景的 CSV 文件，计算其绝对误差并绘制学术级对比 CDF 图。
-    
-    包含的文件：
-    1. predict_RSS_beforeFT.csv (微调前基准)
-    2. predict_RSS_height.csv   (高不确定性微调后)
-    3. predict_RSS_low.csv      (低不确定性微调后)
-    4. predict_RSS_random_42.csv   (随机不确定性微调后)
-    5. predict_RSS_proposal.csv   (高不确定性+多样性微调后)
-    """
+    """Read the configured scenario CSV files, calculate absolute errors, and plot a publication-quality comparison CDF."""
     # ========================================================
-    # 1. 全局配置高保真纸张字体与科研规格（严格匹配你的标准）
+
     # ========================================================
     plt.rcParams['font.family'] = 'sans-serif'
     plt.rcParams['font.sans-serif'] = ['Helvetica', 'Arial', 'DejaVu Sans']
 
-    # 严格执行 7pt / 5pt 的紧凑科研字号
+
     plt.rcParams['font.size'] = 7
     plt.rcParams['axes.labelsize'] = 7
     plt.rcParams['axes.titlesize'] = 7
@@ -92,37 +83,37 @@ def plot_Four_Scenarios_Error_CDF(folderAddress, needPNG, needSVG):
     plt.rcParams['ytick.labelsize'] = 7
     plt.rcParams['legend.fontsize'] = 7
 
-    # 设定精确的物理画布尺寸 (mm 转换为 inch) -> 标准单栏微型图
+
     width_inch = 80 / 25.4
     height_inch = 56.56 / 25.4
     plt.rcParams['svg.fonttype'] = 'none'
 
     # ========================================================
-    # 2. 定义文件配置映射（物理文件名、图例标签、颜色、线型）
+
     # ========================================================
     file_configs = [
         {
             'filename': 'predict_RSS_beforeFT.csv',
             'label': 'Baseline',
-            'color': "#000000",       # 黑基准线
-            'linestyle': '--'         # 虚线代表未微调
+            'color': "#000000",
+            'linestyle': '--'
         },
         {
             'filename': 'predict_RSS_low.csv',
             'label': 'Bottom-U',
-            'color': '#002FA7',       # 浅绿
+            'color': '#002FA7',
             'linestyle': '-'
         },
         {
             'filename': 'predict_RSS_random_42.csv',
             'label': 'Random',
-            'color': '#6ECC54',       # 橙色
+            'color': '#6ECC54',
             'linestyle': '-'
         },
         {
             'filename': 'predict_RSS_hight.csv',
             'label': 'Top-U',
-            'color': '#EB5C20',       # 沉稳学术蓝（期望中最优的曲线）
+            'color': '#EB5C20',
             'linestyle': '-'
         },
         {
@@ -134,49 +125,52 @@ def plot_Four_Scenarios_Error_CDF(folderAddress, needPNG, needSVG):
     ]
 
     # ========================================================
-    # 3. 开始创建 matplotlib 画布
+
     # ========================================================
     fig, ax = plt.subplots(figsize=(width_inch, height_inch), dpi=300)
-    
-    print("--- CDF 统计分析审查中 ---")
+
+    print("--- Reviewing CDF statistics ---")
     valid_plots = 0
 
     # ========================================================
-    # 4. 循环读取、计算绝对误差并绘制 CDF 曲线
+
     # ========================================================
     for cfg in file_configs:
         file_path = os.path.join(folderAddress, cfg['filename'])
-        
+
         if not os.path.exists(file_path):
             print(f"Warning: File not found: {cfg['filename']}, skipped.")
             continue
-            
-        # 读取数据
+
+
         df = pd.read_csv(file_path)
         if len(df) == 0:
             print(f"Warning: File is empty: {cfg['filename']}, skipped.")
             continue
-            
-        # 计算绝对误差 (Absolute Error)
+
+
         abs_error = (df['RSSI'] - df['Predicted_Value']).abs().dropna().values
-        
-        # 核心数学逻辑：计算 CDF
+
+
         sorted_error = np.sort(abs_error)
         cdf_y = np.arange(1, len(sorted_error) + 1) / len(sorted_error)
-        
-        # 绘制该场景的 CDF 趋势线
+
+
         ax.plot(
-            sorted_error, 
-            cdf_y, 
-            label=cfg['label'], 
-            color=cfg['color'], 
+            sorted_error,
+            cdf_y,
+            label=cfg['label'],
+            color=cfg['color'],
             linestyle=cfg['linestyle'],
             linewidth=1.0
         )
-        
-        # 顺便计算并打印中位数误差(50% CDF)，方便你在论文文字里描述
+
+
         median_err = np.median(abs_error)
-        print(f"✓ 成功加载 {cfg['filename']}: 样本数 = {len(abs_error)}, 中位数误差 = {median_err:.2f} dB")
+        print(
+            f"Loaded {cfg['filename']}: samples = {len(abs_error)}, "
+            f"median error = {median_err:.2f} dB"
+        )
         valid_plots += 1
 
     if valid_plots == 0:
@@ -184,48 +178,48 @@ def plot_Four_Scenarios_Error_CDF(folderAddress, needPNG, needSVG):
         return
 
     # ========================================================
-    # 5. 图表细节修饰（无 Title 且极限压紧空间）
+
     # ========================================================
     ax.set_xlabel('Absolute Error in dB', labelpad=2)
     ax.set_ylabel('CDF', labelpad=2)
 
-    # 严谨的 CDF 坐标范围控制（从0到1）
+
     ax.set_ylim(0, 1.02)
-    ax.set_xlim(0, None)  # 误差从0开始，右边界自适应
-    #ax.set_xlim(0, 30) 
-    
-    # 细化网格参考线
+    ax.set_xlim(0, None)
+    #ax.set_xlim(0, 30)
+
+
     ax.grid(axis='both', linestyle='--', linewidth=0.5, alpha=0.4)
 
-    # 严谨的论文右下角（或左上角）小图例，这里设在右下角防止挡住 CDF 曲线抬头
+
     ax.legend(
-        loc='lower right', 
-        frameon=True, 
+        loc='lower right',
+        frameon=True,
         edgecolor='#e0e0e0',
         fancybox=False,
-        borderpad=0.3,       
-        labelspacing=0.3     
+        borderpad=0.3,
+        labelspacing=0.3
     )
 
     # ========================================================
-    # 6. 极致余白压缩与精确画布保存
+
     # ========================================================
-    # top=0.96 完全释放 Title 占用的空间，实现紧凑度最大化
+
     plt.subplots_adjust(left=0.12, right=0.97, top=0.96, bottom=0.14)
 
     filename = 'Four_Scenarios_Error_CDF'
     svg_output = os.path.join(folderAddress, f'{filename}.svg')
     png_output = os.path.join(folderAddress, f'{filename}.png')
-    
+
     save_props = {'dpi': 300, 'bbox_inches': 'tight', 'pad_inches': 0.012}
-    
+
     if needSVG:
         plt.savefig(svg_output, format='svg', **save_props)
     if needPNG:
         plt.savefig(png_output, **save_props)
-    
+
     plt.show()
-    print("================ CDF 绘图任务圆满完成 ================")
+    print("================ CDF plotting completed ================")
 
 
 def plot_Travel_Distance(folderAddress,
@@ -233,24 +227,10 @@ def plot_Travel_Distance(folderAddress,
                          start_lon,
                          needPNG=True,
                          needSVG=False):
-    """
-    计算四种采样方法的总移动距离（Nearest Neighbor）
-    并绘制柱状图。
-
-    Parameters
-    ----------
-    folderAddress : str
-        CSV所在文件夹
-
-    start_lat : float
-        起点纬度
-
-    start_lon : float
-        起点经度
-    """
+    """Calculate nearest-neighbor travel distances for four sampling methods and plot the comparison as a bar chart."""
 
     # ==========================================================
-    # 字体配置（与你CDF保持一致）
+
     # ==========================================================
     plt.rcParams['font.family'] = 'sans-serif'
     plt.rcParams['font.sans-serif'] = ['Helvetica', 'Arial', 'DejaVu Sans']
@@ -266,7 +246,7 @@ def plot_Travel_Distance(folderAddress,
     plt.rcParams['svg.fonttype'] = 'none'
 
     # ==========================================================
-    # 文件配置
+
     # ==========================================================
     file_configs = [
         {
@@ -292,7 +272,7 @@ def plot_Travel_Distance(folderAddress,
     ]
 
     # ==========================================================
-    # Haversine距离（单位 km）
+
     # ==========================================================
     def haversine(lat1, lon1, lat2, lon2):
 
@@ -312,7 +292,7 @@ def plot_Travel_Distance(folderAddress,
         return R*c
 
     # ==========================================================
-    # Nearest Neighbor路径长度
+
     # ==========================================================
     def nearest_neighbor_distance(points,
                                   start_lat,
@@ -361,7 +341,7 @@ def plot_Travel_Distance(folderAddress,
 
         df = pd.read_csv(file_path)
 
-        # 经纬度列名
+
         lat_col = 'Latitude'
         lon_col = 'Longitude'
 
@@ -378,7 +358,7 @@ def plot_Travel_Distance(folderAddress,
         colors.append(cfg['color'])
 
     # ==========================================================
-    # 绘图
+
     # ==========================================================
     fig, ax = plt.subplots(figsize=(width_inch, height_inch),
                            dpi=300)
@@ -394,7 +374,7 @@ def plot_Travel_Distance(folderAddress,
             linewidth=0.5,
             alpha=0.4)
 
-    # 数值标注
+
     for bar, d in zip(bars, distances):
         ax.text(bar.get_x() + bar.get_width()/2,
                 bar.get_height(),
@@ -1059,51 +1039,19 @@ def split_dataset_by_region_stratified_sampling(folderAddress,fileName="predict_
 
 
 def main():
-    '''
-    请严格按照以下【科研出版级制图规范】为我编写 Python 绘图代码，并读取指定的数据文件运行生成图表：
+    """Run the module's publication-quality plotting workflow."""
 
-    1. 画布与几何比例规范：
-    - 目标物理尺寸：画布总宽 80 mm，总高 56.56 mm。代码中需精准转换为英寸 (figsize=(80/25.4, 56.56/25.4))。
-    - 核心图表框比例：必须使用 `ax.set_box_aspect(56.56 / 80.0)` 强制锁定内部坐标轴框的宽高几何比例完美满足 80:56.56。
-    - 边缘排版：保存时使用 `bbox_inches='tight'` 以确保小尺寸下的轴标签和标题绝对不会被切掉。
 
-    2. 字体与字号阶梯规范：
-    - 字体家族：全局指定为无衬线字体，优先采用 'Helvetica'（依次无缝回退 'Arial', 'DejaVu Sans'）。
-    - 字号主阶梯：主标题、X/Y 轴标签、Y 轴刻度字号严格锁定为 7 pt。
-    - 局部微调字号：图例 (Legend)、柱头/线旁的数据标签、以及空间较窄时的 X 轴刻度，允许使用 4 pt 到 5 pt，以确保整体视觉紧凑且不拥挤。
-
-    3. 矢量编辑与文本保护规范（针对 Inkscape 后期）：
-    - 必须在代码最前端声明：`plt.rcParams['svg.fonttype'] = 'none'`。
-    - 作用：确保导出的 SVG 文件中，所有文本（标题、刻度、数据标注）都保持为“独立可编辑的文本对象”，禁止被强制退化转换为矢量路径(Path)，以便于在 Inkscape 中双击修改或换色。
-
-    4. 视觉防重叠与美化技术：
-    - 如果是折线图/CDF图的多曲线标注，不同曲线的分位数文字严禁使用固定坐标堆叠。需使用非对称纵向交错法（一组 va='top' 挂在线下，一组 va='bottom' 飘在线上）或直接集成进 Legend 中。
-    - 如果是多维组合柱状图，柱头数据标签（如 XX%）字号缩至 4 pt 且必须设置 `rotation=90`（垂直向上延伸），确保横向绝对不打架。
-    - 辅助线（如 axhline, axvline）的线宽 (linewidth) 必须压低至 0.5 ~ 0.6，颜色采用 'gray' 且设置半透明 `alpha=0.5`，确保主次分明，整体风格精致细腻。
-    - X 轴长文本标签需设置 `rotation=30, ha='right'` 斜向对齐，防止横向挤压。
-
-    5. 文件输出要求：
-    - 运行后必须同时输出 300 DPI 印刷级 PNG 图像和完全矢量可编辑的 SVG 文件。
-
-    =========================================
-    【当前任务信息】
-    - 数据源文件：[请在此处输入你的文件名，例如：predict_RSS_TL_30.csv]
-    - 期望图表类型：[请在此处输入图表类型，例如：CDF图 / 多阈值分组柱状图 / 散点图]
-    - 具体的X/Y轴与绘图逻辑要求：[请在此处简述你的绘图想法，例如：横轴是disBtwTxRx，以500米为间隔，纵轴为大于6.15的数量占该距离段总数的百分比...]
-    =========================================
-    '''
-
-    # 参数配置
     # EIRP = 37  # dBm
     fix_longitude = 139.674057
     fix_latitude = 35.223331
-    # fix_altitude = 115 #海拔79.74米，楼35.2米
+
     # fix_antennaHeight = 1.8
     # move_antennaHeight = 1.37
     targetFileAddress = "/Users/zhaoou/Desktop/課題1_TL拡張/TL検証/920MHz/predict_RSS_FT30.csv"
     referenceFileAddress = "/Users/zhaoou/Desktop/課題1_TL拡張/TL検証/920MHz/predict_RSS_M0_test_30.csv"
     outputFileAddress = "/Users/zhaoou/Downloads/"
-    #folderAddress = "/Users/zhaoou/Desktop/課題1_TL拡張/不確実性検証/unseen1011"
+
 
 
     folderAddress = "/Users/zhaoou/Desktop/課題1_TL拡張/不確実性検証/unseen1"
@@ -1123,11 +1071,11 @@ def main():
     start_lat_unseen67 = 26.2477756
     start_lon_unseen67 = 127.7739396
 
-    # RCC函数
+
     #plot_Four_Scenarios_Error_CDF(folderAddress, needPNG=False, needSVG=True)
     split_dataset_by_region_stratified_sampling(folderAddress,fileName="predict_RSS.csv",lat_col="Latitude",lon_col="Longitude")
     #plot_Travel_Distance(folderAddress, start_lat = start_lat_unseen1, start_lon = start_lon_unseen1, needPNG=True, needSVG=False)
-    
+
     return
 
 
@@ -1136,4 +1084,4 @@ def main():
 
 if __name__ == "__main__":
     import sys,os
-    main() 
+    main()

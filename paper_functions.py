@@ -16,13 +16,13 @@ from tensorflow.keras.utils import plot_model
 def show_diff_model_performance():
     ml_history_files = subFun.list_history_TL_Predict_files()
     if not ml_history_files:
-        print("没有找到以'history_model_from_'开头的文件。")
+        print("No files beginning with 'history_model_from_' were found.")
         sys.exit()
     else:
         user_input = subFun.get_user_selection(ml_history_files)
         selected_name = [ml_history_files[i - 1] for i in user_input]
-        print("---> 评价各种模型")
-        # 初始化四个空字典
+        print("---> Evaluating models")
+        # Initialize four empty dictionaries.
         sorted_data_linear_dict = {}
         cdf_linear_dict = {}
         sorted_data_DL_dict = {}
@@ -34,8 +34,8 @@ def show_diff_model_performance():
                 sorted_data_linear_dict[name], cdf_linear_dict[name], sorted_data_DL_dict[name], cdf_DL_dict[name] = subFun_TL.show_history_model(name)
             if "Predict_model" in name:
                 _, sorted_data_DL_dict[name], cdf_DL_dict[name] = subFun_TL.show_Predict_model(name)
-        print("---> 绘制对比图")
-        # 全局设置
+        print("---> Plotting comparison")
+        # Global plot settings.
         fontsize = 7
         linewidth = 0.5
         figsize_mm = (80, 56.56)
@@ -52,14 +52,14 @@ def show_diff_model_performance():
             'grid.linewidth': linewidth,
             'patch.linewidth': linewidth,
         })
-        # 创建画布 CDF
+        # Create the CDF figure.
         fig, ax = plt.subplots(figsize=(figsize_mm[0] / 25.4, figsize_mm[1] / 25.4))
-        # 绘制曲线'-'（实线）, '--'（虚线）, ':'（点线）, '-.'（点划线）
+        # Plot curves using '-', '--', ':', and '-.' line styles.
         for count, name in enumerate(selected_name):
             try:
                 sorted_data_linear_dict[name]
             except Exception as e:
-                print(f"跳过错误: {e}")
+                print(f"Skipping due to error: {e}")
             else:
                 ax.plot(sorted_data_linear_dict[name], cdf_linear_dict[name],
                         label=str(count + 1) + ' (linear)',
@@ -69,44 +69,44 @@ def show_diff_model_performance():
             try:
                 sorted_data_DL_dict[name]
             except Exception as e:
-                print(f"跳过错误: {e}")
+                print(f"Skipping due to error: {e}")
             else:
                 ax.plot(sorted_data_DL_dict[name], cdf_DL_dict[name],
                         label=str(count + 1) + ' (DL)',
                         linestyle='-',
                         # color = 'C1',
                         )
-        # 设置 x 轴的范围（例如：0 到 100）
-        max_x = input("请输入x的最大值: ")
-        ax.set_xlim([0, float(max_x)])  # 替换 xmin 和 xmax 为你想要的范围
-        # 设置图表元素
+        # Set the x-axis range, for example from 0 to 100.
+        max_x = input("Enter the maximum x-axis value: ")
+        ax.set_xlim([0, float(max_x)])  # Replace xmin and xmax with the desired range.
+        # Configure chart elements.
         ax.set_xlabel('Error Between Predicted vs Actual RSS in dB')
         ax.set_ylabel('CDF')
         ax.grid(True)
         ax.tick_params(axis='both', width=linewidth)
-        # 设置图例
+        # Configure the legend.
         legend = ax.legend(loc='lower right')
         legend.get_frame().set_linewidth(linewidth)
         plt.tight_layout()
-        # 用户交互保存确认
+        # Ask the user whether to save the figure.
         while True:
-            save = input(f"是否保存为SVG文件？ [y/n] (默认路径: {default_path}): ").strip().lower()
+            save = input(f"Save as an SVG file? [y/n] (default path: {default_path}): ").strip().lower()
             if save == 'y':
                 plt.savefig(default_path,
                             format='svg',
                             dpi=300,
                             bbox_inches='tight',
                             )
-                print(f"已保存至: {default_path}")
+                print(f"Saved to: {default_path}")
                 break
             elif save == 'n':
-                print("未保存文件")
+                print("File was not saved.")
                 break
             else:
-                print("请输入 y 或 n")
-        # 显示图表
+                print("Enter y or n.")
+        # Display the chart.
         plt.show()
-        # 关闭画布
+        # Close the figure.
         plt.close()
 
     return
@@ -116,22 +116,22 @@ def show_diff_model_performance():
 def analyze_diff_model_performance():
     ml_history_TL_files = subFun.list_history_TL_files()
     if not ml_history_TL_files:
-        print("没有找到文件。")
+        print("No files were found.")
         sys.exit()
     else:
         user_input = subFun.get_user_selection(ml_history_TL_files)
         selected_name = [ml_history_TL_files[i - 1] for i in user_input]
-        print("---> 分析各种模型")
+        print("---> Analyzing models")
         for count, name in enumerate(selected_name):
             with lzma.open(name, 'rb') as saveFile:
                 dataStrick = pickle.load(saveFile)
             if "TL_model" in name:
                 predictRSSI_TL = dataStrick['predictRSSI_TL']
-                # 使用你的模型列表进行分析
+                # Analyze the selected model list.
                 analyze_models(predictRSSI_TL, model_name_prefix="RSSI_TL")
             else:
                 print("<UNK>")
-            print("模型 " + name + " 处理完毕。")
+            print("Model " + name + " processed successfully.")
 
     return
 # endregion
@@ -141,25 +141,24 @@ def analyze_diff_model_performance():
 
 def display_readme(file_path="README.md"):
     """
-    读取并显示 README 文件的内容
+    Read and display the contents of a README file.
 
-    参数:
-        file_path (str): README 文件的路径，默认为 "README.md"
+    Args:
+        file_path (str): Path to the README file. Defaults to "README.md".
 
-    返回:
-        str: README 文件的内容（如果文件存在）
+    Returns:
+        str: README contents if the file exists; otherwise, None.
     """
     try:
         with open(file_path, "r", encoding="utf-8") as file:
             content = file.read()
-            print(content)  # 打印文件内容
-            return content  # 也可以返回内容以便进一步处理
+            print(content)  # Display the file contents.
+            return content  # Return the contents for further processing.
     except FileNotFoundError:
-        print(f"错误：文件 '{file_path}' 未找到！")
+        print(f"Error: File '{file_path}' was not found.")
         return None
     except Exception as e:
-        print(f"读取文件时出错: {e}")
+        print(f"Error reading file: {e}")
         return None
-
 
 
