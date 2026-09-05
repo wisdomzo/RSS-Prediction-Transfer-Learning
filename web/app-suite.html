@@ -1400,6 +1400,69 @@
       gap: 12px;
     }
 
+    .reference-list {
+      display: grid;
+      gap: 14px;
+    }
+
+    .reference-item {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
+      gap: 14px;
+      padding: 16px;
+      border: 1px solid rgba(79, 213, 231, 0.16);
+      border-radius: 8px;
+      background: rgba(8, 13, 20, 0.38);
+    }
+
+    .reference-index {
+      min-width: 42px;
+      height: 28px;
+      display: inline-grid;
+      place-items: center;
+      border: 1px solid rgba(79, 213, 231, 0.32);
+      border-radius: 999px;
+      color: var(--cyan);
+      background: rgba(79, 213, 231, 0.08);
+      font-size: 12px;
+      font-weight: 820;
+    }
+
+    .reference-copy {
+      min-width: 0;
+      display: grid;
+      gap: 8px;
+    }
+
+    .reference-copy h3 {
+      margin: 0;
+      color: var(--text);
+      font-size: 16px;
+      line-height: 1.35;
+    }
+
+    .reference-meta {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    .reference-actions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .reference-link {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      line-height: 1;
+      text-decoration: none;
+    }
+
     .splash-screen {
       position: fixed;
       inset: 0;
@@ -1596,6 +1659,7 @@ dask worker tcp://192.168.199.1:8786 --nworkers 6 --nthreads 1 --name MacPro_sha
         <div class="nav-title">System</div>
         <button class="nav-item" data-view="analysis" data-tour-target="nav-analysis"><span class="nav-dot"></span>Data Analysis</button>
         <button class="nav-item" data-view="logs" data-tour-target="nav-logs"><span class="nav-dot"></span>Log Console</button>
+        <button class="nav-item" data-view="reference"><span class="nav-dot"></span>Reference</button>
         <button class="nav-item hidden" data-view="acknowledgements"><span class="nav-dot"></span>Acknowledgements</button>
       </div>
     </aside>
@@ -1868,6 +1932,47 @@ dask worker tcp://192.168.199.1:8786 --nworkers 6 --nthreads 1 --name MacPro_sha
         <div class="panel">
           <div class="panel-header"><h3>Application Log</h3><span class="pill" id="log-count">1 line</span></div>
           <div class="panel-body"><div id="terminal-content-main" class="log application-log fixed-height">&gt; ASSET suite initialized</div></div>
+        </div>
+      </section>
+
+      <section class="workspace" id="view-reference">
+        <div class="topbar"><div class="breadcrumbs">ASSET / Reference</div><span class="pill">Scientific foundation</span></div>
+        <div class="module-title">
+          <div>
+            <div class="eyebrow">Reference</div>
+            <h2>Scientific References</h2>
+            <p class="lead">This application was developed with reference to the following research works.</p>
+          </div>
+        </div>
+        <div class="panel workspace-width">
+          <div class="panel-header"><h3>Research Works</h3><span class="pill">Citation</span></div>
+          <div class="panel-body">
+            <div class="reference-list">
+              <article class="reference-item">
+                <span class="reference-index">[1]</span>
+                <div class="reference-copy">
+                  <h3>Geographic Knowledge-Driven Transfer Learning for Enhanced Received Signal Strength Prediction</h3>
+                  <p class="reference-meta">Ou Zhao, Lin Shan, Huan-Bang Li, Hirokazu Sawada, Daisuke Matsuo, Yasushi Fuwa, and Takeshi Matsumura, IEEE Trans. Cogn. Commun. Netw., vol. 12, pp. 4448-4462, 2026.</p>
+                  <div class="reference-actions">
+                    <span class="pill">Journal Article</span>
+                    <span class="pill">IEEE</span>
+                    <a class="pill reference-link" href="https://doi.org/10.1109/TCCN.2025.3633744" target="_blank" rel="noopener noreferrer">Open DOI</a>
+                  </div>
+                </div>
+              </article>
+              <article class="reference-item">
+                <span class="reference-index">[2]</span>
+                <div class="reference-copy">
+                  <h3>ASSET: An Ensemble-Learning-Based Framework for Adaptive Signal Strength Estimation and Tracking -- Part I: Integrating Spatial Diversity and Prediction Uncertainty for Measurement-Efficient Active Sampling</h3>
+                  <p class="reference-meta">Ou Zhao, Huan-Bang Li, Hirokazu Sawada, Daisuke Matsuo, Yasushi Fuwa, Takeshi Matsumura, and Lin Shan, IEICE, Yamaguchi, Japan, Technical Report, Jul. 2026.</p>
+                  <div class="reference-actions">
+                    <span class="pill">Technical Report</span>
+                    <span class="pill">IEICE</span>
+                  </div>
+                </div>
+              </article>
+            </div>
+          </div>
         </div>
       </section>
 

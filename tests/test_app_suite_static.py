@@ -59,6 +59,7 @@ class AppSuiteStaticTests(unittest.TestCase):
             "Results Explorer",
             "Log Console",
             "Data Analysis",
+            "Reference",
             "Acknowledgements",
         ]:
             self.assertIn(label, html)
@@ -120,6 +121,30 @@ class AppSuiteStaticTests(unittest.TestCase):
         self.assertIn("window.pywebview.api.download_data_analysis_svg()", html)
         self.assertIn("window.pywebview.api.download_data_analysis_png()", html)
         self.assertIn("Additional analysis functions will be added here in future releases.", html)
+
+    def test_system_reference_view_contains_scientific_citations(self):
+        html = self.read_app()
+        system_start = html.index('<div class="nav-title">System</div>')
+        system_end = html.index("</aside>", system_start)
+        system_nav = html[system_start:system_end]
+        self.assertIn('data-view="reference"', system_nav)
+        self.assertIn("Reference", system_nav)
+        self.assertIn('id="view-reference"', html)
+        self.assertIn("Scientific References", html)
+        self.assertIn("This application was developed with reference to the following research works.", html)
+        self.assertIn("Geographic Knowledge-Driven Transfer Learning for Enhanced Received Signal Strength Prediction", html)
+        self.assertIn("IEEE Trans. Cogn. Commun. Netw.", html)
+        self.assertIn("https://doi.org/10.1109/TCCN.2025.3633744", html)
+        self.assertIn('<span class="pill">Journal Article</span>\n                    <span class="pill">IEEE</span>\n                    <a class="pill reference-link"', html)
+        self.assertIn('class="pill reference-link"', html)
+        self.assertNotIn('class="ghost-btn reference-link"', html)
+        self.assertIn(".reference-link", html)
+        self.assertIn("display: inline-flex;", html)
+        self.assertIn("align-items: center;", html)
+        self.assertIn("line-height: 1;", html)
+        self.assertIn("Open DOI", html)
+        self.assertIn("ASSET: An Ensemble-Learning-Based Framework for Adaptive Signal Strength Estimation and Tracking", html)
+        self.assertIn("Technical Report", html)
 
     def test_prediction_data_tooltip_documents_csv_coordinate_format(self):
         html = self.read_app()
