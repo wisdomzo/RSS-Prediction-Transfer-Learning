@@ -1758,13 +1758,13 @@ dask worker tcp://192.168.199.1:8786 --nworkers 6 --nthreads 1 --name MacPro_sha
         <div class="topbar"><div class="breadcrumbs">ASSET / Model Training</div><span class="pill">Transfer Learning</span></div>
         <div class="module-title">
           <div><div class="eyebrow">Model Training</div><h2>Generate new, transfer-learned, or incremental models.</h2><p class="lead">Train new models or adapt existing models with transfer learning, incremental training.</p></div>
-          <div class="toolbar"><button class="ghost-btn" data-training-reset onclick="resetModelTraining()">Reset</button><button class="ghost-btn" onclick="openDistributedGuide()">Open Guide</button><button class="primary-btn" id="generate-model-btn" onclick="generateModel()">Generate Model</button></div>
+          <div class="toolbar"><button class="ghost-btn" data-training-reset data-tour-target="training-reset" onclick="resetModelTraining()">Reset</button><button class="ghost-btn" data-tour-target="training-open-guide" onclick="openDistributedGuide()">Open Guide</button><button class="primary-btn" id="generate-model-btn" data-tour-target="training-generate-model" onclick="generateModel()">Generate Model</button></div>
         </div>
         <div class="model-training-stack workspace-width">
-          <div class="panel"><div class="panel-header"><h3>Model Settings</h3><span class="pill">Real API</span></div><div class="panel-body">
+          <div class="panel" data-tour-target="training-model-settings"><div class="panel-header"><h3>Model Settings</h3><span class="pill">Real API</span></div><div class="panel-body">
             <div class="grid">
               <div class="field"><label>Feature Vector Mode <span class="parameter-help" tabindex="0" data-help-for="m-isGenFV">?<span class="help-tooltip" role="tooltip">Choose whether feature vectors should be generated through Feature Generation or loaded from existing .xz feature vector files.</span></span></label><select id="m-isGenFV" onchange="toggleFeatureVectorFiles()"><option value="yes">Generate feature vectors</option><option value="no">Use existing feature vectors</option></select></div>
-              <div class="field"><label>Scheduler <span class="parameter-help" tabindex="0" data-help-for="m-scheduler">?<span class="help-tooltip" role="tooltip">Optional Dask scheduler address, such as tcp://host:8786. Leave blank to run model training in local single-machine mode.</span></span></label><input id="m-scheduler" placeholder="host_ip:8786" /></div>
+              <div class="field" data-tour-target="training-generate-mode"><label>Scheduler <span class="parameter-help" tabindex="0" data-help-for="m-scheduler">?<span class="help-tooltip" role="tooltip">Optional Dask scheduler address, such as tcp://host:8786. Leave blank to run model training in local single-machine mode.</span></span></label><input id="m-scheduler" placeholder="host_ip:8786" /></div>
               <div class="field"><label>Base Model <span class="parameter-help" tabindex="0" data-help-for="m-model">?<span class="help-tooltip" role="tooltip">Select New model for training from scratch, General Model M0 for transfer learning, or a custom model for site-specific adaptation.</span></span></label><select id="m-model" onchange="toggleModelTrainingControls()"><option value="noModel">New model</option><option value="NICT_latest_model">General Model M0</option><option value="customized_model">Custom model for transfer</option></select></div>
               <div class="field"><label>Kernel Count <span class="parameter-help" tabindex="0" data-help-for="m-numCore1">?<span class="help-tooltip" role="tooltip">Number of worker kernels used for local training workloads. Larger values can speed computation but require more CPU and memory.</span></span></label><select id="m-numCore1"><option>2</option><option>4</option><option>8</option><option>16</option><option selected>64</option><option>128</option></select></div>
               <div class="field"><label>Learning Type <span class="parameter-help" tabindex="0" data-help-for="m-learningType">?<span class="help-tooltip" role="tooltip">Training strategy for adapting an existing model. Transfer Learning updates selected layers; Incremental Training continues learning from new data.</span></span></label><select id="m-learningType" onchange="toggleModelTrainingControls()"><option value="type_None">None</option><option value="type_TL" selected>Transfer Learning</option><option value="type_IT">Incremental Training</option></select></div>
@@ -1795,7 +1795,7 @@ dask worker tcp://192.168.199.1:8786 --nworkers 6 --nthreads 1 --name MacPro_sha
               </div>
             </div>
           </div></div>
-          <div class="panel" id="feature-vector-panel"><div class="panel-header"><h3>Feature Vector Files</h3><span class="pill" id="fv-status">None selected</span></div><div class="panel-body">
+          <div class="panel" id="feature-vector-panel" data-tour-target="training-feature-vector-files"><div class="panel-header"><h3>Feature Vector Files</h3><span class="pill" id="fv-status">None selected</span></div><div class="panel-body">
             <p class="inline-guidance" id="feature-vector-guidance">Generate feature vectors in Feature Generation first.</p>
             <div class="toolbar" style="justify-content:flex-start;margin-bottom:14px;">
               <button class="ghost-btn" id="open-dataset-prep-btn" onclick="showView('dataset')">Open Feature Generation</button>
@@ -2104,7 +2104,8 @@ dask worker tcp://192.168.199.1:8786 --nworkers 6 --nthreads 1 --name MacPro_sha
     let predictionResultGuideTimer = null;
     const tourStorageKeys = {
       appOverview: "asset.skipAppOverviewTour",
-      predictionWorkspace: "asset.skipPredictionWorkspaceTour"
+      predictionWorkspace: "asset.skipPredictionWorkspaceTour",
+      modelTraining: "asset.skipModelTrainingTour"
     };
     const tourDefinitions = {
       appOverview: [
@@ -2121,6 +2122,14 @@ dask worker tcp://192.168.199.1:8786 --nworkers 6 --nthreads 1 --name MacPro_sha
         { target: '[data-tour-target="prediction-draw-area"]', title: "Draw Area", description: "Use the map tool to define the prediction boundary when map-bound mode is selected." },
         { target: '[data-tour-target="prediction-run"]', title: "Run RSS Prediction", description: "Start the prediction workflow. Inputs are locked while the backend task is running." },
         { target: '[data-tour-target="prediction-reset"]', title: "Reset", description: "Stop the current prediction task if needed and clear temporary prediction outputs." }
+      ],
+      modelTraining: [
+        { target: '[data-tour-target="training-model-settings"]', title: "Model Settings", description: "Confirm the model source, learning strategy, freeze layer, learning rate, and judge-model option before training." },
+        { target: '[data-tour-target="training-feature-vector-files"]', title: "Feature Vector Files", description: "Select one or more .xz feature vector files, or open Feature Generation when vectors still need to be prepared." },
+        { target: '[data-tour-target="training-generate-mode"]', title: "Generate Mode", description: "Choose local single-machine training or provide a Dask scheduler for distributed execution." },
+        { target: '[data-tour-target="training-open-guide"]', title: "Open Guide", description: "Open the distributed learning guide before using Dask workers on other computers." },
+        { target: '[data-tour-target="training-generate-model"]', title: "Generate Model", description: "Start model generation after the settings and feature vectors are ready." },
+        { target: '[data-tour-target="training-reset"]', title: "Reset", description: "Stop the current training task if needed and clear model-training state after completion." }
       ]
     };
     let activeTourName = null;
@@ -2128,6 +2137,7 @@ dask worker tcp://192.168.199.1:8786 --nworkers 6 --nthreads 1 --name MacPro_sha
     let tourScrollY = 0;
     let tourPreferenceCache = {};
     let predictionWorkspaceTourSeen = false;
+    let modelTrainingTourSeen = false;
 
     function ensurePywebviewApi() {
       if (!window.pywebview || !window.pywebview.api) {
@@ -2325,6 +2335,13 @@ dask worker tcp://192.168.199.1:8786 --nworkers 6 --nthreads 1 --name MacPro_sha
       setTimeout(() => startTour("predictionWorkspace"), 350);
     }
 
+    function maybeStartModelTrainingTour() {
+      if (modelTrainingTourSeen || activeTourName || isTourSkipped("modelTraining") || !canStartTour()) return;
+      if (!document.getElementById("view-training").classList.contains("active")) return;
+      modelTrainingTourSeen = true;
+      setTimeout(() => startTour("modelTraining"), 350);
+    }
+
     window.addEventListener("resize", () => {
       if (activeTourName) renderTourStep();
     });
@@ -2437,6 +2454,7 @@ dask worker tcp://192.168.199.1:8786 --nworkers 6 --nthreads 1 --name MacPro_sha
       document.querySelectorAll(".nav-item").forEach((item) => item.classList.toggle("active", item.dataset.view === name));
       if (name === "prediction") setTimeout(initAreaMap, 0);
       if (name === "prediction") maybeStartPredictionWorkspaceTour();
+      if (name === "training") maybeStartModelTrainingTour();
       if (name === "results") {
         clearPredictionResultGuide();
         setTimeout(initResultMap, 0);

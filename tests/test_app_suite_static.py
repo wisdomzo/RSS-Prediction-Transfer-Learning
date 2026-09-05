@@ -372,6 +372,24 @@ class AppSuiteStaticTests(unittest.TestCase):
         self.assertIn("Use the map tool to define the prediction boundary when map-bound mode is selected.", html)
         self.assertIn('if (name === "prediction") maybeStartPredictionWorkspaceTour()', html)
 
+    def test_model_training_has_contextual_tour(self):
+        html = self.read_app()
+        self.assertIn("modelTraining", html)
+        self.assertIn("asset.skipModelTrainingTour", html)
+        self.assertIn('data-tour-target="training-model-settings"', html)
+        self.assertIn('data-tour-target="training-feature-vector-files"', html)
+        self.assertIn('data-tour-target="training-generate-mode"', html)
+        self.assertIn('data-tour-target="training-open-guide"', html)
+        self.assertIn('data-tour-target="training-generate-model"', html)
+        self.assertIn('data-tour-target="training-reset"', html)
+        self.assertIn("Confirm the model source, learning strategy, freeze layer, learning rate, and judge-model option before training.", html)
+        self.assertIn("Select one or more .xz feature vector files, or open Feature Generation when vectors still need to be prepared.", html)
+        self.assertIn("Choose local single-machine training or provide a Dask scheduler for distributed execution.", html)
+        self.assertIn("Open the distributed learning guide before using Dask workers on other computers.", html)
+        self.assertIn("Start model generation after the settings and feature vectors are ready.", html)
+        self.assertIn("Stop the current training task if needed and clear model-training state after completion.", html)
+        self.assertIn('if (name === "training") maybeStartModelTrainingTour()', html)
+
     def test_prediction_workspace_tour_locks_page_scroll(self):
         html = self.read_app()
         self.assertIn(".tour-scroll-locked", html)
