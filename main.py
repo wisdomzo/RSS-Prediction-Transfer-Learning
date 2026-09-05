@@ -818,13 +818,9 @@ def executeDataProcessing(coords):
 
         reset_temp_data("ML_")
 
-        user_confirmed = window.create_confirmation_dialog('Confirmation', 'Process another dataset?\n\nYes: continue\nCancel: stop')
-
-        # Return either a Boolean result or processed data to JavaScript.
         return {
             "status": "success",
-            "message": "Processing completed",
-            "user_choice": user_confirmed
+            "message": "Feature generation completed. Download the output or reset to process another dataset."
         }
 
     except Exception as e:

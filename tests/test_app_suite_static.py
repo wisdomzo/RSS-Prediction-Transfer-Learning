@@ -623,8 +623,16 @@ class AppSuiteStaticTests(unittest.TestCase):
             "d-fixAntenna_alt",
             "d-fixAntenna_height",
             "d-moveAntenna_height",
+            "d-training-csv",
+            "d-altitude-map",
+            "d-building-map",
+            "d-city-type-map",
         ]:
             self.assertIn(f'data-help-for="{field_id}"', html)
+        self.assertIn("Training CSV files must include longitude and latitude columns.", html)
+        self.assertIn("Example longitude columns: longitude, lon, lng, or x.", html)
+        self.assertIn("Example latitude columns: latitude, lat, or y.", html)
+        self.assertIn("Example RSSI columns: RSSI or rssi.", html)
 
     def test_open_guide_shows_distributed_learning_guide(self):
         html = self.read_app()
@@ -720,6 +728,24 @@ class AppSuiteStaticTests(unittest.TestCase):
         self.assertIn("datasetOutputReady = true", html)
         self.assertIn("datasetOutputReady = false", html)
         self.assertIn('document.getElementById("upload-dataset-process-btn").disabled = datasetProcessing || datasetOutputReady', html)
+        self.assertIn("Feature generation completed. Download the output or reset to process another dataset.", html)
+        self.assertIn('id="dataset-output-guide"', html)
+        self.assertIn("function showDatasetOutputGuide", html)
+        self.assertIn("function clearDatasetOutputGuide", html)
+        self.assertIn('document.getElementById("download-dataset-output-btn").scrollIntoView', html)
+        self.assertIn('document.getElementById("download-dataset-output-btn").classList.add("next-action-highlight")', html)
+        self.assertIn("showDatasetOutputGuide()", html)
+        self.assertIn("clearDatasetOutputGuide()", html)
+        self.assertIn("@keyframes nextActionPulse", html)
+        self.assertIn("Output is ready. Download the generated dataset, or reset to process another one.", html)
+
+    def test_dataset_processing_completion_does_not_ask_to_process_another_dataset(self):
+        html = self.read_app()
+        main_source = (ROOT / "main.py").read_text(encoding="utf-8")
+        self.assertNotIn("Process another dataset?", html)
+        self.assertNotIn("Process another dataset?", main_source)
+        self.assertNotIn("create_confirmation_dialog('Confirmation'", main_source)
+        self.assertNotIn("user_choice", main_source)
 
 
 if __name__ == "__main__":

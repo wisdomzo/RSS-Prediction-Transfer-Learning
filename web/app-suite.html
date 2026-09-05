@@ -246,6 +246,57 @@
       color: var(--green);
     }
 
+    .dataset-output-anchor {
+      position: relative;
+      display: inline-flex;
+    }
+
+    .dataset-output-guide {
+      width: 286px;
+      position: absolute;
+      left: 50%;
+      top: calc(100% + 12px);
+      z-index: 85;
+      transform: translateX(-50%);
+      padding: 14px 15px;
+      border: 1px solid rgba(111, 211, 140, 0.42);
+      border-radius: 8px;
+      background: rgba(10, 17, 26, 0.98);
+      box-shadow: 0 18px 52px rgba(0, 0, 0, 0.46), 0 0 24px rgba(111, 211, 140, 0.12);
+    }
+
+    .dataset-output-guide::before {
+      content: "";
+      width: 11px;
+      height: 11px;
+      position: absolute;
+      left: 50%;
+      top: -7px;
+      transform: translateX(-50%) rotate(45deg);
+      border-left: 1px solid rgba(111, 211, 140, 0.42);
+      border-top: 1px solid rgba(111, 211, 140, 0.42);
+      background: #0a111a;
+    }
+
+    .dataset-output-guide strong {
+      display: block;
+      margin: 3px 24px 6px 0;
+      font-size: 14px;
+    }
+
+    .dataset-output-guide p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .next-action-highlight {
+      animation: nextActionPulse 1.2s ease-in-out 4;
+      border-color: rgba(111, 211, 140, 0.78) !important;
+      box-shadow: 0 0 0 3px rgba(111, 211, 140, 0.14), 0 0 24px rgba(111, 211, 140, 0.26) !important;
+    }
+
     .coachmark-close {
       width: 28px;
       height: 28px;
@@ -654,6 +705,11 @@
       100% { transform: translateX(345%); }
     }
 
+    @keyframes nextActionPulse {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-1px); }
+    }
+
     .wide-grid {
       display: grid;
       grid-template-columns: minmax(0, 1fr) 360px;
@@ -835,6 +891,17 @@
     .parameter-help:focus .help-tooltip {
       opacity: 1;
       transform: translate(-50%, 0);
+    }
+
+    .source-action {
+      min-width: 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .source-action .ghost-btn {
+      flex: 1;
     }
 
     input, select {
@@ -1814,7 +1881,7 @@ dask worker tcp://192.168.199.1:8786 --nworkers 6 --nthreads 1 --name MacPro_sha
         <div class="topbar"><div class="breadcrumbs">ASSET / Feature Generation</div><span class="pill">Native file picker</span></div>
         <div class="module-title">
           <div><div class="eyebrow">Feature Generation</div><h2>Prepare CSV, altitude, building, and land-use inputs.</h2><p class="lead">Prepare measurement CSV, terrain, building, and land-use inputs for feature generation and model training.</p></div>
-          <div class="toolbar"><button class="ghost-btn" onclick="resetDatasetPrep()">Reset</button><button class="ghost-btn hidden" id="download-dataset-output-btn" onclick="downloadDatasetOutput()">Download Output</button><button class="primary-btn" id="upload-dataset-process-btn" onclick="uploadAndProcessDataset()">Upload and Process</button></div>
+          <div class="toolbar"><button class="ghost-btn" onclick="resetDatasetPrep()">Reset</button><span class="dataset-output-anchor"><button class="ghost-btn hidden" id="download-dataset-output-btn" onclick="downloadDatasetOutput()">Download Output</button><span class="dataset-output-guide hidden" id="dataset-output-guide" role="status" aria-live="polite"><button class="coachmark-close" type="button" aria-label="Dismiss dataset output notification" title="Dismiss" onclick="clearDatasetOutputGuide()">&times;</button><strong>Output is ready</strong><p>Output is ready. Download the generated dataset, or reset to process another one.</p></span></span><button class="primary-btn" id="upload-dataset-process-btn" onclick="uploadAndProcessDataset()">Upload and Process</button></div>
         </div>
         <div class="panel" style="margin-bottom:18px;">
           <div class="panel-header">
@@ -1840,10 +1907,10 @@ dask worker tcp://192.168.199.1:8786 --nworkers 6 --nthreads 1 --name MacPro_sha
         </div>
         <div class="panel"><div class="panel-header"><h3>Sources</h3><span class="pill" id="dataset-status">Waiting for files</span></div><div class="panel-body">
           <div class="grid">
-            <button class="ghost-btn" onclick="chooseFiles('csv')">Training CSV</button>
-            <button class="ghost-btn" onclick="chooseFiles('altitude')">Altitude TIFF</button>
-            <button class="ghost-btn" onclick="chooseFiles('building')">Building GPKG (Optional)</button>
-            <button class="ghost-btn" onclick="chooseFiles('landuse')">Land-use GPKG (Optional)</button>
+            <div class="source-action"><button class="ghost-btn" onclick="chooseFiles('csv')">Training CSV</button><span class="parameter-help" tabindex="0" data-help-for="d-training-csv">?<span class="help-tooltip" role="tooltip">Training CSV files must include longitude and latitude columns. Measured RSSI values are also required for feature-vector generation. Example longitude columns: longitude, lon, lng, or x. Example latitude columns: latitude, lat, or y. Example RSSI columns: RSSI or rssi.</span></span></div>
+            <div class="source-action"><button class="ghost-btn" onclick="chooseFiles('altitude')">Altitude TIFF</button><span class="parameter-help" tabindex="0" data-help-for="d-altitude-map">?<span class="help-tooltip" role="tooltip">Altitude or terrain raster used to add elevation-aware propagation features during feature-vector generation.</span></span></div>
+            <div class="source-action"><button class="ghost-btn" onclick="chooseFiles('building')">Building GPKG (Optional)</button><span class="parameter-help" tabindex="0" data-help-for="d-building-map">?<span class="help-tooltip" role="tooltip">Building-layer GeoPackage used to derive obstruction and spatial relationship features between transmitter and receiver points.</span></span></div>
+            <div class="source-action"><button class="ghost-btn" onclick="chooseFiles('landuse')">Land-use GPKG (Optional)</button><span class="parameter-help" tabindex="0" data-help-for="d-city-type-map">?<span class="help-tooltip" role="tooltip">City-type or land-use GeoPackage used to encode propagation-environment categories such as residential, commercial, or open areas.</span></span></div>
           </div>
           <table class="table"><thead><tr><th>Type</th><th>Selected paths</th></tr></thead><tbody id="dataset-table"></tbody></table>
         </div></div>
@@ -2733,6 +2800,7 @@ dask worker tcp://192.168.199.1:8786 --nworkers 6 --nthreads 1 --name MacPro_sha
     }
 
     async function resetDatasetPrep() {
+      clearDatasetOutputGuide();
       setDatasetProcessing(false);
       datasetOutputReady = false;
       selectedPaths.csv = [];
@@ -2756,6 +2824,27 @@ dask worker tcp://192.168.199.1:8786 --nworkers 6 --nthreads 1 --name MacPro_sha
       await window.pywebview.api.reset_temp_data();
       updateProgress(0, "Ready");
       showToast("Feature Generation reset to defaults.");
+    }
+
+    function showDatasetOutputGuide() {
+      const button = document.getElementById("download-dataset-output-btn");
+      const guide = document.getElementById("dataset-output-guide");
+      if (!button || !guide) return;
+      document.getElementById("download-dataset-output-btn").scrollIntoView({ block: "center", inline: "nearest", behavior: "smooth" });
+      guide.classList.remove("hidden");
+      document.getElementById("download-dataset-output-btn").classList.add("next-action-highlight");
+      clearTimeout(window.__assetDatasetOutputGuideTimer);
+      window.__assetDatasetOutputGuideTimer = setTimeout(() => {
+        button.classList.remove("next-action-highlight");
+      }, 5200);
+    }
+
+    function clearDatasetOutputGuide() {
+      const button = document.getElementById("download-dataset-output-btn");
+      const guide = document.getElementById("dataset-output-guide");
+      if (button) button.classList.remove("next-action-highlight");
+      if (guide) guide.classList.add("hidden");
+      clearTimeout(window.__assetDatasetOutputGuideTimer);
     }
 
     function getDatasetCoords() {
@@ -2789,14 +2878,16 @@ dask worker tcp://192.168.199.1:8786 --nworkers 6 --nthreads 1 --name MacPro_sha
         if (result.status === "success") {
           datasetOutputReady = true;
           document.getElementById("download-dataset-output-btn").classList.remove("hidden");
+          setTimeout(() => showDatasetOutputGuide(), 80);
         }
-        showToast(result.message || "Dataset processing finished.");
+        showToast(result.message || "Feature generation completed. Download the output or reset to process another dataset.");
       } finally {
         setDatasetProcessing(false);
       }
     }
 
     async function downloadDatasetOutput() {
+      clearDatasetOutputGuide();
       ensurePywebviewApi();
       const ok = await window.pywebview.api.download_dataset_output();
       showToast(ok ? "Dataset output saved successfully." : "No dataset output was saved.");
