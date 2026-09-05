@@ -120,6 +120,14 @@ class AppSuiteStaticTests(unittest.TestCase):
         self.assertIn("window.pywebview.api.download_data_analysis_png()", html)
         self.assertIn("Additional analysis functions will be added here in future releases.", html)
 
+    def test_prediction_data_tooltip_documents_csv_coordinate_format(self):
+        html = self.read_app()
+        self.assertIn('data-help-for="p-predictDataSelect"', html)
+        self.assertIn("CSV prediction files must include longitude and latitude columns.", html)
+        self.assertIn("Accepted longitude names: longitude, lon, lng, or x.", html)
+        self.assertIn("Accepted latitude names: latitude, lat, or y.", html)
+        self.assertIn("RSSI is optional for prediction CSV files; missing values are filled internally.", html)
+
     def test_app_suite_log_console_is_primary_workspace_not_only_rightbar(self):
         html = self.read_app()
         self.assertIn('data-view="logs"', html)

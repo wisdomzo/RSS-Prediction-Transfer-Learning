@@ -1633,7 +1633,7 @@ dask worker tcp://192.168.199.1:8786 --nworkers 6 --nthreads 1 --name MacPro_sha
                 </select>
               </div>
               <div class="field">
-                <label>Prediction Data <span class="parameter-help" tabindex="0" data-help-for="p-predictDataSelect">?<span class="help-tooltip" role="tooltip">Choose whether prediction points come from a map-bounds area or from a CSV file selected through the native file dialog.</span></span></label>
+                <label>Prediction Data <span class="parameter-help" tabindex="0" data-help-for="p-predictDataSelect">?<span class="help-tooltip" role="tooltip">Choose whether prediction points come from a map-bounds area or from a CSV file selected through the native file dialog. CSV prediction files must include longitude and latitude columns. Accepted longitude names: longitude, lon, lng, or x. Accepted latitude names: latitude, lat, or y. RSSI is optional for prediction CSV files; missing values are filled internally.</span></span></label>
                 <select id="p-predictDataSelect" onchange="togglePredictionArea()">
                   <option value="predictData_map">Map bounds</option>
                   <option value="predictData_file">CSV file selected by native dialog</option>

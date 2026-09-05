@@ -5,6 +5,7 @@ import subFun
 from subFun import generate_grid_points
 import main_collect_data
 import shutil
+import pandas as pd
 
 def get_app_root_directory():
     if hasattr(sys, '_MEIPASS'):
@@ -39,11 +40,32 @@ def copy_prediction_data(source_path, target_folder='selected_folder_csv'):
             if not os.path.exists(target_folder):
                 os.makedirs(target_folder)
 
-            # 4. Copy the file while preserving metadata.
+            df = pd.read_csv(source_path)
+            column_map = {str(column).lower(): column for column in df.columns}
+            lon_name = next((column_map[key] for key in ['longitude', 'lon', 'lng', 'x'] if key in column_map), None)
+            lat_name = next((column_map[key] for key in ['latitude', 'lat', 'y'] if key in column_map), None)
+            rssi_name = next((column_map[key] for key in ['rssi'] if key in column_map), None)
+            if not lon_name or not lat_name:
+                print("Prediction CSV rejected: missing longitude and latitude columns.")
+                return False
+
+            normalized_df = pd.DataFrame({
+                'Longitude': pd.to_numeric(df[lon_name], errors='coerce'),
+                'Latitude': pd.to_numeric(df[lat_name], errors='coerce')
+            })
+            if rssi_name:
+                normalized_df['RSSI'] = pd.to_numeric(df[rssi_name], errors='coerce')
+            else:
+                normalized_df['RSSI'] = -999
+            normalized_df = normalized_df.dropna(subset=['Longitude', 'Latitude'])
+            if normalized_df.empty:
+                print("Prediction CSV rejected: no valid longitude and latitude rows.")
+                return False
+
+            # 4. Save the normalized prediction-point CSV for downstream processing.
             file_name = os.path.basename(source_path)
             dest_path = os.path.join(target_folder, file_name)
-
-            shutil.copy2(source_path, dest_path)
+            normalized_df.to_csv(dest_path, index=False)
             print(f"Copied file successfully: {file_name} -> {target_folder}")
             return True
 
