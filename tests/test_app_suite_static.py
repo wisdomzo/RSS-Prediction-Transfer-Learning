@@ -390,6 +390,26 @@ class AppSuiteStaticTests(unittest.TestCase):
         self.assertIn("Stop the current training task if needed and clear model-training state after completion.", html)
         self.assertIn('if (name === "training") maybeStartModelTrainingTour()', html)
 
+    def test_feature_generation_has_contextual_tour(self):
+        html = self.read_app()
+        self.assertIn("featureGeneration", html)
+        self.assertIn("asset.skipFeatureGenerationTour", html)
+        self.assertIn('data-tour-target="dataset-parameters"', html)
+        self.assertIn('data-tour-target="dataset-param-cache"', html)
+        self.assertIn('data-tour-target="dataset-sources"', html)
+        self.assertIn('data-tour-target="dataset-source-help"', html)
+        self.assertIn('data-tour-target="dataset-upload-process"', html)
+        self.assertIn('data-tour-target="dataset-download-output"', html)
+        self.assertIn('data-tour-target="dataset-reset"', html)
+        self.assertIn("Confirm the radio, antenna, and site parameters that will be embedded in generated feature vectors.", html)
+        self.assertIn("Save the current parameter set temporarily, or reload the saved values after reset.", html)
+        self.assertIn("Select the measurement CSV and altitude TIFF first; building and land-use maps are optional inputs.", html)
+        self.assertIn("Use the source help icons to check file-format requirements and example column names.", html)
+        self.assertIn("Start feature generation. The workspace is locked while data processing is running.", html)
+        self.assertIn("After processing succeeds, Download Output appears here and is highlighted automatically.", html)
+        self.assertIn("Clear selected files, generated output state, temporary files, and progress before preparing another dataset.", html)
+        self.assertIn('if (name === "dataset") maybeStartFeatureGenerationTour()', html)
+
     def test_prediction_workspace_tour_locks_page_scroll(self):
         html = self.read_app()
         self.assertIn(".tour-scroll-locked", html)

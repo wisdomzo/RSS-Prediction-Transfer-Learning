@@ -1881,12 +1881,12 @@ dask worker tcp://192.168.199.1:8786 --nworkers 6 --nthreads 1 --name MacPro_sha
         <div class="topbar"><div class="breadcrumbs">ASSET / Feature Generation</div><span class="pill">Native file picker</span></div>
         <div class="module-title">
           <div><div class="eyebrow">Feature Generation</div><h2>Prepare CSV, altitude, building, and land-use inputs.</h2><p class="lead">Prepare measurement CSV, terrain, building, and land-use inputs for feature generation and model training.</p></div>
-          <div class="toolbar"><button class="ghost-btn" onclick="resetDatasetPrep()">Reset</button><span class="dataset-output-anchor"><button class="ghost-btn hidden" id="download-dataset-output-btn" onclick="downloadDatasetOutput()">Download Output</button><span class="dataset-output-guide hidden" id="dataset-output-guide" role="status" aria-live="polite"><button class="coachmark-close" type="button" aria-label="Dismiss dataset output notification" title="Dismiss" onclick="clearDatasetOutputGuide()">&times;</button><strong>Output is ready</strong><p>Output is ready. Download the generated dataset, or reset to process another one.</p></span></span><button class="primary-btn" id="upload-dataset-process-btn" onclick="uploadAndProcessDataset()">Upload and Process</button></div>
+          <div class="toolbar"><button class="ghost-btn" data-tour-target="dataset-reset" onclick="resetDatasetPrep()">Reset</button><span class="dataset-output-anchor" data-tour-target="dataset-download-output"><button class="ghost-btn hidden" id="download-dataset-output-btn" onclick="downloadDatasetOutput()">Download Output</button><span class="dataset-output-guide hidden" id="dataset-output-guide" role="status" aria-live="polite"><button class="coachmark-close" type="button" aria-label="Dismiss dataset output notification" title="Dismiss" onclick="clearDatasetOutputGuide()">&times;</button><strong>Output is ready</strong><p>Output is ready. Download the generated dataset, or reset to process another one.</p></span></span><button class="primary-btn" id="upload-dataset-process-btn" data-tour-target="dataset-upload-process" onclick="uploadAndProcessDataset()">Upload and Process</button></div>
         </div>
-        <div class="panel" style="margin-bottom:18px;">
+        <div class="panel" style="margin-bottom:18px;" data-tour-target="dataset-parameters">
           <div class="panel-header">
             <h3>Dataset Parameters</h3>
-            <div class="toolbar">
+            <div class="toolbar" data-tour-target="dataset-param-cache">
               <button class="ghost-btn" onclick="saveDatasetParams()">Save Params</button>
               <button class="ghost-btn" onclick="reloadDatasetParams()">Reload Params</button>
               <span class="pill" id="dataset-param-cache-status">Not saved</span>
@@ -1905,9 +1905,9 @@ dask worker tcp://192.168.199.1:8786 --nworkers 6 --nthreads 1 --name MacPro_sha
             </div>
           </div>
         </div>
-        <div class="panel"><div class="panel-header"><h3>Sources</h3><span class="pill" id="dataset-status">Waiting for files</span></div><div class="panel-body">
+        <div class="panel" data-tour-target="dataset-sources"><div class="panel-header"><h3>Sources</h3><span class="pill" id="dataset-status">Waiting for files</span></div><div class="panel-body">
           <div class="grid">
-            <div class="source-action"><button class="ghost-btn" onclick="chooseFiles('csv')">Training CSV</button><span class="parameter-help" tabindex="0" data-help-for="d-training-csv">?<span class="help-tooltip" role="tooltip">Training CSV files must include longitude and latitude columns. Measured RSSI values are also required for feature-vector generation. Example longitude columns: longitude, lon, lng, or x. Example latitude columns: latitude, lat, or y. Example RSSI columns: RSSI or rssi.</span></span></div>
+            <div class="source-action"><button class="ghost-btn" onclick="chooseFiles('csv')">Training CSV</button><span class="parameter-help" tabindex="0" data-help-for="d-training-csv" data-tour-target="dataset-source-help">?<span class="help-tooltip" role="tooltip">Training CSV files must include longitude and latitude columns. Measured RSSI values are also required for feature-vector generation. Example longitude columns: longitude, lon, lng, or x. Example latitude columns: latitude, lat, or y. Example RSSI columns: RSSI or rssi.</span></span></div>
             <div class="source-action"><button class="ghost-btn" onclick="chooseFiles('altitude')">Altitude TIFF</button><span class="parameter-help" tabindex="0" data-help-for="d-altitude-map">?<span class="help-tooltip" role="tooltip">Altitude or terrain raster used to add elevation-aware propagation features during feature-vector generation.</span></span></div>
             <div class="source-action"><button class="ghost-btn" onclick="chooseFiles('building')">Building GPKG (Optional)</button><span class="parameter-help" tabindex="0" data-help-for="d-building-map">?<span class="help-tooltip" role="tooltip">Building-layer GeoPackage used to derive obstruction and spatial relationship features between transmitter and receiver points.</span></span></div>
             <div class="source-action"><button class="ghost-btn" onclick="chooseFiles('landuse')">Land-use GPKG (Optional)</button><span class="parameter-help" tabindex="0" data-help-for="d-city-type-map">?<span class="help-tooltip" role="tooltip">City-type or land-use GeoPackage used to encode propagation-environment categories such as residential, commercial, or open areas.</span></span></div>
@@ -2172,7 +2172,8 @@ dask worker tcp://192.168.199.1:8786 --nworkers 6 --nthreads 1 --name MacPro_sha
     const tourStorageKeys = {
       appOverview: "asset.skipAppOverviewTour",
       predictionWorkspace: "asset.skipPredictionWorkspaceTour",
-      modelTraining: "asset.skipModelTrainingTour"
+      modelTraining: "asset.skipModelTrainingTour",
+      featureGeneration: "asset.skipFeatureGenerationTour"
     };
     const tourDefinitions = {
       appOverview: [
@@ -2197,6 +2198,15 @@ dask worker tcp://192.168.199.1:8786 --nworkers 6 --nthreads 1 --name MacPro_sha
         { target: '[data-tour-target="training-open-guide"]', title: "Open Guide", description: "Open the distributed learning guide before using Dask workers on other computers." },
         { target: '[data-tour-target="training-generate-model"]', title: "Generate Model", description: "Start model generation after the settings and feature vectors are ready." },
         { target: '[data-tour-target="training-reset"]', title: "Reset", description: "Stop the current training task if needed and clear model-training state after completion." }
+      ],
+      featureGeneration: [
+        { target: '[data-tour-target="dataset-parameters"]', title: "Dataset Parameters", description: "Confirm the radio, antenna, and site parameters that will be embedded in generated feature vectors." },
+        { target: '[data-tour-target="dataset-param-cache"]', title: "Save and Reload Params", description: "Save the current parameter set temporarily, or reload the saved values after reset." },
+        { target: '[data-tour-target="dataset-sources"]', title: "Sources", description: "Select the measurement CSV and altitude TIFF first; building and land-use maps are optional inputs." },
+        { target: '[data-tour-target="dataset-source-help"]', title: "Source Help", description: "Use the source help icons to check file-format requirements and example column names." },
+        { target: '[data-tour-target="dataset-upload-process"]', title: "Upload and Process", description: "Start feature generation. The workspace is locked while data processing is running." },
+        { target: '[data-tour-target="dataset-download-output"]', title: "Download Output", description: "After processing succeeds, Download Output appears here and is highlighted automatically." },
+        { target: '[data-tour-target="dataset-reset"]', title: "Reset", description: "Clear selected files, generated output state, temporary files, and progress before preparing another dataset." }
       ]
     };
     let activeTourName = null;
@@ -2205,6 +2215,7 @@ dask worker tcp://192.168.199.1:8786 --nworkers 6 --nthreads 1 --name MacPro_sha
     let tourPreferenceCache = {};
     let predictionWorkspaceTourSeen = false;
     let modelTrainingTourSeen = false;
+    let featureGenerationTourSeen = false;
 
     function ensurePywebviewApi() {
       if (!window.pywebview || !window.pywebview.api) {
@@ -2409,6 +2420,13 @@ dask worker tcp://192.168.199.1:8786 --nworkers 6 --nthreads 1 --name MacPro_sha
       setTimeout(() => startTour("modelTraining"), 350);
     }
 
+    function maybeStartFeatureGenerationTour() {
+      if (featureGenerationTourSeen || activeTourName || isTourSkipped("featureGeneration") || !canStartTour()) return;
+      if (!document.getElementById("view-dataset").classList.contains("active")) return;
+      featureGenerationTourSeen = true;
+      setTimeout(() => startTour("featureGeneration"), 350);
+    }
+
     window.addEventListener("resize", () => {
       if (activeTourName) renderTourStep();
     });
@@ -2522,6 +2540,7 @@ dask worker tcp://192.168.199.1:8786 --nworkers 6 --nthreads 1 --name MacPro_sha
       if (name === "prediction") setTimeout(initAreaMap, 0);
       if (name === "prediction") maybeStartPredictionWorkspaceTour();
       if (name === "training") maybeStartModelTrainingTour();
+      if (name === "dataset") maybeStartFeatureGenerationTour();
       if (name === "results") {
         clearPredictionResultGuide();
         setTimeout(initResultMap, 0);
