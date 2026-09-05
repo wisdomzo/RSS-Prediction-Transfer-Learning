@@ -793,6 +793,30 @@
       z-index: 90;
     }
 
+    .help-tooltip.visual-help {
+      width: min(420px, calc(100vw - 40px));
+      display: grid;
+      gap: 10px;
+      padding: 12px;
+    }
+
+    .help-tooltip img {
+      width: 100%;
+      display: block;
+      border-radius: 7px;
+      background: #ffffff;
+    }
+
+    .help-tooltip .help-copy {
+      display: grid;
+      gap: 6px;
+    }
+
+    .help-tooltip .help-copy strong {
+      color: var(--text);
+      font-size: 12px;
+    }
+
     .parameter-help [role="tooltip"] {
       pointer-events: none;
     }
@@ -1645,11 +1669,11 @@ dask worker tcp://192.168.199.1:8786 --nworkers 6 --nthreads 1 --name MacPro_sha
                 <div class="field"><label>Frequency in MHz <span class="parameter-help" tabindex="0" data-help-for="p-frequency">?<span class="help-tooltip" role="tooltip">Radio frequency in MHz used for propagation and RSS prediction. Keep it aligned with the measurement system and regulatory band.</span></span></label><input id="p-frequency" type="number" value="920" min="200" /></div>
                 <div class="field"><label>SF <span class="parameter-help" tabindex="0" data-help-for="p-SF">?<span class="help-tooltip" role="tooltip">LoRa spreading factor. Select None when SF is not part of the model input; otherwise choose the SF used during measurement or simulation.</span></span></label><select id="p-SF"><option value="0">None</option><option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="10">10</option><option value="11">11</option><option value="12">12</option></select></div>
                 <div class="field"><label>EIRP in dBm <span class="parameter-help" tabindex="0" data-help-for="p-EIRP">?<span class="help-tooltip" role="tooltip">Effective isotropic radiated power in dBm. This should match the transmitter power and antenna gain configuration used for the target scenario.</span></span></label><input id="p-EIRP" type="number" value="20" /></div>
-                <div class="field"><label>Fixed Elevation in m <span class="parameter-help" tabindex="0" data-help-for="p-fixAntenna_alt">?<span class="help-tooltip" role="tooltip">Effective elevation of the fixed antenna site above mean sea level, calculated as the sum of the ground altitude and the supporting building height. Used together with the antenna height to estimate the transmitter elevation.</span></span></label><input id="p-fixAntenna_alt" type="number" value="640.7" /></div>
+                <div class="field"><label>Fixed Elevation in m <span class="parameter-help" tabindex="0" data-help-for="p-fixAntenna_alt">?<span class="help-tooltip visual-help" role="tooltip"><img src="assets/help/antenna-height-reference.png" alt="Fixed elevation, fixed height, and mobile height reference diagram" /><span class="help-copy"><strong>Antenna height reference</strong><span>Fixed Elevation is the fixed site elevation above mean sea level. Fixed Height is the fixed antenna height above the installation point. Mobile Height is the mobile antenna height above its ground or vehicle reference.</span></span></span></span></label><input id="p-fixAntenna_alt" type="number" value="640.7" /></div>
                 <div class="field"><label>Fixed Longitude <span class="parameter-help" tabindex="0" data-help-for="p-fixAntenna_lng">?<span class="help-tooltip" role="tooltip">Longitude of the fixed antenna site in decimal degrees. This defines the transmitter (or receiver) reference position for prediction.</span></span></label><input id="p-fixAntenna_lng" type="number" value="137.9775489" step="0.000001" /></div>
                 <div class="field"><label>Fixed Latitude <span class="parameter-help" tabindex="0" data-help-for="p-fixAntenna_lat">?<span class="help-tooltip" role="tooltip">Latitude of the fixed antenna site in decimal degrees. This defines the transmitter (or receiver) reference position for prediction.</span></span></label><input id="p-fixAntenna_lat" type="number" value="36.2508738" step="0.000001" /></div>
-                <div class="field"><label>Fixed Height in m <span class="parameter-help" tabindex="0" data-help-for="p-fixAntenna_height">?<span class="help-tooltip" role="tooltip">Antenna height above local ground level at the fixed site, in meters. Used to calculate the effective transmitter (or receiver) antenna elevation.</span></span></label><input id="p-fixAntenna_height" type="number" value="1.5" step="0.1" /></div>
-                <div class="field"><label>Mobile Height in m <span class="parameter-help" tabindex="0" data-help-for="p-moveAntenna_height">?<span class="help-tooltip" role="tooltip">Receiver (or transmitter) antenna height above local ground level, in meters. Use the value that matches the mobile measurement or target deployment setup.</span></span></label><input id="p-moveAntenna_height" type="number" value="1.8" step="0.1" /></div>
+                <div class="field"><label>Fixed Height in m <span class="parameter-help" tabindex="0" data-help-for="p-fixAntenna_height">?<span class="help-tooltip visual-help" role="tooltip"><img src="assets/help/antenna-height-reference.png" alt="Fixed elevation, fixed height, and mobile height reference diagram" /><span class="help-copy"><strong>Antenna height reference</strong><span>Fixed Elevation is the fixed site elevation above mean sea level. Fixed Height is the fixed antenna height above the installation point. Mobile Height is the mobile antenna height above its ground or vehicle reference.</span></span></span></span></label><input id="p-fixAntenna_height" type="number" value="1.5" step="0.1" /></div>
+                <div class="field"><label>Mobile Height in m <span class="parameter-help" tabindex="0" data-help-for="p-moveAntenna_height">?<span class="help-tooltip visual-help" role="tooltip"><img src="assets/help/antenna-height-reference.png" alt="Fixed elevation, fixed height, and mobile height reference diagram" /><span class="help-copy"><strong>Antenna height reference</strong><span>Fixed Elevation is the fixed site elevation above mean sea level. Fixed Height is the fixed antenna height above the installation point. Mobile Height is the mobile antenna height above its ground or vehicle reference.</span></span></span></span></label><input id="p-moveAntenna_height" type="number" value="1.8" step="0.1" /></div>
               </div>
               <input id="min-lng" type="hidden" />
               <input id="min-lat" type="hidden" />
@@ -1744,9 +1768,9 @@ dask worker tcp://192.168.199.1:8786 --nworkers 6 --nthreads 1 --name MacPro_sha
               <div class="field"><label>EIRP in dBm <span class="parameter-help" tabindex="0" data-help-for="d-EIRP">?<span class="help-tooltip" role="tooltip">Transmit EIRP in dBm stored with the generated feature vectors. Use the same power setting as the source measurements.</span></span></label><input id="d-EIRP" type="number" value="20" /></div>
               <div class="field"><label>Fixed Longitude <span class="parameter-help" tabindex="0" data-help-for="d-fixAntenna_lng">?<span class="help-tooltip" role="tooltip">Longitude of the fixed antenna used when preparing feature vectors, in decimal degrees.</span></span></label><input id="d-fixAntenna_lng" type="number" value="137.9775489" step="0.000001" /></div>
               <div class="field"><label>Fixed Latitude <span class="parameter-help" tabindex="0" data-help-for="d-fixAntenna_lat">?<span class="help-tooltip" role="tooltip">Latitude of the fixed antenna used when preparing feature vectors, in decimal degrees.</span></span></label><input id="d-fixAntenna_lat" type="number" value="36.2508738" step="0.000001" /></div>
-              <div class="field"><label>Fixed Elevation in m <span class="parameter-help" tabindex="0" data-help-for="d-fixAntenna_alt">?<span class="help-tooltip" role="tooltip">Effective elevation of the fixed antenna site above mean sea level, calculated as the sum of the ground altitude and the supporting building height. Used for terrain-aware feature generation.</span></span></label><input id="d-fixAntenna_alt" type="number" value="640.7" /></div>
-              <div class="field"><label>Fixed Height in m <span class="parameter-help" tabindex="0" data-help-for="d-fixAntenna_height">?<span class="help-tooltip" role="tooltip">Fixed antenna height above local ground level, in meters. Combined with altitude for effective transmitter (or receiver) elevation.</span></span></label><input id="d-fixAntenna_height" type="number" value="1.5" step="0.1" /></div>
-              <div class="field"><label>Mobile Height in m <span class="parameter-help" tabindex="0" data-help-for="d-moveAntenna_height">?<span class="help-tooltip" role="tooltip">Mobile receiver (or transmitter) antenna height above ground level, in meters. Use the value corresponding to the training measurements.</span></span></label><input id="d-moveAntenna_height" type="number" value="1.8" step="0.1" /></div>
+              <div class="field"><label>Fixed Elevation in m <span class="parameter-help" tabindex="0" data-help-for="d-fixAntenna_alt">?<span class="help-tooltip visual-help" role="tooltip"><img src="assets/help/antenna-height-reference.png" alt="Fixed elevation, fixed height, and mobile height reference diagram" /><span class="help-copy"><strong>Antenna height reference</strong><span>Fixed Elevation is the fixed site elevation above mean sea level. Fixed Height is the fixed antenna height above the installation point. Mobile Height is the mobile antenna height above its ground or vehicle reference.</span></span></span></span></label><input id="d-fixAntenna_alt" type="number" value="640.7" /></div>
+              <div class="field"><label>Fixed Height in m <span class="parameter-help" tabindex="0" data-help-for="d-fixAntenna_height">?<span class="help-tooltip visual-help" role="tooltip"><img src="assets/help/antenna-height-reference.png" alt="Fixed elevation, fixed height, and mobile height reference diagram" /><span class="help-copy"><strong>Antenna height reference</strong><span>Fixed Elevation is the fixed site elevation above mean sea level. Fixed Height is the fixed antenna height above the installation point. Mobile Height is the mobile antenna height above its ground or vehicle reference.</span></span></span></span></label><input id="d-fixAntenna_height" type="number" value="1.5" step="0.1" /></div>
+              <div class="field"><label>Mobile Height in m <span class="parameter-help" tabindex="0" data-help-for="d-moveAntenna_height">?<span class="help-tooltip visual-help" role="tooltip"><img src="assets/help/antenna-height-reference.png" alt="Fixed elevation, fixed height, and mobile height reference diagram" /><span class="help-copy"><strong>Antenna height reference</strong><span>Fixed Elevation is the fixed site elevation above mean sea level. Fixed Height is the fixed antenna height above the installation point. Mobile Height is the mobile antenna height above its ground or vehicle reference.</span></span></span></span></label><input id="d-moveAntenna_height" type="number" value="1.8" step="0.1" /></div>
             </div>
           </div>
         </div>

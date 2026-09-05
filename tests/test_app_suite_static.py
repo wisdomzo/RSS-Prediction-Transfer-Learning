@@ -6,6 +6,7 @@ ROOT = Path(__file__).resolve().parents[1]
 APP = ROOT / "web" / "app-suite.html"
 LOGO_DIR = ROOT / "logos"
 WEB_LOGO_DIR = ROOT / "web" / "logos"
+HELP_ASSET_DIR = ROOT / "web" / "assets" / "help"
 
 
 class AppSuiteStaticTests(unittest.TestCase):
@@ -127,6 +128,22 @@ class AppSuiteStaticTests(unittest.TestCase):
         self.assertIn("Accepted longitude names: longitude, lon, lng, or x.", html)
         self.assertIn("Accepted latitude names: latitude, lat, or y.", html)
         self.assertIn("RSSI is optional for prediction CSV files; missing values are filled internally.", html)
+
+    def test_height_parameter_tooltips_include_reference_image(self):
+        html = self.read_app()
+        self.assertTrue((HELP_ASSET_DIR / "antenna-height-reference.png").exists())
+        self.assertIn(".help-tooltip.visual-help", html)
+        self.assertIn(".help-tooltip img", html)
+        self.assertEqual(6, html.count('src="assets/help/antenna-height-reference.png"'))
+        for help_id in [
+            "p-fixAntenna_alt",
+            "p-fixAntenna_height",
+            "p-moveAntenna_height",
+            "d-fixAntenna_alt",
+            "d-fixAntenna_height",
+            "d-moveAntenna_height",
+        ]:
+            self.assertIn(f'data-help-for="{help_id}"', html)
 
     def test_app_suite_log_console_is_primary_workspace_not_only_rightbar(self):
         html = self.read_app()
