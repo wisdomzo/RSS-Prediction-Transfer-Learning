@@ -62,3 +62,5 @@ The scene uses expanding horizontal rings and three animated quadcopters. Pause 
 Weather controls independently select Clear / Cloudy / Snow and Day / Night. `scene-weather.js` manages light levels, clouds, terrain snow tint, particle snow and emissive windows. Snow and clouds pause with the shared clock; mobile uses fewer snow particles. These are illustrative weather presets, not live forecasts.
 
 Reset (and Home) restores the default camera plus Clear / Day, synchronizing both selectors. Three cloud banks drift independently in cloudy/snow weather; pause freezes their positions.
+
+Night now switches the complete page theme, including controls and download dialog. The hero includes the expanded ASSET name with its initials emphasized. Larger snow particles, independently twinkling stars, sun/moon markers and two additional hikers extend the landscape.

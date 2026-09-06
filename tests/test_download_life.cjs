@@ -17,6 +17,6 @@ test('scene actors have finite transforms and are stable when elapsed time is pa
   update(12);const first=snapshot();update(12);assert.deepEqual(snapshot(),first);
   update(13);assert.notDeepEqual(snapshot(),first);
   for(const t of [0,33,66,100,1000]) { update(t);assert.ok(snapshot().flat().every(Number.isFinite)); }
-  // Ten people, three cars, a satellite, a trail and three signal rings.
-  assert.equal(world.children.length,18);
+  // Twelve people, three cars, a satellite, a trail and three signal rings.
+  assert.equal(world.children.length,20);
 });

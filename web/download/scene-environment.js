@@ -72,10 +72,29 @@
     const windows = new T.InstancedMesh(new T.BoxGeometry(.062, .075, .008), new T.MeshStandardMaterial({color:0x547b91,metalness:.3,roughness:.3}), windowTransforms.length);
     windowTransforms.forEach((matrix,index)=>windows.setMatrixAt(index,matrix)); world.add(windows);
 
+    // A timber mountain refuge beside the hiking route, on a stone platform.
+    const hutX=-.65,hutZ=.65;
+    const hutY=Math.max(...[-.25,.25].flatMap(dx=>[-.2,.2].map(dz=>heightAt(hutX+dx,hutZ+dz))));
+    const hut=new T.Group();hut.position.set(hutX,hutY,hutZ);world.add(hut);
+    function hutBox(w,h,d,x,y,z,color){
+      const mesh=new T.Mesh(new T.BoxGeometry(w,h,d),new T.MeshStandardMaterial({color,roughness:.9}));
+      mesh.position.set(x,y,z);mesh.castShadow=true;mesh.receiveShadow=true;hut.add(mesh);return mesh;
+    }
+    hutBox(.6,.3,.49,0,-.09,0,0x92918a);
+    hutBox(.5,.33,.4,0,.18,0,0x956640);
+    for(let n=0;n<5;n++)hutBox(.51,.013,.412,0,.045+n*.061,0,0x68452e);
+    const hutRoof=new T.Shape();hutRoof.moveTo(-.32,0);hutRoof.lineTo(0,.22);hutRoof.lineTo(.32,0);hutRoof.closePath();
+    const roofMesh=new T.Mesh(new T.ExtrudeGeometry(hutRoof,{depth:.52,bevelEnabled:false}),new T.MeshStandardMaterial({color:0x5a3830,roughness:.85}));
+    roofMesh.position.set(0,.35,-.26);roofMesh.castShadow=true;hut.add(roofMesh);
+    hutBox(.095,.21,.018,-.11,.125,.21,0x483627);
+    const hutWindow=hutBox(.1,.095,.02,.115,.23,.21,0x8caeb6);
+    hutWindow.material=windows.material;
+    hutBox(.055,.19,.065,.18,.49,-.09,0x6b6862);
     const treePositions = [];
     const maxTrees = mobile ? 170 : 290;
     for (let attempt = 0; attempt < 6500 && treePositions.length < maxTrees; attempt++) {
       const x = (random() - .5) * 9.5, z = (random() - .5) * 9.5, height = heightAt(x, z);
+      if (Math.hypot(x-hutX,z-hutZ)<.6) continue;
       if (height > 1.95 || height < .045 || (z > 3.0 && random() > .16)) continue;
       if (Math.hypot(heightAt(x + .07, z) - height, heightAt(x, z + .07) - height) > .12) continue;
       if (roadSamples.some(([rx, rz]) => Math.hypot(x - rx, z - rz) < .2)) continue;

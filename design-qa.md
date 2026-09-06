@@ -47,3 +47,7 @@ Added four hikers, six town pedestrians, three road-following cars and a moving 
 ## Weather revision
 
 Added independent weather and time selectors, night illumination and window emission, clouds, snow particles and reversible terrain snow coloring. Browser night rendering and controls checked with no console errors. Five automated tests pass, including restoring terrain colors after snow, night window lighting and stable snow at paused elapsed time.
+
+## Theme and atmosphere refinement
+
+Moved toolbar below the canvas with 26 px desktop / 24 px mobile spacing. Added full-page dark theme, ASSET expanded name, larger snow, sun/moon, 140 independently twinkling stars and hikers on two additional slopes. Night browser screenshot exposed a pale control background; corrected it to dark with readable text. Browser shader console was clean. All five scene tests pass.

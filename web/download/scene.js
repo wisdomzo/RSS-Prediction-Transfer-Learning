@@ -187,16 +187,14 @@
   }
   const sources = [station(-3.4, 2.2, 1.42, true), station(1.35, -1.8, 1.1, false), station(3.15, 2.35, 0.98, false)];
   const waves = [];
-  const ringPoints = Array.from({ length: 81 }, (_, n) => {
-    const angle = n / 80 * Math.PI * 2;
-    return new T.Vector3(Math.cos(angle), 0, Math.sin(angle));
-  });
-  const horizontalArc = new T.BufferGeometry().setFromPoints(ringPoints);
+  // Mesh tubes keep a visible width on WebGL implementations that clamp lines to 1 px.
+  const horizontalArc = new T.TorusGeometry(1, 0.012, 6, 96);
+  horizontalArc.rotateX(Math.PI / 2);
   sources.forEach((source, sourceIndex) => {
     for (let n = 0; n < 3; n++) {
       const wave = new T.Group(); wave.position.copy(source); world.add(wave);
-      const material = new T.LineBasicMaterial({ color: 0x356cff, toneMapped: false, transparent: true, opacity: 0.32, depthWrite: false });
-      wave.add(new T.Line(horizontalArc, material));
+      const material = new T.MeshBasicMaterial({ color: 0x245aff, toneMapped: false, transparent: true, opacity: 0.32, depthWrite: false });
+      wave.add(new T.Mesh(horizontalArc, material));
       waves.push({ group: wave, material, offset: n / 3 + sourceIndex * 0.13 });
     }
   });
@@ -223,7 +221,7 @@
   }
 
   const weather = window.ASSETWeather(T, world, terrainHeight, mobile.matches, {
-    ambient, sun, rim, renderer, terrain, windows: natural.windows, viewport
+    ambient, sun, rim, renderer, terrain, windows: natural.windows, viewport, camera
   });
   for (const id of ['scene-weather', 'scene-time']) {
     const input = document.getElementById(id); input.disabled = false;
@@ -242,10 +240,10 @@
     waves.forEach(({ group, material, offset }) => {
       const phase = (elapsed * 0.22 + offset) % 1;
       group.scale.setScalar(0.12 + phase * 2.1);
-      material.opacity = 0.5 * Math.sin(phase * Math.PI) * (1 - phase * 0.55);
+      material.opacity = 0.85 * Math.pow(Math.sin(phase * Math.PI), 0.7);
+      material.color.set(world.userData.isNight ? 0x69caff : 0x245aff);
     });
     updateLife(elapsed);
-    weather.update(elapsed);
     drones.forEach(({ drone, rotors, phase }) => {
       const angle = elapsed * 0.12 + phase;
       drone.position.set(Math.cos(angle) * 3.3, 3.35 + Math.sin(angle * 2 + phase) * 0.18, Math.sin(angle) * 2.3);
@@ -253,6 +251,7 @@
       rotors.forEach((rotor, i) => { rotor.rotation.y = elapsed * 35 * (i % 2 ? -1 : 1); });
     });
     controls.update();
+    weather.update(elapsed);
     renderer.render(scene, camera);
     if (clock.active && !clock.paused) schedule();
   }

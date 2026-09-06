@@ -34,6 +34,8 @@
     const trailPoints = Array.from({length:161},(_,i)=>{const p=trailCurve.getPoint(i/160);p.y=heightAt(p.x,p.z)+.045;return p;});
     world.add(new T.Line(new T.BufferGeometry().setFromPoints(trailPoints),new T.LineBasicMaterial({color:0xc6b18a})));
     for(let i=0;i<4;i++) person(trail,[0xed653f,0x287eb5,0xe4c347,0x82458e][i],true,.12+i*.2);
+    person([[2.55,1.7],[2.15,1.35],[1.7,1.65],[1.25,1.3]],0xf2853d,true,.35);
+    person([[2.85,-.65],[2.25,-.85],[1.9,-1.2],[1.65,-1.65]],0xd34d72,true,.6);
     for(let i=0;i<6;i++) {
       const x=-3.6+i*1.25;
       person([[x,3.99],[x+.28,4.02],[x+.5,3.96]],[0x487db0,0xb44b45,0x59764e][i%3],false,i*.14);
@@ -60,10 +62,10 @@
     const dish=part(satellite,new T.ConeGeometry(.1,.07,16),silver,[1,1,1],[0,-.14,0]);dish.rotation.z=Math.PI;
     world.add(satellite);
     const pulses=[];
-    const ring=new T.BufferGeometry().setFromPoints(Array.from({length:65},(_,i)=>new T.Vector3(Math.cos(i/64*Math.PI*2),0,Math.sin(i/64*Math.PI*2))));
+    const ring=new T.TorusGeometry(1,.018,6,80);ring.rotateX(Math.PI/2);
     for(let i=0;i<3;i++){
-      const mat=new T.LineBasicMaterial({color:0x397ff1,transparent:true,depthWrite:false});
-      const mesh=new T.Line(ring,mat);world.add(mesh);pulses.push({mesh,mat,phase:i/3});
+      const mat=new T.MeshBasicMaterial({color:0x245aff,transparent:true,depthWrite:false,toneMapped:false});
+      const mesh=new T.Mesh(ring,mat);world.add(mesh);pulses.push({mesh,mat,phase:i/3});
     }
     return function update(elapsed) {
       walkers.forEach(({group,limbs,route,phase,speed})=>{
@@ -90,7 +92,8 @@
       pulses.forEach(({mesh,mat,phase})=>{
         const t=(elapsed*.3+phase)%1;
         mesh.position.copy(satellite.position);mesh.position.y-=.22+t*1.35;
-        mesh.scale.setScalar(.1+t*.7);mat.opacity=Math.sin(t*Math.PI)*.45;
+        mesh.scale.setScalar(.1+t*.7);mat.opacity=Math.pow(Math.sin(t*Math.PI),.7)*.85;
+        mat.color.set(world.userData.isNight?0x69caff:0x245aff);
       });
     };
   };
