@@ -10,7 +10,7 @@ Then open `http://127.0.0.1:8796/download.html`.
 
 ## Release configuration
 
-Apple Silicon v2.7.7 is available. Intel and Windows remain **準備中 / Coming soon**.
+Apple Silicon and Windows v2.7.9 are available. Intel remains **準備中 / Coming soon**.
 Edit `releases.js` to enable an installer:
 
 ```js
