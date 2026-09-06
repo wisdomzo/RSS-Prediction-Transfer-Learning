@@ -39,3 +39,11 @@ Verified using the local HTTP preview in the in-app browser. Responsive checks d
 ## Subsequent requested revision — 2026-09-06
 
 Supersedes the earlier release and wave descriptions above: only horizontal expanding rings remain; three animated quadcopters share the pause clock; Apple Silicon v2.7.7 now links to the provided DMG; the incorrect fine-tuning PDF entry is removed. Intel and Windows remain Coming soon. The DMG HEAD request returned HTTP 200 with application/x-apple-diskimage. Updated browser screenshot and accessibility tree confirm rings, drones, an active Apple Silicon link and no PDF entry. JavaScript syntax and all three motion/terrain tests pass. Public website deployment is not configured in this checkout; changes are in the local HTML and preview.
+
+## Living scene and zoom revision
+
+Added four hikers, six town pedestrians, three road-following cars and a moving satellite with downward expanding signal rings. Enabled bounded zoom via OrbitControls, buttons and keyboard. Browser rendered the new elements; zoom-in and reset were exercised and console error/warning output was empty. Four automated tests passed, including actor transform stability at unchanged elapsed time and finite transforms over multiple animation cycles. Physical device gesture testing remains unverified.
+
+## Weather revision
+
+Added independent weather and time selectors, night illumination and window emission, clouds, snow particles and reversible terrain snow coloring. Browser night rendering and controls checked with no console errors. Five automated tests pass, including restoring terrain colors after snow, night window lighting and stable snow at paused elapsed time.

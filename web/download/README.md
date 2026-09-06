@@ -56,3 +56,9 @@ Rendered QA evidence lives in `design-preview/download-qa/` and the project-root
 `design-qa.md`. Responsive viewport checks are not physical iPhone testing.
 
 The scene uses expanding horizontal rings and three animated quadcopters. Pause applies to both flight and wave animation.
+
+`scene-life.js` adds four hikers, six town pedestrians, three cars following the road, and an illustrative satellite with signal rings. All use the shared animation clock. Zoom uses wheel, pinch, +/- buttons or keyboard +/-; orbit distance is bounded to 9–28 scene units. Reset restores the default overview. Satellite altitude and actor scales are illustrative.
+
+Weather controls independently select Clear / Cloudy / Snow and Day / Night. `scene-weather.js` manages light levels, clouds, terrain snow tint, particle snow and emissive windows. Snow and clouds pause with the shared clock; mobile uses fewer snow particles. These are illustrative weather presets, not live forecasts.
+
+Reset (and Home) restores the default camera plus Clear / Day, synchronizing both selectors. Three cloud banks drift independently in cloudy/snow weather; pause freezes their positions.

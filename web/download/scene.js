@@ -12,6 +12,7 @@
     viewport.setAttribute('aria-busy', 'false');
     canvas.hidden = true;
     resetButton.disabled = pauseButton.disabled = true;
+    for (const id of ['scene-weather', 'scene-time', 'zoom-in', 'zoom-out']) document.getElementById(id).disabled = true;
     status.textContent = message || '静止画プレビュー / Static preview — 3D unavailable';
     document.getElementById('scene-help').lastElementChild.textContent = '静止画 / Static view';
   }
@@ -40,14 +41,17 @@
   controls.enableDamping = true;
   controls.dampingFactor = 0.08;
   controls.enablePan = false;
-  controls.enableZoom = false;
+  controls.enableZoom = true;
+  controls.minDistance = 9;
+  controls.maxDistance = 28;
+  controls.zoomSpeed = 0.65;
   controls.minPolarAngle = 0.25;
   controls.maxPolarAngle = Math.PI / 2.2;
   controls.rotateSpeed = 0.65;
   controls.update();
   controls.saveState();
 
-  scene.add(new T.HemisphereLight(0xf8fbff, 0xa9b7d0, 0.85));
+  const ambient = new T.HemisphereLight(0xf8fbff, 0xa9b7d0, 0.85); scene.add(ambient);
   const sun = new T.DirectionalLight(0xffffff, 1.9);
   sun.position.set(-5, 12, 6);
   sun.castShadow = true;
@@ -133,7 +137,8 @@
   const gridGeometry = new T.BufferGeometry();
   gridGeometry.setAttribute('position', new T.Float32BufferAttribute(gridPoints, 3));
   world.add(new T.LineSegments(gridGeometry, new T.LineBasicMaterial({ color: 0x34545d, transparent: true, opacity: 0.025, depthWrite: false })));
-  if (window.ASSETNaturalEnvironment) window.ASSETNaturalEnvironment(T, world, terrainHeight, mobile.matches);
+  const natural = window.ASSETNaturalEnvironment(T, world, terrainHeight, mobile.matches);
+  const updateLife = window.ASSETSceneLife(T, world, terrainHeight, natural.mainRoad);
 
   const steel = new T.MeshStandardMaterial({ color: 0x415979, metalness: 0.72, roughness: 0.24 });
   const white = new T.MeshStandardMaterial({ color: 0xbdcce1, metalness: 0.35, roughness: 0.3 });
@@ -217,6 +222,17 @@
     world.add(drone); drones.push({ drone, rotors, phase: i * Math.PI * 2 / 3 });
   }
 
+  const weather = window.ASSETWeather(T, world, terrainHeight, mobile.matches, {
+    ambient, sun, rim, renderer, terrain, windows: natural.windows, viewport
+  });
+  for (const id of ['scene-weather', 'scene-time']) {
+    const input = document.getElementById(id); input.disabled = false;
+    input.addEventListener('change', () => {
+      weather.set(document.getElementById('scene-weather').value, document.getElementById('scene-time').value);
+      schedule();
+    });
+  }
+  weather.set('clear', 'day');
   const clock = createMotionClock(); clock.setPaused(reduced.matches);
   let request = 0, inView = true, disposed = false;
   function draw(now) {
@@ -228,6 +244,8 @@
       group.scale.setScalar(0.12 + phase * 2.1);
       material.opacity = 0.5 * Math.sin(phase * Math.PI) * (1 - phase * 0.55);
     });
+    updateLife(elapsed);
+    weather.update(elapsed);
     drones.forEach(({ drone, rotors, phase }) => {
       const angle = elapsed * 0.12 + phase;
       drone.position.set(Math.cos(angle) * 3.3, 3.35 + Math.sin(angle * 2 + phase) * 0.18, Math.sin(angle) * 2.3);
@@ -252,13 +270,26 @@
   }
   pauseButton.addEventListener('click', () => { clock.setPaused(!clock.paused); updateMotionButton(); schedule(); });
   function resetView() {
+    document.getElementById('scene-weather').value = 'clear';
+    document.getElementById('scene-time').value = 'day';
+    weather.set('clear', 'day');
     controls.enableDamping = false;
     controls.reset();
     camera.position.copy(home); controls.target.set(0, 1.0, 0); controls.update(); controls.enableDamping = true; schedule();
   }
   resetButton.addEventListener('click', resetView);
+  function zoom(factor) {
+    const offset = camera.position.clone().sub(controls.target);
+    offset.setLength(Math.max(controls.minDistance, Math.min(controls.maxDistance, offset.length() * factor)));
+    camera.position.copy(controls.target).add(offset); controls.update(); schedule();
+  }
+  document.getElementById('zoom-in').disabled = false;
+  document.getElementById('zoom-out').disabled = false;
+  document.getElementById('zoom-in').addEventListener('click', () => zoom(0.85));
+  document.getElementById('zoom-out').addEventListener('click', () => zoom(1.18));
   controls.addEventListener('change', schedule);
   canvas.addEventListener('keydown', (event) => {
+    if (['+', '=', '-'].includes(event.key)) { event.preventDefault(); zoom(event.key === '-' ? 1.18 : 0.85); return; }
     if (event.key === 'Home') { event.preventDefault(); resetView(); return; }
     if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key)) return;
     event.preventDefault();

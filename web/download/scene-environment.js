@@ -112,5 +112,6 @@
       const size=.045+random()*.07;matrixObject.position.set(x,y+.02,z);matrixObject.rotation.set(random()*2,random()*4,random()*2);matrixObject.scale.set(size,size*.7,size*.85);matrixObject.updateMatrix();rocks.setMatrixAt(rockCount++,matrixObject.matrix);
     }
     rocks.count=rockCount;rocks.castShadow=true;world.add(rocks);
+    return { mainRoad, windows };
   };
 })();

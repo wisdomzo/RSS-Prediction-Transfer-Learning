@@ -7,14 +7,16 @@
   <meta name="description" content="ASSET Framework — 研究のための受信信号強度予測・解析ツール。Signal strength prediction and analysis for research. macOS & Windows.">
   <title>ASSET Framework — Download / ダウンロード</title>
   <link rel="icon" href="assets/download/favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="download/style.css?v=20260906-10">
-  <script defer src="download/releases.js?v=20260906-10"></script>
-  <script defer src="download/page.js?v=20260906-10"></script>
+  <link rel="stylesheet" href="download/style.css?v=20260906-15">
+  <script defer src="download/releases.js?v=20260906-15"></script>
+  <script defer src="download/page.js?v=20260906-15"></script>
   <script defer src="vendor/three/three.local.js"></script>
   <script defer src="vendor/three/OrbitControls.local.js"></script>
-  <script defer src="download/scene-math.js?v=20260906-10"></script>
-  <script defer src="download/scene-environment.js?v=20260906-10"></script>
-  <script defer src="download/scene.js?v=20260906-10"></script>
+  <script defer src="download/scene-math.js?v=20260906-15"></script>
+  <script defer src="download/scene-environment.js?v=20260906-15"></script>
+  <script defer src="download/scene-life.js?v=20260906-15"></script>
+  <script defer src="download/scene-weather.js?v=20260906-15"></script>
+  <script defer src="download/scene.js?v=20260906-15"></script>
 </head>
 <body>
   <a class="skip-link" href="#main">本文へ / Skip to content</a>
@@ -45,16 +47,22 @@
       <div class="scene-column">
         <div class="scene-viewport" id="scene-viewport" aria-busy="true">
           <img class="scene-fallback" id="scene-fallback" src="assets/download/terrain-fallback-natural.png" alt="森林・建物・道路のある山地と3つの基地局 / A mountain landscape with trees, buildings, roads and three base stations" width="1373" height="1146">
-          <canvas id="terrain-canvas" tabindex="0" role="img" aria-label="回転可能な3D地形。ドラッグまたは矢印キーで回転、Homeで視点をリセット。 / Interactive 3D terrain. Drag or use arrow keys to rotate; Home resets the view." aria-describedby="scene-help"></canvas>
+          <canvas id="terrain-canvas" tabindex="0" role="img" aria-label="回転可能な3D地形。ドラッグまたは矢印キーで回転、Homeで視点をリセット。 / Interactive 3D terrain. Drag or use arrow keys to rotate; Home resets the view; plus and minus zoom." aria-describedby="scene-help"></canvas>
           <p class="scene-status" id="scene-status" role="status">3D を読み込み中<span lang="en">Loading landscape</span></p>
           <noscript><p class="no-script-note">静止画プレビュー / Static preview. JavaScript enables rotation and animation.</p></noscript>
         </div>
         <div class="scene-toolbar" aria-label="3D コントロール / 3D controls">
-          <p class="orbit-hint" id="scene-help"><img src="assets/download/orbit.svg" alt="" width="23" height="23"><span>ドラッグで回転<small lang="en">Drag to rotate</small></span></p>
+          <p class="orbit-hint" id="scene-help"><img src="assets/download/orbit.svg" alt="" width="23" height="23"><span>回転・ズーム<small lang="en">Drag · Scroll / pinch to zoom</small></span></p>
           <div class="scene-buttons">
-            <button id="reset-view" class="scene-button" disabled><img src="assets/download/rotate-ccw.svg" alt="" width="16" height="16"><span>視点をリセット<small lang="en">Reset view</small></span></button>
+            <button id="zoom-in" class="scene-button zoom-button" aria-label="拡大 / Zoom in" disabled>+</button>
+            <button id="zoom-out" class="scene-button zoom-button" aria-label="縮小 / Zoom out" disabled>−</button>
+            <button id="reset-view" class="scene-button" disabled><img src="assets/download/rotate-ccw.svg" alt="" width="16" height="16"><span>リセット<small lang="en">Reset</small></span></button>
             <button id="pause-motion" class="scene-button" aria-pressed="false" disabled><img id="motion-icon" src="assets/download/pause.svg" alt="" width="15" height="15"><span><span id="motion-ja">一時停止</span><small id="motion-en" lang="en">Pause</small></span></button>
           </div>
+        </div>
+        <div class="weather-controls" aria-label="天気と時間 / Weather and time">
+          <label>天気 <span lang="en">Weather</span><select id="scene-weather" disabled><option value="clear">晴れ / Clear</option><option value="cloudy">曇り / Cloudy</option><option value="snow">雪 / Snow</option></select></label>
+          <label>時間 <span lang="en">Time</span><select id="scene-time" disabled><option value="day">昼 / Day</option><option value="night">夜 / Night</option></select></label>
         </div>
         <p class="concept-caption">電波伝搬の概念表現 <span lang="en">/ Propagation concept, not a simulation.</span></p>
       </div>
