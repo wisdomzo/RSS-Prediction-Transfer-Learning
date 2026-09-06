@@ -64,3 +64,7 @@ Weather controls independently select Clear / Cloudy / Snow and Day / Night. `sc
 Reset (and Home) restores the default camera plus Clear / Day, synchronizing both selectors. Three cloud banks drift independently in cloudy/snow weather; pause freezes their positions.
 
 Night now switches the complete page theme, including controls and download dialog. The hero includes the expanded ASSET name with its initials emphasized. Larger snow particles, independently twinkling stars, sun/moon markers and two additional hikers extend the landscape.
+
+First person mode starts beside the village road. WASD/arrows move while the canvas is focused; dragging looks around. Hold the on-screen arrows on touch devices. Escape or the toggle exits; Reset exits and restores Clear / Day. Movement stays inside the terrain and avoids building footprints; this is lightweight terrain navigation, not a full character physics simulation. Animation pause does not disable walking.
+
+Cars now use human-relative dimensions with wider road lanes. First-person obstacle checks include stations and moving people/cars; vehicles wait when approaching the player. Eight small rabbits spawn randomly in mountain areas. This is lightweight blocking/yield behavior, not rigid-body crash physics.

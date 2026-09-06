@@ -24,7 +24,45 @@
     const count=mobile?240:500, snowPositions=new Float32Array(count*3), seeds=[];
     for(let i=0;i<count;i++)seeds.push({x:Math.sin(i*127.1)*4.7,z:Math.sin(i*311.7)*4.7,phase:(i*.61803398875)%1});
     const snowGeometry=new T.BufferGeometry();snowGeometry.setAttribute('position',new T.BufferAttribute(snowPositions,3));
-    const snow=new T.Points(snowGeometry,new T.PointsMaterial({color:0xffffff,size:.075,transparent:true,opacity:.85,depthWrite:false}));
+    // Transparent six-fold crystal silhouette; antialiased branches replace square points.
+    function snowflakeTexture(){
+      const size=128,data=new Uint8Array(size*size*4),segments=[];
+      for(let arm=0;arm<6;arm++){
+        const angle=arm*Math.PI/3,ux=Math.cos(angle),uy=Math.sin(angle);
+        segments.push([0,0,ux*.86,uy*.86]);
+        for(const radius of [.38,.62])for(const side of [-1,1]){
+          const bx=ux*radius,by=uy*radius,a=angle+side*Math.PI/3;
+          const length=radius<.5?.22:.17;
+          segments.push([bx,by,bx+Math.cos(a)*length,by+Math.sin(a)*length]);
+        }
+      }
+      for(let y=0;y<size;y++)for(let x=0;x<size;x++){
+        const px=(x+.5-size/2)/(size/2),py=(y+.5-size/2)/(size/2);let distance=Infinity;
+        for(const [ax,ay,bx,by] of segments){
+          const dx=bx-ax,dy=by-ay,t=Math.max(0,Math.min(1,((px-ax)*dx+(py-ay)*dy)/(dx*dx+dy*dy)));
+          distance=Math.min(distance,Math.hypot(px-ax-t*dx,py-ay-t*dy));
+        }
+        const i=(y*size+x)*4;data[i]=240;data[i+1]=248;data[i+2]=255;
+        data[i+3]=Math.round(Math.max(0,Math.min(1,(.041-distance)/.018))*255);
+      }
+      const texture=new T.DataTexture(data,size,size);texture.colorSpace=T.SRGBColorSpace;texture.needsUpdate=true;return texture;
+    }
+    const snowMaterial=new T.PointsMaterial({map:snowflakeTexture(),color:0xffffff,size:.11,transparent:true,opacity:.92,alphaTest:.015,depthWrite:false,toneMapped:false});
+    // Individual sizes and angles avoid a field of identically aligned crystals.
+    snowGeometry.setAttribute('flakePhase',new T.Float32BufferAttribute(seeds.map(s=>s.phase*Math.PI*2),1));
+    snowMaterial.onBeforeCompile=shader=>{
+      shader.vertexShader='attribute float flakePhase; varying float vFlakePhase;\n'+shader.vertexShader;
+      shader.vertexShader=shader.vertexShader.replace('gl_PointSize = size;', 'vFlakePhase = flakePhase; gl_PointSize = size * (.7 + .45 * abs(sin(flakePhase)));');
+      shader.fragmentShader='varying float vFlakePhase;\n'+shader.fragmentShader;
+      shader.fragmentShader=shader.fragmentShader.replace('#include <map_particle_fragment>', `
+        vec2 p = gl_PointCoord - vec2(.5);
+        float c = cos(vFlakePhase), s = sin(vFlakePhase);
+        vec2 uv = mat2(c,-s,s,c)*p + vec2(.5);
+        if(any(lessThan(uv,vec2(0.))) || any(greaterThan(uv,vec2(1.)))) discard;
+        diffuseColor *= texture2D(map,uv);
+      `);
+    };
+    const snow=new T.Points(snowGeometry,snowMaterial);
     snow.frustumCulled=false;world.add(snow);
     const starPositions=[], starPhases=[];
     for(let i=0;i<220;i++){

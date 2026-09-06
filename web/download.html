@@ -7,16 +7,17 @@
   <meta name="description" content="ASSET Framework — 研究のための受信信号強度予測・解析ツール。Signal strength prediction and analysis for research. macOS & Windows.">
   <title>ASSET Framework — Download / ダウンロード</title>
   <link rel="icon" href="assets/download/favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="download/style.css?v=20260906-22">
-  <script defer src="download/releases.js?v=20260906-22"></script>
-  <script defer src="download/page.js?v=20260906-22"></script>
+  <link rel="stylesheet" href="download/style.css?v=20260906-29">
+  <script defer src="download/releases.js?v=20260906-29"></script>
+  <script defer src="download/page.js?v=20260906-29"></script>
   <script defer src="vendor/three/three.local.js"></script>
   <script defer src="vendor/three/OrbitControls.local.js"></script>
-  <script defer src="download/scene-math.js?v=20260906-22"></script>
-  <script defer src="download/scene-environment.js?v=20260906-22"></script>
-  <script defer src="download/scene-life.js?v=20260906-22"></script>
-  <script defer src="download/scene-weather.js?v=20260906-22"></script>
-  <script defer src="download/scene.js?v=20260906-22"></script>
+  <script defer src="download/scene-math.js?v=20260906-29"></script>
+  <script defer src="download/scene-environment.js?v=20260906-29"></script>
+  <script defer src="download/scene-life.js?v=20260906-29"></script>
+  <script defer src="download/scene-weather.js?v=20260906-29"></script>
+  <script defer src="download/first-person.js?v=20260906-29"></script>
+  <script defer src="download/scene.js?v=20260906-29"></script>
 </head>
 <body>
   <a class="skip-link" href="#main">本文へ / Skip to content</a>
@@ -57,9 +58,14 @@
           <div class="scene-buttons">
             <button id="zoom-in" class="scene-button zoom-button" aria-label="拡大 / Zoom in" disabled>+</button>
             <button id="zoom-out" class="scene-button zoom-button" aria-label="縮小 / Zoom out" disabled>−</button>
+            <button id="first-person" class="scene-button" aria-pressed="false" disabled>一人称<small lang="en">First person</small></button>
             <button id="reset-view" class="scene-button" disabled><img src="assets/download/rotate-ccw.svg" alt="" width="16" height="16"><span>リセット<small lang="en">Reset</small></span></button>
             <button id="pause-motion" class="scene-button" aria-pressed="false" disabled><img id="motion-icon" src="assets/download/pause.svg" alt="" width="15" height="15"><span><span id="motion-ja">一時停止</span><small id="motion-en" lang="en">Pause</small></span></button>
           </div>
+        </div>
+        <div id="walk-controls" class="walk-controls" aria-label="移動 / Movement" hidden>
+          <span>長押しで移動 <small lang="en">Hold to move</small></span>
+          <button data-walk="KeyA" aria-label="左 / Left">←</button><button data-walk="KeyW" aria-label="前進 / Forward">↑</button><button data-walk="KeyS" aria-label="後退 / Backward">↓</button><button data-walk="KeyD" aria-label="右 / Right">→</button>
         </div>
         <div class="weather-controls" aria-label="天気と時間 / Weather and time">
           <label>天気 <span lang="en">Weather</span><select id="scene-weather" disabled><option value="clear">晴れ / Clear</option><option value="cloudy">曇り / Cloudy</option><option value="snow">雪 / Snow</option></select></label>

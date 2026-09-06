@@ -12,7 +12,7 @@
     viewport.setAttribute('aria-busy', 'false');
     canvas.hidden = true;
     resetButton.disabled = pauseButton.disabled = true;
-    for (const id of ['scene-weather', 'scene-time', 'zoom-in', 'zoom-out']) document.getElementById(id).disabled = true;
+    for (const id of ['scene-weather', 'scene-time', 'zoom-in', 'zoom-out', 'first-person']) document.getElementById(id).disabled = true;
     status.textContent = message || '静止画プレビュー / Static preview — 3D unavailable';
     document.getElementById('scene-help').lastElementChild.textContent = '静止画 / Static view';
   }
@@ -138,7 +138,7 @@
   gridGeometry.setAttribute('position', new T.Float32BufferAttribute(gridPoints, 3));
   world.add(new T.LineSegments(gridGeometry, new T.LineBasicMaterial({ color: 0x34545d, transparent: true, opacity: 0.025, depthWrite: false })));
   const natural = window.ASSETNaturalEnvironment(T, world, terrainHeight, mobile.matches);
-  const updateLife = window.ASSETSceneLife(T, world, terrainHeight, natural.mainRoad);
+  const updateLife = window.ASSETSceneLife(T, world, terrainHeight, natural.mainRoad, natural.obstacles);
 
   const steel = new T.MeshStandardMaterial({ color: 0x415979, metalness: 0.72, roughness: 0.24 });
   const white = new T.MeshStandardMaterial({ color: 0xbdcce1, metalness: 0.35, roughness: 0.3 });
@@ -231,6 +231,7 @@
     });
   }
   weather.set('clear', 'day');
+  const firstPerson = window.ASSETFirstPerson(T, camera, controls, canvas, terrainHeight, natural.obstacles, schedule);
   const clock = createMotionClock(); clock.setPaused(reduced.matches);
   let request = 0, inView = true, disposed = false;
   function draw(now) {
@@ -243,17 +244,17 @@
       material.opacity = 0.85 * Math.pow(Math.sin(phase * Math.PI), 0.7);
       material.color.set(world.userData.isNight ? 0x69caff : 0x245aff);
     });
-    updateLife(elapsed);
+    updateLife(elapsed,firstPerson.active?camera.position:null);
     drones.forEach(({ drone, rotors, phase }) => {
       const angle = elapsed * 0.12 + phase;
       drone.position.set(Math.cos(angle) * 3.3, 3.35 + Math.sin(angle * 2 + phase) * 0.18, Math.sin(angle) * 2.3);
       drone.rotation.set(Math.sin(angle) * 0.04, -angle, Math.cos(angle) * 0.06);
       rotors.forEach((rotor, i) => { rotor.rotation.y = elapsed * 35 * (i % 2 ? -1 : 1); });
     });
-    controls.update();
+    if(firstPerson.active) firstPerson.update(now); else controls.update();
     weather.update(elapsed);
     renderer.render(scene, camera);
-    if (clock.active && !clock.paused) schedule();
+    if (clock.active && (!clock.paused || firstPerson.active)) schedule();
   }
   function schedule() { if (!request && !disposed) request = requestAnimationFrame(draw); }
   function updateActivity() {
@@ -269,6 +270,7 @@
   }
   pauseButton.addEventListener('click', () => { clock.setPaused(!clock.paused); updateMotionButton(); schedule(); });
   function resetView() {
+    firstPerson.exit();
     document.getElementById('scene-weather').value = 'clear';
     document.getElementById('scene-time').value = 'day';
     weather.set('clear', 'day');
@@ -278,6 +280,7 @@
   }
   resetButton.addEventListener('click', resetView);
   function zoom(factor) {
+    if(firstPerson.active)return;
     const offset = camera.position.clone().sub(controls.target);
     offset.setLength(Math.max(controls.minDistance, Math.min(controls.maxDistance, offset.length() * factor)));
     camera.position.copy(controls.target).add(offset); controls.update(); schedule();
@@ -288,6 +291,7 @@
   document.getElementById('zoom-out').addEventListener('click', () => zoom(1.18));
   controls.addEventListener('change', schedule);
   canvas.addEventListener('keydown', (event) => {
+    if(firstPerson.active && event.key !== 'Home')return;
     if (['+', '=', '-'].includes(event.key)) { event.preventDefault(); zoom(event.key === '-' ? 1.18 : 0.85); return; }
     if (event.key === 'Home') { event.preventDefault(); resetView(); return; }
     if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key)) return;
@@ -304,7 +308,7 @@
     const width = viewport.clientWidth, height = viewport.clientHeight;
     if (!width || !height) return;
     camera.aspect = width / height;
-    camera.fov = camera.aspect < 1.2 ? 40 : 32;
+    camera.fov = firstPerson.active ? 65 : camera.aspect < 1.2 ? 40 : 32;
     camera.updateProjectionMatrix();
     renderer.setSize(width, height, false); schedule();
   });

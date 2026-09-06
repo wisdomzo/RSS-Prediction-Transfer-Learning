@@ -26,7 +26,7 @@
       const mesh = new T.Mesh(geometry, asphalt); mesh.receiveShadow = true; world.add(mesh);
       return curve;
     }
-    const mainRoad = road([[-4.9, 3.65], [-2.6, 3.5], [-0.5, 3.85], [1.8, 3.7], [4.9, 3.25]], 0.19);
+    const mainRoad = road([[-4.9, 3.65], [-2.6, 3.5], [-0.5, 3.85], [1.8, 3.7], [4.9, 3.25]], 0.5);
     road([[-3.6, 3.55], [-3.7, 2.85], [-3.4, 2.2]], 0.11);
     road([[3.6, 3.45], [3.65, 2.6], [3.15, 2.35]], 0.11);
     const lanePaint = new T.InstancedMesh(new T.BoxGeometry(0.012, 0.003, 0.12), new T.MeshBasicMaterial({ color: 0xece7cd }), 45);
@@ -131,6 +131,6 @@
       const size=.045+random()*.07;matrixObject.position.set(x,y+.02,z);matrixObject.rotation.set(random()*2,random()*4,random()*2);matrixObject.scale.set(size,size*.7,size*.85);matrixObject.updateMatrix();rocks.setMatrixAt(rockCount++,matrixObject.matrix);
     }
     rocks.count=rockCount;rocks.castShadow=true;world.add(rocks);
-    return { mainRoad, windows };
+    return { mainRoad, windows, obstacles: [...[[-3.4,2.2],[1.35,-1.8],[3.15,2.35]].map(([x,z])=>({x,z,w:.38,d:.38})), ...sites.map(([x,z,w,d])=>({x,z,w:w+.08,d:d+.08})), {x:hutX,z:hutZ,w:.6,d:.49}] };
   };
 })();
