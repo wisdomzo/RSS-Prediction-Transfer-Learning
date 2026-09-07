@@ -13,8 +13,8 @@
     canvas.hidden = true;
     resetButton.disabled = pauseButton.disabled = true;
     for (const id of ['scene-weather', 'scene-time', 'zoom-in', 'zoom-out', 'first-person']) document.getElementById(id).disabled = true;
-    status.textContent = message || '静止画プレビュー / Static preview — 3D unavailable';
-    document.getElementById('scene-help').lastElementChild.textContent = '静止画 / Static view';
+    status.textContent = message || 'Static preview - 3D unavailable';
+    document.getElementById('scene-help').lastElementChild.textContent = 'Static view';
   }
   if (!window.ASSETThree || !window.ASSETOrbitControls || !window.ASSETSceneMath) { fallback(); return; }
   const T = window.ASSETThree;
@@ -264,7 +264,7 @@
   }
   function updateMotionButton() {
     pauseButton.setAttribute('aria-pressed', String(clock.paused));
-    document.getElementById('motion-ja').textContent = clock.paused ? '再生' : '一時停止';
+    document.getElementById('motion-ja').textContent = clock.paused ? 'Play' : 'Pause';
     document.getElementById('motion-en').textContent = clock.paused ? 'Play' : 'Pause';
     document.getElementById('motion-icon').src = 'assets/download/' + (clock.paused ? 'play' : 'pause') + '.svg';
   }
@@ -319,7 +319,7 @@
   reduced.addEventListener('change', () => { clock.setPaused(reduced.matches); updateMotionButton(); schedule(); });
   canvas.addEventListener('webglcontextlost', (event) => {
     event.preventDefault(); disposed = true; cancelAnimationFrame(request);
-    fallback('3D 接続が中断されました / 3D interrupted — reload to retry');
+    fallback('3D interrupted - reload to retry');
   });
   window.addEventListener('pagehide', (event) => {
     if (event.persisted) return;

@@ -1,11 +1,11 @@
 <!doctype html>
-<html lang="ja">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#f5f7fc">
-  <meta name="description" content="ASSET Framework — 研究のための受信信号強度予測・解析ツール。Signal strength prediction and analysis for research. macOS & Windows.">
-  <title>ASSET Framework — Download / ダウンロード</title>
+  <meta name="description" content="ASSET Framework - signal strength prediction and analysis for research. macOS and Windows.">
+  <title>ASSET Framework - Download</title>
   <link rel="icon" href="assets/download/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="download/style.css?v=20260906-29">
   <script defer src="download/releases.js?v=20260906-29"></script>
@@ -20,14 +20,14 @@
   <script defer src="download/scene.js?v=20260906-29"></script>
 </head>
 <body>
-  <a class="skip-link" href="#main">本文へ / Skip to content</a>
+  <a class="skip-link" href="#main">Skip to content</a>
   <header class="site-header">
     <a class="brand" href="#" aria-label="ASSET Framework Home"><span class="wordmark">ASSET</span><span class="brand-divider">/</span><span class="brand-descriptor" lang="en">FRAMEWORK</span></a>
-    <button class="menu-toggle" aria-label="メニュー / Menu" aria-expanded="false" aria-controls="main-nav"><img src="assets/download/menu.svg" alt="" width="24" height="24"></button>
-    <nav id="main-nav" aria-label="メインナビゲーション / Main navigation">
-      <a href="#features"><span>機能</span><small lang="en">Features</small></a>
-      <a href="#downloads"><span>ダウンロード</span><small lang="en">Download</small></a>
-      <a href="#guide"><span>ガイド</span><small lang="en">Guide</small></a>
+    <button class="menu-toggle" aria-label="Menu" aria-expanded="false" aria-controls="main-nav"><img src="assets/download/menu.svg" alt="" width="24" height="24"></button>
+    <nav id="main-nav" aria-label="Main navigation">
+      <a href="#features"><span>Features</span><small lang="en">Overview</small></a>
+      <a href="#downloads"><span>Download</span><small lang="en">Desktop</small></a>
+      <a href="#guide"><span>Guide</span><small lang="en">Start</small></a>
     </nav>
   </header>
 
@@ -35,105 +35,105 @@
     <section class="hero" aria-labelledby="hero-title">
       <div class="hero-copy">
         <div class="eyebrow"><img src="assets/download/radio.svg" width="17" height="17" alt=""><span lang="en">SPATIAL SIGNAL INTELLIGENCE</span></div>
-        <h1 id="hero-title">空間を読み、<br>電波を知る。</h1>
+        <h1 id="hero-title">Read space.<br>Understand signals.</h1>
         <p class="hero-english" lang="en">READ SPACE.<br class="english-break"> UNDERSTAND SIGNALS.</p>
-        <p class="hero-description">研究のための受信信号強度予測・解析ツール。<span lang="en">Signal strength prediction and analysis for research.</span></p>
+        <p class="hero-description">Signal strength prediction and analysis for research workflows.</p>
         <p class="asset-full-name" lang="en">An AI-ensemble-driven framework designed for <span><strong>A</strong>daptive <strong>S</strong>ignal <strong>S</strong>trength <strong>E</strong>stimation and <strong>T</strong>racking.</span></p>
         <div class="hero-actions">
-          <a class="button primary" href="#downloads"><span><span class="desktop-label">ダウンロード</span><span class="mobile-label">デスクトップ版を見る</span><small lang="en" class="desktop-label">Download for desktop</small><small lang="en" class="mobile-label">View desktop versions</small></span><img src="assets/download/arrow-right-white.svg" width="25" height="25" alt=""></a>
-          <a class="text-link" href="#guide"><span>ガイドを見る<small lang="en">Read the guide</small></span><img src="assets/download/arrow-right.svg" width="20" height="20" alt=""></a>
+          <a class="button primary" href="#downloads"><span><span class="desktop-label">Download</span><span class="mobile-label">View desktop versions</span><small lang="en" class="desktop-label">Download for desktop</small><small lang="en" class="mobile-label">Mac and Windows</small></span><img src="assets/download/arrow-right-white.svg" width="25" height="25" alt=""></a>
+          <a class="text-link" href="#guide"><span>Read the guide<small lang="en">Get started</small></span><img src="assets/download/arrow-right.svg" width="20" height="20" alt=""></a>
         </div>
-        <p class="mobile-note">PC でダウンロードしてください。<span lang="en">Please download on a Mac or Windows PC.</span></p>
+        <p class="mobile-note">Please download on a Mac or Windows PC.</p>
       </div>
 
       <div class="scene-column">
         <div class="scene-viewport" id="scene-viewport" aria-busy="true">
-          <img class="scene-fallback" id="scene-fallback" src="assets/download/terrain-fallback-natural.png" alt="森林・建物・道路のある山地と3つの基地局 / A mountain landscape with trees, buildings, roads and three base stations" width="1373" height="1146">
-          <canvas id="terrain-canvas" tabindex="0" role="img" aria-label="回転可能な3D地形。ドラッグまたは矢印キーで回転、Homeで視点をリセット。 / Interactive 3D terrain. Drag or use arrow keys to rotate; Home resets the view; plus and minus zoom." aria-describedby="scene-help"></canvas>
-          <p class="scene-status" id="scene-status" role="status">3D を読み込み中<span lang="en">Loading landscape</span></p>
-          <noscript><p class="no-script-note">静止画プレビュー / Static preview. JavaScript enables rotation and animation.</p></noscript>
+          <img class="scene-fallback" id="scene-fallback" src="assets/download/terrain-fallback-natural.png" alt="A mountain landscape with trees, buildings, roads, and three base stations" width="1373" height="1146">
+          <canvas id="terrain-canvas" tabindex="0" role="img" aria-label="Interactive 3D terrain. Drag or use arrow keys to rotate; Home resets the view; plus and minus zoom." aria-describedby="scene-help"></canvas>
+          <p class="scene-status" id="scene-status" role="status">Loading landscape</p>
+          <noscript><p class="no-script-note">Static preview. JavaScript enables rotation and animation.</p></noscript>
         </div>
-        <div class="scene-toolbar" aria-label="3D コントロール / 3D controls">
-          <p class="orbit-hint" id="scene-help"><img src="assets/download/orbit.svg" alt="" width="23" height="23"><span>回転・ズーム<small lang="en">Drag · Scroll / pinch to zoom</small></span></p>
+        <div class="scene-toolbar" aria-label="3D controls">
+          <p class="orbit-hint" id="scene-help"><img src="assets/download/orbit.svg" alt="" width="23" height="23"><span>Rotate and zoom<small lang="en">Drag · Scroll / pinch to zoom</small></span></p>
           <div class="scene-buttons">
-            <button id="zoom-in" class="scene-button zoom-button" aria-label="拡大 / Zoom in" disabled>+</button>
-            <button id="zoom-out" class="scene-button zoom-button" aria-label="縮小 / Zoom out" disabled>−</button>
-            <button id="first-person" class="scene-button" aria-pressed="false" disabled>一人称<small lang="en">First person</small></button>
-            <button id="reset-view" class="scene-button" disabled><img src="assets/download/rotate-ccw.svg" alt="" width="16" height="16"><span>リセット<small lang="en">Reset</small></span></button>
-            <button id="pause-motion" class="scene-button" aria-pressed="false" disabled><img id="motion-icon" src="assets/download/pause.svg" alt="" width="15" height="15"><span><span id="motion-ja">一時停止</span><small id="motion-en" lang="en">Pause</small></span></button>
+            <button id="zoom-in" class="scene-button zoom-button" aria-label="Zoom in" disabled>+</button>
+            <button id="zoom-out" class="scene-button zoom-button" aria-label="Zoom out" disabled>−</button>
+            <button id="first-person" class="scene-button" aria-pressed="false" disabled>First person<small lang="en">Explore</small></button>
+            <button id="reset-view" class="scene-button" disabled><img src="assets/download/rotate-ccw.svg" alt="" width="16" height="16"><span>Reset<small lang="en">View</small></span></button>
+            <button id="pause-motion" class="scene-button" aria-pressed="false" disabled><img id="motion-icon" src="assets/download/pause.svg" alt="" width="15" height="15"><span><span id="motion-ja">Pause</span><small id="motion-en" lang="en">Motion</small></span></button>
           </div>
         </div>
-        <div id="walk-controls" class="walk-controls" aria-label="移動 / Movement" hidden>
-          <span>長押しで移動 <small lang="en">Hold to move</small></span>
-          <button data-walk="KeyA" aria-label="左 / Left">←</button><button data-walk="KeyW" aria-label="前進 / Forward">↑</button><button data-walk="KeyS" aria-label="後退 / Backward">↓</button><button data-walk="KeyD" aria-label="右 / Right">→</button>
+        <div id="walk-controls" class="walk-controls" aria-label="Movement" hidden>
+          <span>Hold to move <small lang="en">WASD or arrows</small></span>
+          <button data-walk="KeyA" aria-label="Left">←</button><button data-walk="KeyW" aria-label="Forward">↑</button><button data-walk="KeyS" aria-label="Backward">↓</button><button data-walk="KeyD" aria-label="Right">→</button>
         </div>
-        <div class="weather-controls" aria-label="天気と時間 / Weather and time">
-          <label>天気 <span lang="en">Weather</span><select id="scene-weather" disabled><option value="clear">晴れ / Clear</option><option value="cloudy">曇り / Cloudy</option><option value="snow">雪 / Snow</option></select></label>
-          <label>時間 <span lang="en">Time</span><select id="scene-time" disabled><option value="day">昼 / Day</option><option value="night">夜 / Night</option></select></label>
+        <div class="weather-controls" aria-label="Weather and time">
+          <label>Weather<select id="scene-weather" disabled><option value="clear">Clear</option><option value="cloudy">Cloudy</option><option value="snow">Snow</option></select></label>
+          <label>Time<select id="scene-time" disabled><option value="day">Day</option><option value="night">Night</option></select></label>
         </div>
-        <p class="concept-caption">電波伝搬の概念表現 <span lang="en">/ Propagation concept, not a simulation.</span></p>
+        <p class="concept-caption">Propagation concept, not a simulation.</p>
       </div>
     </section>
 
     <section class="downloads content-width" id="downloads" aria-labelledby="download-title">
-      <div class="section-heading compact"><h2 id="download-title">デスクトップ版<span lang="en">DESKTOP RELEASES</span></h2><p>公開準備中 <span lang="en">/ Coming soon</span></p></div>
+      <div class="section-heading compact"><h2 id="download-title">Desktop Releases<span lang="en">MAC AND WINDOWS</span></h2><p>Coming soon</p></div>
       <div class="release-list">
         <article class="release-row" data-release="macArm">
           <img class="platform-icon" src="assets/download/laptop.svg" width="29" height="29" alt="">
           <h3>macOS<small lang="en">Apple Silicon</small></h3>
           <span class="architecture" lang="en">ARM64</span>
-          <p class="platform-description">Apple シリコン搭載 Mac 向け<span lang="en">For Mac with Apple silicon</span></p>
+          <p class="platform-description">For Mac with Apple silicon</p>
           <span class="release-version" hidden></span>
-          <a class="release-download" hidden><span>ダウンロード<small lang="en">Download</small></span><img src="assets/download/arrow-down.svg" width="22" height="22" alt=""></a>
-          <span class="release-pending"><span>準備中<small lang="en">Coming soon</small></span><img src="assets/download/clock.svg" width="19" height="19" alt=""></span>
+          <a class="release-download" hidden><span>Download<small lang="en">Installer</small></span><img src="assets/download/arrow-down.svg" width="22" height="22" alt=""></a>
+          <span class="release-pending"><span>Coming soon<small lang="en">Pending</small></span><img src="assets/download/clock.svg" width="19" height="19" alt=""></span>
         </article>
         <article class="release-row" data-release="macIntel">
           <img class="platform-icon" src="assets/download/laptop.svg" width="29" height="29" alt="">
           <h3>macOS<small lang="en">Intel</small></h3>
           <span class="architecture" lang="en">x86_64</span>
-          <p class="platform-description">Intel プロセッサ搭載 Mac 向け<span lang="en">For Mac with an Intel processor</span></p>
+          <p class="platform-description">For Mac with an Intel processor</p>
           <span class="release-version" hidden></span>
-          <a class="release-download" hidden><span>ダウンロード<small lang="en">Download</small></span><img src="assets/download/arrow-down.svg" width="22" height="22" alt=""></a>
-          <span class="release-pending"><span>準備中<small lang="en">Coming soon</small></span><img src="assets/download/clock.svg" width="19" height="19" alt=""></span>
+          <a class="release-download" hidden><span>Download<small lang="en">Installer</small></span><img src="assets/download/arrow-down.svg" width="22" height="22" alt=""></a>
+          <span class="release-pending"><span>Coming soon<small lang="en">Pending</small></span><img src="assets/download/clock.svg" width="19" height="19" alt=""></span>
         </article>
         <article class="release-row" data-release="windows">
           <img class="platform-icon" src="assets/download/monitor.svg" width="29" height="29" alt="">
           <h3>Windows<small lang="en">Desktop</small></h3>
           <span class="architecture" lang="en">PC</span>
-          <p class="platform-description">Windows PC 向け<span lang="en">For Windows PCs</span></p>
+          <p class="platform-description">For Windows PCs</p>
           <span class="release-version" hidden></span>
-          <a class="release-download" hidden><span>ダウンロード<small lang="en">Download</small></span><img src="assets/download/arrow-down.svg" width="22" height="22" alt=""></a>
-          <span class="release-pending"><span>準備中<small lang="en">Coming soon</small></span><img src="assets/download/clock.svg" width="19" height="19" alt=""></span>
+          <a class="release-download" hidden><span>Download<small lang="en">Installer</small></span><img src="assets/download/arrow-down.svg" width="22" height="22" alt=""></a>
+          <span class="release-pending"><span>Coming soon<small lang="en">Pending</small></span><img src="assets/download/clock.svg" width="19" height="19" alt=""></span>
         </article>
       </div>
-      <p class="release-note">対応 OS・バージョンは公開時にご案内します。<span lang="en">System requirements and versions will be announced with each release.</span></p>
+      <p class="release-note">System requirements and versions will be announced with each release.</p>
     </section>
 
     <section class="features content-width" id="features" aria-labelledby="feature-title">
-      <div class="section-heading"><h2 id="feature-title">測定から、洞察へ。<span lang="en">FROM MEASUREMENTS TO INSIGHT</span></h2><p>ひとつの研究ワークフロー。<span lang="en">One connected research workflow.</span></p></div>
+      <div class="section-heading"><h2 id="feature-title">From Measurements To Insight<span lang="en">ONE CONNECTED WORKFLOW</span></h2><p>One connected research workflow.</p></div>
       <div class="feature-grid">
-        <article><span class="feature-number" lang="en">01 / PREPARE</span><img src="assets/download/layers.svg" width="25" height="25" alt=""><h3>データ準備<span lang="en">Data preparation</span></h3><p>測定データと地理情報を組み合わせ、予測に用いる特徴量を生成。<span lang="en">Combine measurements and geographic data to generate prediction features.</span></p></article>
-        <article><span class="feature-number" lang="en">02 / ADAPT</span><img src="assets/download/network.svg" width="25" height="25" alt=""><h3>モデル学習<span lang="en">Model training</span></h3><p>モデルの学習と転移学習で、対象環境に合わせた予測を支援。<span lang="en">Train and adapt models to the target environment with transfer learning.</span></p></article>
-        <article><span class="feature-number" lang="en">03 / EXPLORE</span><img src="assets/download/chart-no-axes-combined.svg" width="25" height="25" alt=""><h3>予測・解析<span lang="en">Prediction & analysis</span></h3><p>RSS と不確かさを地図上で確認し、予測結果を多角的に分析。<span lang="en">Explore predicted RSS and uncertainty on maps, then examine the results.</span></p></article>
+        <article><span class="feature-number" lang="en">01 / PREPARE</span><img src="assets/download/layers.svg" width="25" height="25" alt=""><h3>Data Preparation<span lang="en">Feature generation</span></h3><p>Combine measurements and geographic data to generate prediction features.</p></article>
+        <article><span class="feature-number" lang="en">02 / ADAPT</span><img src="assets/download/network.svg" width="25" height="25" alt=""><h3>Model Training<span lang="en">Transfer learning</span></h3><p>Train and adapt models to the target environment with transfer learning.</p></article>
+        <article><span class="feature-number" lang="en">03 / EXPLORE</span><img src="assets/download/chart-no-axes-combined.svg" width="25" height="25" alt=""><h3>Prediction And Analysis<span lang="en">Maps and figures</span></h3><p>Explore predicted RSS and uncertainty on maps, then examine the results.</p></article>
       </div>
     </section>
 
     <section class="guide content-width" id="guide" aria-labelledby="guide-title">
-      <div class="guide-intro"><span class="eyebrow" lang="en">RESOURCES / GET STARTED</span><h2 id="guide-title">研究の、その先へ。<span lang="en">Your next step starts here.</span></h2><p>データを整え、ASSET のワークフローを理解する。<span lang="en">Prepare your data and get to know the ASSET workflow.</span></p></div>
+      <div class="guide-intro"><span class="eyebrow" lang="en">RESOURCES / GET STARTED</span><h2 id="guide-title">Your next step starts here.</h2><p>Prepare your data and get to know the ASSET workflow.</p></div>
       <div class="guide-links">
-        <details><summary><span>どのデスクトップ版を選べばよいですか？<small lang="en">Which desktop version should I choose?</small></span></summary><div><p>Mac の「この Mac について」でチップを確認してください。Apple の M シリーズは Apple Silicon、Intel 搭載機は Intel 版です。Windows PC では Windows 版を選択してください。</p><p lang="en">Check “About This Mac”: choose Apple Silicon for an Apple M-series chip, or Intel for an Intel processor. Choose the Windows release for a Windows PC.</p></div></details>
-        <details><summary><span>iPhone でも使えますか？<small lang="en">Can I use this on an iPhone?</small></span></summary><div><p>このページと 3D プレビューは iPhone で閲覧できます。ASSET アプリは macOS・Windows 向けです。</p><p lang="en">You can browse this page and interact with the 3D preview on an iPhone. The ASSET application is for macOS and Windows.</p></div></details>
+        <details><summary><span>Which desktop version should I choose?<small lang="en">Mac or Windows</small></span></summary><div><p>Check About This Mac: choose Apple Silicon for an Apple M-series chip, or Intel for an Intel processor. Choose the Windows release for a Windows PC.</p></div></details>
+        <details><summary><span>Can I use this on an iPhone?<small lang="en">Mobile preview</small></span></summary><div><p>You can browse this page and interact with the 3D preview on an iPhone. The ASSET application is for macOS and Windows.</p></div></details>
       </div>
     </section>
   </main>
-  <footer class="site-footer content-width"><a class="brand" href="#"><span class="wordmark">ASSET</span><span class="brand-divider">/</span><span class="brand-descriptor" lang="en">FRAMEWORK</span></a><p>空間を読み、電波を知る。<span lang="en">READ SPACE. UNDERSTAND SIGNALS.</span></p><a href="#main">ページ上部へ <span lang="en">Back to top</span></a></footer>
+  <footer class="site-footer content-width"><a class="brand" href="#"><span class="wordmark">ASSET</span><span class="brand-divider">/</span><span class="brand-descriptor" lang="en">FRAMEWORK</span></a><p>READ SPACE. UNDERSTAND SIGNALS.</p><a href="#main">Back to top</a></footer>
   <dialog id="download-password-dialog" class="download-dialog" aria-labelledby="password-title">
     <form id="download-password-form">
-      <h2 id="password-title">ダウンロード認証<span lang="en">Download access</span></h2>
-      <label for="download-password">パスワード <span lang="en">/ Password</span></label>
+      <h2 id="password-title">Download access</h2>
+      <label for="download-password">Password</label>
       <input id="download-password" type="password" autocomplete="off" required autofocus aria-describedby="password-error">
-      <p id="password-error" role="alert" hidden>パスワードが違います。<span lang="en">Incorrect password. Please try again.</span></p>
-      <div class="password-actions"><button type="button" id="password-cancel">キャンセル<small lang="en">Cancel</small></button><button type="submit">ダウンロード<small lang="en">Download</small></button></div>
+      <p id="password-error" role="alert" hidden>Incorrect password. Please try again.</p>
+      <div class="password-actions"><button type="button" id="password-cancel">Cancel<small lang="en">Close</small></button><button type="submit">Download<small lang="en">Save file</small></button></div>
     </form>
   </dialog>
 </body>

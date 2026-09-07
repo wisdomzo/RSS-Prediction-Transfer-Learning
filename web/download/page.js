@@ -69,7 +69,7 @@
       passwordInput.focus();
     });
     anchor.hidden = false;
-    anchor.setAttribute('aria-label', row.querySelector('h3').textContent + ' ダウンロード / Download');
+    anchor.setAttribute('aria-label', row.querySelector('h3').textContent + ' Download');
     row.querySelector('.release-pending').hidden = true;
     if (release.version) {
       const version = row.querySelector('.release-version');
@@ -78,5 +78,5 @@
     }
     available++;
   }
-  if (available) document.querySelector('.downloads .compact > p').textContent = '公開中 / Available';
+  if (available) document.querySelector('.downloads .compact > p').textContent = 'Available';
 })();

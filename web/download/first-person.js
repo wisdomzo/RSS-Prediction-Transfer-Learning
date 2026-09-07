@@ -11,18 +11,18 @@
     function set(value){
       if(active===value)return;
       clear();active=value;button.setAttribute('aria-pressed',String(active));pad.hidden=!active;
-      button.innerHTML=active?'全景に戻る<small lang="en">Exit first person</small>':'一人称<small lang="en">First person</small>';
+      button.innerHTML=active?'Exit first person<small lang="en">Overview</small>':'First person<small lang="en">Explore</small>';
       zoomButtons.forEach(b=>b.disabled=active);
       if(active){
         controls.enableDamping=false;controls.update();controls.enableDamping=true;
         saved={position:camera.position.clone(),quaternion:camera.quaternion.clone(),target:controls.target.clone(),fov:camera.fov,near:camera.near};
         controls.enabled=false;camera.near=.015;camera.fov=65;camera.position.set(0,heightAt(0,3.82)+.2,3.82);yaw=0;pitch=0;look();
-        hint.innerHTML='WASD・矢印で移動、ドラッグで見回す<small lang="en">Move: WASD / arrows · Look: drag · Esc: exit</small>';
+        hint.innerHTML='Move: WASD / arrows. Look: drag. Esc: exit.<small lang="en">First-person controls</small>';
       }else{
         camera.position.copy(saved.position);camera.quaternion.copy(saved.quaternion);camera.fov=saved.fov;camera.near=saved.near;
         controls.target.copy(saved.target);controls.enabled=true;controls.update();hint.innerHTML=originalHint;
       }
-      canvas.setAttribute('aria-label',active?'一人称ビュー。WASD・矢印で移動、ドラッグで見回す、Escapeで終了。 / First person: WASD or arrows to move, drag to look, Escape to exit.':'3D terrain: drag to rotate, plus/minus to zoom, Home to reset.');
+      canvas.setAttribute('aria-label',active?'First person: WASD or arrows to move, drag to look, Escape to exit.':'3D terrain: drag to rotate, plus/minus to zoom, Home to reset.');
       camera.updateProjectionMatrix();canvas.focus({preventScroll:true});schedule();
     }
     button.disabled=false;button.addEventListener('click',()=>set(!active));

@@ -1194,6 +1194,57 @@ def executeDataAnalysis(analysis_request):
         return {"status": "error", "message": str(e)}
 
 
+def executePredictionCsvAnalysis(analysis_request):
+    try:
+        analysis_type = "rssi_cdf"
+        file_colors = {}
+        csv_paths = []
+        if isinstance(analysis_request, dict):
+            analysis_type = analysis_request.get("analysisType", "rssi_cdf")
+            file_entries = analysis_request.get("files", [])
+            for entry in file_entries:
+                if isinstance(entry, dict):
+                    path = entry.get("path")
+                    if path:
+                        csv_paths.append(path)
+                        if entry.get("color"):
+                            file_colors[path] = entry.get("color")
+                elif entry:
+                    csv_paths.append(entry)
+        else:
+            csv_paths = analysis_request
+
+        if not csv_paths:
+            return {"status": "error", "message": "Select one or more prediction CSV files before running analysis."}
+
+        output_folder = get_data_analysis_output_folder()
+        result = my_plot_figure.plot_Prediction_CSV_Analysis(
+            csv_paths,
+            output_folder,
+            analysis_type=analysis_type,
+            needPNG=True,
+            needSVG=True,
+            file_colors=file_colors,
+        )
+
+        if result.get("status") != "success":
+            print(result.get("message", "Prediction CSV analysis failed."))
+            return result
+
+        png_path = result.get("png_path")
+        if png_path and os.path.exists(png_path):
+            with open(png_path, "rb") as f:
+                result["png_data_uri"] = "data:image/png;base64," + base64.b64encode(f.read()).decode("utf-8")
+
+        print(result.get("message", "Prediction CSV analysis completed."))
+        for skipped in result.get("skipped_files", []):
+            print(f"Skipped {skipped.get('file')}: {skipped.get('reason')}")
+        return result
+    except Exception as e:
+        print(f"Prediction CSV analysis failed: {e}")
+        return {"status": "error", "message": str(e)}
+
+
 def reset_data_analysis_outputs():
     try:
         output_folder = get_data_analysis_output_folder()
@@ -1209,11 +1260,20 @@ def reset_data_analysis_outputs():
         return False
 
 
-def download_analysis_output(extension):
+def download_analysis_output(extension, file_path=None):
     try:
         output_folder = get_data_analysis_output_folder()
-        file_path = os.path.join(output_folder, f"Model_Aggregation_Error_CDF.{extension}")
-        if not os.path.exists(file_path):
+        if file_path:
+            requested_path = os.path.abspath(file_path)
+            output_root = os.path.abspath(output_folder)
+            if not requested_path.startswith(output_root + os.sep):
+                window.evaluate_js("alert('Save failed: invalid analysis output path.')")
+                return False
+            file_path = requested_path
+        else:
+            candidates = glob.glob(os.path.join(output_folder, f"*.{extension}"))
+            file_path = max(candidates, key=os.path.getmtime) if candidates else ""
+        if not file_path or not os.path.exists(file_path):
             window.evaluate_js(f"alert('Save failed: no {extension.upper()} analysis output was found.')")
             return False
 
@@ -1239,12 +1299,12 @@ def download_analysis_output(extension):
         return False
 
 
-def download_data_analysis_svg():
-    return download_analysis_output("svg")
+def download_data_analysis_svg(file_path=None):
+    return download_analysis_output("svg", file_path)
 
 
-def download_data_analysis_png():
-    return download_analysis_output("png")
+def download_data_analysis_png(file_path=None):
+    return download_analysis_output("png", file_path)
 
 
 def download_application_log(log_text):
@@ -1315,6 +1375,7 @@ def main():
     window.expose(get_help_pdf)
     window.expose(list_analysis_csv_files)
     window.expose(executeDataAnalysis)
+    window.expose(executePredictionCsvAnalysis)
     window.expose(reset_data_analysis_outputs)
     window.expose(download_data_analysis_svg)
     window.expose(download_data_analysis_png)

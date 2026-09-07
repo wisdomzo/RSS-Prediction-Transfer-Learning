@@ -1413,6 +1413,12 @@
       gap: 18px;
     }
 
+    .analysis-stack {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 18px;
+    }
+
     .analysis-tabs {
       display: flex;
       gap: 8px;
@@ -1434,20 +1440,21 @@
       display: block;
     }
 
-    .analysis-csv-checkbox {
+    .prediction-analysis-csv-checkbox {
       width: 16px;
       min-height: 16px;
       accent-color: var(--cyan);
     }
 
-    .analysis-color-input {
+    .prediction-analysis-color-input {
       width: 42px;
       min-height: 32px;
       padding: 2px;
     }
 
-    .analysis-color-text {
-      min-width: 104px;
+    .prediction-analysis-color-text {
+      width: 92px;
+      min-width: 0;
       min-height: 32px;
       padding: 0 8px;
       font-size: 12px;
@@ -1463,8 +1470,32 @@
     .analysis-summary {
       margin-top: 14px;
       display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
+      grid-template-columns: 1fr;
       gap: 12px;
+    }
+
+    .analysis-output-width {
+      width: 100%;
+    }
+
+    .analysis-file-table {
+      table-layout: fixed;
+    }
+
+    .analysis-file-table th:nth-child(1),
+    .analysis-file-table td:nth-child(1) {
+      width: 56px;
+    }
+
+    .analysis-file-table th:nth-child(2),
+    .analysis-file-table td:nth-child(2) {
+      width: 170px;
+    }
+
+    .analysis-file-table th:nth-child(4),
+    .analysis-file-table td:nth-child(4) {
+      width: 78px;
+      text-align: right;
     }
 
     .reference-list {
@@ -1927,56 +1958,66 @@ dask worker tcp://192.168.199.1:8786 --nworkers 6 --nthreads 1 --name MacPro_sha
       </section>
 
       <section class="workspace" id="view-analysis">
-        <div class="topbar"><div class="breadcrumbs">ASSET / Data Analysis</div><span class="pill">Model ensemble CDF</span></div>
+        <div class="topbar"><div class="breadcrumbs">ASSET / Data Analysis</div><span class="pill">Prediction CSV analysis</span></div>
         <div class="module-title">
           <div>
             <div class="eyebrow">Data Analysis</div>
-            <h2>Compare RSSI error CDFs from ensemble model outputs.</h2>
-            <p class="lead">Select a folder, choose one or more CSV files, and generate CDF plots for median and mean ensemble prediction errors.</p>
-          </div>
-          <div class="toolbar">
-            <button class="ghost-btn" onclick="selectAnalysisFolder()">Select Folder</button>
-            <button class="ghost-btn" onclick="resetDataAnalysis()">Reset</button>
-            <button class="primary-btn" id="run-analysis-btn" onclick="runDataAnalysis()">Run Analysis</button>
+            <h2>Analyze prediction CSV outputs and export publication-ready figures.</h2>
+            <p class="lead">Select a folder, choose one or more CSV files, and generate CDF or box-plot figures directly inside the application.</p>
           </div>
         </div>
         <div class="analysis-tabs">
-          <button class="ghost-btn active" data-analysis-tab="ensemble-cdf" onclick="showAnalysisPanel('ensemble-cdf')">Ensemble Error CDF</button>
+          <button class="ghost-btn active" data-analysis-tab="prediction-csv" onclick="showAnalysisPanel('prediction-csv')">Prediction CSV Analyzer</button>
           <button class="ghost-btn" data-analysis-tab="future" onclick="showAnalysisPanel('future')">More Analysis</button>
         </div>
-        <div class="analysis-panel active" id="analysis-panel-ensemble-cdf">
-          <div class="analysis-grid">
+        <div class="analysis-panel active" id="analysis-panel-prediction-csv">
+          <div class="analysis-stack">
             <div class="panel">
-              <div class="panel-header"><h3>CSV Files</h3><span class="pill" id="analysis-folder-status">No folder selected</span></div>
+              <div class="panel-header"><h3>Prediction CSV Files</h3><span class="pill" id="prediction-analysis-folder-status">No folder selected</span></div>
               <div class="panel-body">
-                <p class="inline-guidance">CSV files must include an RSSI or rssi column and numeric Model_* columns such as Model_0, Model_1, ... Invalid files are skipped with a message.</p>
+                <p class="inline-guidance">Generated prediction CSV files can include Latitude, Longitude, RSSI or rssi, DN, FresnelR_H, FresnelR_V, disBtwTxRx, Model_*, Predicted_Value, Uncertainty, pathLoss_eta_2, and pathLoss_eta_3. Each analysis validates only the columns it needs and skips invalid files with a message.</p>
                 <div class="field">
-                  <label>Display Curves</label>
-                  <select id="analysis-display-mode">
-                    <option value="both">Median and Mean</option>
-                    <option value="median">Median only</option>
-                    <option value="mean">Mean only</option>
+                  <label>Analysis Type</label>
+                  <select id="prediction-analysis-type">
+                    <option value="rssi_cdf">RSSI CDF</option>
+                    <option value="predicted_value_cdf">Predicted Value CDF</option>
+                    <option value="uncertainty_cdf">Uncertainty CDF</option>
+                    <option value="absolute_error_cdf">Absolute Error CDF</option>
+                    <option value="model_error_boxplot">Model Error Box Plot</option>
+                    <option value="summary_statistics_table">Summary Statistics Table</option>
+                    <option value="predicted_vs_rssi_scatter">Predicted vs RSSI Scatter Plot</option>
+                    <option value="error_vs_distance">Error vs Distance Plot</option>
+                    <option value="error_vs_altitude_fresnel">Error vs Altitude / Fresnel Features</option>
+                    <option value="path_loss_baseline_cdf">Path Loss Baseline Comparison</option>
+                    <option value="uncertainty_calibration">Uncertainty Calibration Plot</option>
+                    <option value="model_error_violin">Model Ensemble Violin Plot</option>
+                    <option value="spatial_error_map">Spatial Error Map</option>
                   </select>
                 </div>
-                <table class="table">
+                <div class="toolbar">
+                  <button class="ghost-btn" onclick="selectPredictionAnalysisFolder()">Select Folder</button>
+                  <button class="ghost-btn" onclick="resetDataAnalysis()">Reset</button>
+                  <button class="primary-btn" id="run-prediction-analysis-btn" onclick="runPredictionCsvAnalysis()">Run Analysis</button>
+                </div>
+                <table class="table analysis-file-table">
                   <thead><tr><th>Use</th><th>Color</th><th>CSV file</th><th>Size</th></tr></thead>
-                  <tbody id="analysis-csv-table"><tr><td colspan="4">Select a folder to list CSV files.</td></tr></tbody>
+                  <tbody id="prediction-analysis-csv-table"><tr><td colspan="4">Select a folder to list CSV files.</td></tr></tbody>
                 </table>
               </div>
             </div>
             <div class="panel">
               <div class="panel-header">
-                <h3>CDF Output</h3>
+                <h3>Analysis Output</h3>
                 <div class="toolbar">
-                  <button class="ghost-btn hidden" id="download-analysis-svg-btn" onclick="downloadAnalysisSvg()">Download SVG</button>
-                  <button class="ghost-btn hidden" id="download-analysis-png-btn" onclick="downloadAnalysisPng()">Download PNG</button>
+                  <button class="ghost-btn hidden" id="download-prediction-analysis-svg-btn" onclick="downloadPredictionAnalysisSvg()">Download SVG</button>
+                  <button class="ghost-btn hidden" id="download-prediction-analysis-png-btn" onclick="downloadPredictionAnalysisPng()">Download PNG</button>
                 </div>
               </div>
               <div class="panel-body">
-                <div class="analysis-preview" id="analysis-cdf-preview">
-                  <div class="empty-state" id="analysis-empty-preview"><div><h3>No analysis result</h3><p class="lead">Run analysis to display the generated CDF figure.</p></div></div>
+                <div class="analysis-preview" id="prediction-analysis-preview">
+                  <div class="empty-state" id="prediction-analysis-empty-preview"><div><h3>No analysis result</h3><p class="lead">Run analysis to display the generated prediction CSV figure.</p></div></div>
                 </div>
-                <div class="analysis-summary" id="analysis-summary"></div>
+                <div class="analysis-summary analysis-output-width" id="prediction-analysis-summary"></div>
               </div>
             </div>
           </div>
@@ -2160,8 +2201,9 @@ dask worker tcp://192.168.199.1:8786 --nworkers 6 --nthreads 1 --name MacPro_sha
     let datasetProcessing = false;
     let datasetOutputReady = false;
     let modelTrainingLocked = false;
-    let analysisSelectedFolder = "";
-    let analysisCsvFiles = [];
+    let predictionAnalysisSelectedFolder = "";
+    let predictionAnalysisCsvFiles = [];
+    let latestPredictionAnalysisOutputs = { svg: "", png: "" };
     const analysisPalette = ["#1f77b4", "#d62728", "#2ca02c", "#9467bd", "#ff7f0e", "#17becf", "#8c564b", "#e377c2", "#7f7f7f", "#bcbd22", "#003f5c", "#bc5090", "#ffa600", "#58508d", "#00876c"];
     let areaMap;
     let resultMap;
@@ -3296,25 +3338,25 @@ dask worker tcp://192.168.199.1:8786 --nworkers 6 --nthreads 1 --name MacPro_sha
       showToast(ok ? "CSV saved successfully." : "No CSV was saved.");
     }
 
-    async function selectAnalysisFolder() {
+    async function selectPredictionAnalysisFolder() {
       ensurePywebviewApi();
       const folder = await window.pywebview.api.select_folder_native();
       if (!folder) return;
-      analysisSelectedFolder = folder;
-      document.getElementById("analysis-folder-status").textContent = "Scanning folder";
+      predictionAnalysisSelectedFolder = folder;
+      document.getElementById("prediction-analysis-folder-status").textContent = "Scanning folder";
       const response = await window.pywebview.api.list_analysis_csv_files(folder);
       if (response.status !== "success") {
-        analysisCsvFiles = [];
-        renderAnalysisCsvFiles();
+        predictionAnalysisCsvFiles = [];
+        renderPredictionAnalysisCsvFiles();
         showToast(response.message || "Unable to list CSV files.");
         return;
       }
-      analysisCsvFiles = (response.files || []).map((file, index) => ({
+      predictionAnalysisCsvFiles = (response.files || []).map((file, index) => ({
         ...file,
         color: analysisPalette[index % analysisPalette.length]
       }));
-      renderAnalysisCsvFiles();
-      document.getElementById("analysis-folder-status").textContent = `${analysisCsvFiles.length} CSV file(s)`;
+      renderPredictionAnalysisCsvFiles();
+      document.getElementById("prediction-analysis-folder-status").textContent = `${predictionAnalysisCsvFiles.length} CSV file(s)`;
       showToast(response.message || "CSV files listed.");
     }
 
@@ -3327,16 +3369,16 @@ dask worker tcp://192.168.199.1:8786 --nworkers 6 --nthreads 1 --name MacPro_sha
       });
     }
 
-    function renderAnalysisCsvFiles() {
-      const table = document.getElementById("analysis-csv-table");
-      if (!analysisCsvFiles.length) {
+    function renderPredictionAnalysisCsvFiles() {
+      const table = document.getElementById("prediction-analysis-csv-table");
+      if (!predictionAnalysisCsvFiles.length) {
         table.innerHTML = '<tr><td colspan="4">No CSV files found in the selected folder.</td></tr>';
         return;
       }
-      table.innerHTML = analysisCsvFiles.map((file, index) => (
+      table.innerHTML = predictionAnalysisCsvFiles.map((file, index) => (
         `<tr>
-          <td><input type="checkbox" class="analysis-csv-checkbox" data-index="${index}" /></td>
-          <td><div class="analysis-color-cell"><input type="color" class="analysis-color-input" data-index="${index}" value="${file.color}" oninput="syncAnalysisColorText(${index}, this.value)" /><input class="analysis-color-text" data-index="${index}" value="${file.color}" onchange="syncAnalysisColorPicker(${index}, this.value)" /></div></td>
+          <td><input type="checkbox" class="prediction-analysis-csv-checkbox" data-index="${index}" /></td>
+          <td><div class="analysis-color-cell"><input type="color" class="prediction-analysis-color-input" data-index="${index}" value="${file.color}" oninput="syncPredictionAnalysisColorText(${index}, this.value)" /><input class="prediction-analysis-color-text" data-index="${index}" value="${file.color}" onchange="syncPredictionAnalysisColorPicker(${index}, this.value)" /></div></td>
           <td>${escapeHtml(file.name)}</td>
           <td>${Math.max(1, Math.round(Number(file.size || 0) / 1024))} KB</td>
         </tr>`
@@ -3350,70 +3392,76 @@ dask worker tcp://192.168.199.1:8786 --nworkers 6 --nthreads 1 --name MacPro_sha
       return "";
     }
 
-    function syncAnalysisColorText(index, color) {
+    function syncPredictionAnalysisColorText(index, color) {
       const normalized = normalizeAnalysisColor(color) || analysisPalette[index % analysisPalette.length];
-      analysisCsvFiles[index].color = normalized;
-      const text = document.querySelector(`.analysis-color-text[data-index="${index}"]`);
+      predictionAnalysisCsvFiles[index].color = normalized;
+      const text = document.querySelector(`.prediction-analysis-color-text[data-index="${index}"]`);
       if (text) text.value = normalized;
     }
 
-    function syncAnalysisColorPicker(index, color) {
+    function syncPredictionAnalysisColorPicker(index, color) {
       const normalized = normalizeAnalysisColor(color) || analysisPalette[index % analysisPalette.length];
-      analysisCsvFiles[index].color = normalized;
-      const picker = document.querySelector(`.analysis-color-input[data-index="${index}"]`);
+      predictionAnalysisCsvFiles[index].color = normalized;
+      const picker = document.querySelector(`.prediction-analysis-color-input[data-index="${index}"]`);
       if (picker && normalized.startsWith("#")) picker.value = normalized;
-      const text = document.querySelector(`.analysis-color-text[data-index="${index}"]`);
+      const text = document.querySelector(`.prediction-analysis-color-text[data-index="${index}"]`);
       if (text) text.value = normalized;
     }
 
-    function getSelectedAnalysisFileOptions() {
-      return Array.from(document.querySelectorAll(".analysis-csv-checkbox:checked"))
-        .map((input) => analysisCsvFiles[Number(input.dataset.index)])
+    function getSelectedPredictionAnalysisFileOptions() {
+      return Array.from(document.querySelectorAll(".prediction-analysis-csv-checkbox:checked"))
+        .map((input) => predictionAnalysisCsvFiles[Number(input.dataset.index)])
         .filter(Boolean)
         .map((file) => ({ path: file.path, color: file.color }));
     }
 
-    function getAnalysisEmptyPreviewMarkup() {
-      return '<div class="empty-state" id="analysis-empty-preview"><div><h3>No analysis result</h3><p class="lead">Run analysis to display the generated CDF figure.</p></div></div>';
+    function getPredictionAnalysisEmptyPreviewMarkup() {
+      return '<div class="empty-state" id="prediction-analysis-empty-preview"><div><h3>No analysis result</h3><p class="lead">Run analysis to display the generated prediction CSV figure.</p></div></div>';
     }
 
     async function resetDataAnalysis() {
-      analysisSelectedFolder = "";
-      analysisCsvFiles = [];
-      document.getElementById("analysis-display-mode").value = "both";
-      document.getElementById("analysis-folder-status").textContent = "No folder selected";
-      document.getElementById("analysis-csv-table").innerHTML = '<tr><td colspan="4">Select a folder to list CSV files.</td></tr>';
-      document.getElementById("analysis-cdf-preview").innerHTML = getAnalysisEmptyPreviewMarkup();
-      document.getElementById("analysis-summary").innerHTML = "";
-      document.getElementById("download-analysis-svg-btn").classList.add("hidden");
-      document.getElementById("download-analysis-png-btn").classList.add("hidden");
+      predictionAnalysisSelectedFolder = "";
+      predictionAnalysisCsvFiles = [];
+      document.getElementById("prediction-analysis-type").value = "rssi_cdf";
+      document.getElementById("prediction-analysis-folder-status").textContent = "No folder selected";
+      document.getElementById("prediction-analysis-csv-table").innerHTML = '<tr><td colspan="4">Select a folder to list CSV files.</td></tr>';
+      document.getElementById("prediction-analysis-preview").innerHTML = getPredictionAnalysisEmptyPreviewMarkup();
+      document.getElementById("prediction-analysis-summary").innerHTML = "";
+      latestPredictionAnalysisOutputs = { svg: "", png: "" };
+      document.getElementById("download-prediction-analysis-svg-btn").classList.add("hidden");
+      document.getElementById("download-prediction-analysis-png-btn").classList.add("hidden");
       updateProgress(0, "Ready");
       ensurePywebviewApi();
       await window.pywebview.api.reset_data_analysis_outputs();
       showToast("Data Analysis reset.");
     }
 
-    function renderAnalysisSummary(result, displayMode = "both") {
-      const summary = document.getElementById("analysis-summary");
-      const mode = displayMode || "both";
-      const validCards = (result.files || []).flatMap((file) => {
-        const cards = [];
-        if (mode === "both" || mode === "mean") {
-          cards.push(`<div class="metric">
-            <span>${escapeHtml(file.file)}</span>
-            <b>${Number(file.mean_absolute_error_mean).toFixed(2)} dB</b>
-            <span>Mean ensemble MAE / ${file.sample_count} samples</span>
-          </div>`);
-        }
-        if (mode === "both" || mode === "median") {
-          cards.push(`<div class="metric">
-            <span>${escapeHtml(file.file)}</span>
-            <b>${Number(file.median_absolute_error_mean).toFixed(2)} dB</b>
-            <span>Median ensemble MAE / ${file.sample_count} samples</span>
-          </div>`);
-        }
-        return cards;
-      }).join("");
+    function renderPredictionAnalysisSummary(result) {
+      const summary = document.getElementById("prediction-analysis-summary");
+      const unitByType = {
+        rssi_cdf: "dBm",
+        predicted_value_cdf: "dBm",
+        uncertainty_cdf: "dB",
+        absolute_error_cdf: "dB",
+        model_error_boxplot: "dB",
+        summary_statistics_table: "mixed",
+        predicted_vs_rssi_scatter: "dBm",
+        error_vs_distance: "dB",
+        error_vs_altitude_fresnel: "dB",
+        path_loss_baseline_cdf: "dB",
+        uncertainty_calibration: "dB",
+        model_error_violin: "dB",
+        spatial_error_map: "dB"
+      };
+      const unit = unitByType[result.analysis_type] || "";
+      const unitText = unit && unit !== "mixed" ? ` in ${unit}` : "";
+      const validCards = (result.files || []).map((file) => (
+        `<div class="metric">
+          <span>${escapeHtml(file.file)}</span>
+          <b>${Number(file.median ?? file.mean ?? file.sample_count).toFixed(2)}${unit && unit !== "mixed" ? ` ${unit}` : ""}</b>
+          <span>${file.metric_count ? `${file.metric_count} metrics / ` : ""}Median${unitText} / ${file.sample_count} samples${file.model_count ? ` / ${file.model_count} models` : ""}${file.series_count ? ` / ${file.series_count} series` : ""}${file.bin_count ? ` / ${file.bin_count} bins` : ""}</span>
+        </div>`
+      )).join("");
       const skippedCards = (result.skipped_files || []).map((file) => (
         `<div class="metric">
           <span>Skipped</span>
@@ -3424,48 +3472,49 @@ dask worker tcp://192.168.199.1:8786 --nworkers 6 --nthreads 1 --name MacPro_sha
       summary.innerHTML = validCards + skippedCards;
     }
 
-    async function runDataAnalysis() {
-      const selected = getSelectedAnalysisFileOptions();
+    async function runPredictionCsvAnalysis() {
+      const selected = getSelectedPredictionAnalysisFileOptions();
       if (selected.length === 0) {
-        showToast("Select one or more CSV files before running data analysis.");
+        showToast("Select one or more prediction CSV files before running analysis.");
         return;
       }
       const analysisRequest = {
         files: selected,
-        displayMode: document.getElementById("analysis-display-mode").value
+        analysisType: document.getElementById("prediction-analysis-type").value
       };
       ensurePywebviewApi();
-      document.getElementById("run-analysis-btn").disabled = true;
-      updateProgress(10, "Data analysis submitted");
+      document.getElementById("run-prediction-analysis-btn").disabled = true;
+      updateProgress(10, "Prediction CSV analysis submitted");
       try {
-        const result = await window.pywebview.api.executeDataAnalysis(analysisRequest);
+        const result = await window.pywebview.api.executePredictionCsvAnalysis(analysisRequest);
         if (result.status !== "success") {
-          renderAnalysisSummary(result, analysisRequest.displayMode);
-          showToast(result.message || "Data analysis failed.");
-          updateProgress(-1, "Data analysis failed");
+          renderPredictionAnalysisSummary(result);
+          showToast(result.message || "Prediction CSV analysis failed.");
+          updateProgress(-1, "Prediction CSV analysis failed");
           return;
         }
-        document.getElementById("analysis-cdf-preview").innerHTML = `<img src="${result.png_data_uri}" alt="CDF analysis plot" />`;
-        document.getElementById("download-analysis-svg-btn").classList.remove("hidden");
-        document.getElementById("download-analysis-png-btn").classList.remove("hidden");
-        renderAnalysisSummary(result, result.display_mode || analysisRequest.displayMode);
-        updateProgress(100, "Data analysis completed");
-        showToast(result.message || "Data analysis completed.");
+        document.getElementById("prediction-analysis-preview").innerHTML = `<img src="${result.png_data_uri}" alt="Prediction CSV analysis plot" />`;
+        latestPredictionAnalysisOutputs = { svg: result.svg_path || "", png: result.png_path || "" };
+        document.getElementById("download-prediction-analysis-svg-btn").classList.remove("hidden");
+        document.getElementById("download-prediction-analysis-png-btn").classList.remove("hidden");
+        renderPredictionAnalysisSummary(result);
+        updateProgress(100, "Prediction CSV analysis completed");
+        showToast(result.message || "Prediction CSV analysis completed.");
       } finally {
-        document.getElementById("run-analysis-btn").disabled = false;
+        document.getElementById("run-prediction-analysis-btn").disabled = false;
       }
     }
 
-    async function downloadAnalysisSvg() {
+    async function downloadPredictionAnalysisSvg() {
       ensurePywebviewApi();
-      const ok = await window.pywebview.api.download_data_analysis_svg();
-      showToast(ok ? "Analysis SVG saved successfully." : "No analysis SVG was saved.");
+      const ok = await window.pywebview.api.download_data_analysis_svg(latestPredictionAnalysisOutputs.svg);
+      showToast(ok ? "Prediction analysis SVG saved successfully." : "No prediction analysis SVG was saved.");
     }
 
-    async function downloadAnalysisPng() {
+    async function downloadPredictionAnalysisPng() {
       ensurePywebviewApi();
-      const ok = await window.pywebview.api.download_data_analysis_png();
-      showToast(ok ? "Analysis PNG saved successfully." : "No analysis PNG was saved.");
+      const ok = await window.pywebview.api.download_data_analysis_png(latestPredictionAnalysisOutputs.png);
+      showToast(ok ? "Prediction analysis PNG saved successfully." : "No prediction analysis PNG was saved.");
     }
 
     async function loadAndShowPdf() {
