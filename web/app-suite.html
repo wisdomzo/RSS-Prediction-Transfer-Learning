@@ -1966,17 +1966,17 @@ dask worker tcp://192.168.199.1:8786 --nworkers 6 --nthreads 1 --name MacPro_sha
             <p class="lead">Select a folder, choose one or more CSV files, and generate CDF or box-plot figures directly inside the application.</p>
           </div>
         </div>
-        <div class="analysis-tabs">
+        <div class="analysis-tabs" data-tour-target="analysis-tabs">
           <button class="ghost-btn active" data-analysis-tab="prediction-csv" onclick="showAnalysisPanel('prediction-csv')">Prediction CSV Analyzer</button>
           <button class="ghost-btn" data-analysis-tab="future" onclick="showAnalysisPanel('future')">More Analysis</button>
         </div>
         <div class="analysis-panel active" id="analysis-panel-prediction-csv">
           <div class="analysis-stack">
-            <div class="panel">
+            <div class="panel" data-tour-target="analysis-prediction-csv-files">
               <div class="panel-header"><h3>Prediction CSV Files</h3><span class="pill" id="prediction-analysis-folder-status">No folder selected</span></div>
               <div class="panel-body">
                 <p class="inline-guidance">Generated prediction CSV files can include Latitude, Longitude, RSSI or rssi, DN, FresnelR_H, FresnelR_V, disBtwTxRx, Model_*, Predicted_Value, Uncertainty, pathLoss_eta_2, and pathLoss_eta_3. Each analysis validates only the columns it needs and skips invalid files with a message.</p>
-                <div class="field">
+                <div class="field" data-tour-target="analysis-type">
                   <label>Analysis Type</label>
                   <select id="prediction-analysis-type">
                     <option value="rssi_cdf">RSSI CDF</option>
@@ -1996,19 +1996,19 @@ dask worker tcp://192.168.199.1:8786 --nworkers 6 --nthreads 1 --name MacPro_sha
                 </div>
                 <div class="toolbar">
                   <button class="ghost-btn" onclick="selectPredictionAnalysisFolder()">Select Folder</button>
-                  <button class="ghost-btn" onclick="resetDataAnalysis()">Reset</button>
-                  <button class="primary-btn" id="run-prediction-analysis-btn" onclick="runPredictionCsvAnalysis()">Run Analysis</button>
+                  <button class="ghost-btn" data-tour-target="analysis-reset" onclick="resetDataAnalysis()">Reset</button>
+                  <button class="primary-btn" id="run-prediction-analysis-btn" data-tour-target="analysis-run" onclick="runPredictionCsvAnalysis()">Run Analysis</button>
                 </div>
-                <table class="table analysis-file-table">
+                <table class="table analysis-file-table" data-tour-target="analysis-file-table">
                   <thead><tr><th>Use</th><th>Color</th><th>CSV file</th><th>Size</th></tr></thead>
                   <tbody id="prediction-analysis-csv-table"><tr><td colspan="4">Select a folder to list CSV files.</td></tr></tbody>
                 </table>
               </div>
             </div>
-            <div class="panel">
+            <div class="panel" data-tour-target="analysis-output">
               <div class="panel-header">
                 <h3>Analysis Output</h3>
-                <div class="toolbar">
+                <div class="toolbar" data-tour-target="analysis-download">
                   <button class="ghost-btn hidden" id="download-prediction-analysis-svg-btn" onclick="downloadPredictionAnalysisSvg()">Download SVG</button>
                   <button class="ghost-btn hidden" id="download-prediction-analysis-png-btn" onclick="downloadPredictionAnalysisPng()">Download PNG</button>
                 </div>
@@ -2215,7 +2215,8 @@ dask worker tcp://192.168.199.1:8786 --nworkers 6 --nthreads 1 --name MacPro_sha
       appOverview: "asset.skipAppOverviewTour",
       predictionWorkspace: "asset.skipPredictionWorkspaceTour",
       modelTraining: "asset.skipModelTrainingTour",
-      featureGeneration: "asset.skipFeatureGenerationTour"
+      featureGeneration: "asset.skipFeatureGenerationTour",
+      dataAnalysis: "asset.skipDataAnalysisTour"
     };
     const tourDefinitions = {
       appOverview: [
@@ -2249,6 +2250,16 @@ dask worker tcp://192.168.199.1:8786 --nworkers 6 --nthreads 1 --name MacPro_sha
         { target: '[data-tour-target="dataset-upload-process"]', title: "Upload and Process", description: "Start feature generation. The workspace is locked while data processing is running." },
         { target: '[data-tour-target="dataset-download-output"]', title: "Download Output", description: "After processing succeeds, Download Output appears here and is highlighted automatically." },
         { target: '[data-tour-target="dataset-reset"]', title: "Reset", description: "Clear selected files, generated output state, temporary files, and progress before preparing another dataset." }
+      ],
+      dataAnalysis: [
+        { target: '[data-tour-target="analysis-tabs"]', title: "Analysis Modules", description: "Choose the analysis module. Prediction CSV Analyzer is used for generated predict_RSS CSV outputs." },
+        { target: '[data-tour-target="analysis-prediction-csv-files"]', title: "Prediction CSV Files", description: "Select a folder and choose prediction CSV files for analysis." },
+        { target: '[data-tour-target="analysis-type"]', title: "Analysis Type", description: "Pick the calculation or figure type, such as CDF, calibration, baseline comparison, or spatial error map." },
+        { target: '[data-tour-target="analysis-file-table"]', title: "File Selection", description: "Use checkboxes to select one or more CSV files and assign colors for plots." },
+        { target: '[data-tour-target="analysis-run"]', title: "Run Analysis", description: "Run the selected analysis. Invalid files are skipped with an explanation." },
+        { target: '[data-tour-target="analysis-output"]', title: "Analysis Output", description: "Review the generated figure and per-file summary directly in the app." },
+        { target: '[data-tour-target="analysis-download"]', title: "Download Figures", description: "Download publication-ready SVG or PNG outputs after analysis completes." },
+        { target: '[data-tour-target="analysis-reset"]', title: "Reset", description: "Clear selected files, generated analysis output, and temporary analysis files." }
       ]
     };
     let activeTourName = null;
@@ -2258,6 +2269,7 @@ dask worker tcp://192.168.199.1:8786 --nworkers 6 --nthreads 1 --name MacPro_sha
     let predictionWorkspaceTourSeen = false;
     let modelTrainingTourSeen = false;
     let featureGenerationTourSeen = false;
+    let dataAnalysisTourSeen = false;
 
     function ensurePywebviewApi() {
       if (!window.pywebview || !window.pywebview.api) {
@@ -2469,6 +2481,13 @@ dask worker tcp://192.168.199.1:8786 --nworkers 6 --nthreads 1 --name MacPro_sha
       setTimeout(() => startTour("featureGeneration"), 350);
     }
 
+    function maybeStartDataAnalysisTour() {
+      if (dataAnalysisTourSeen || activeTourName || isTourSkipped("dataAnalysis") || !canStartTour()) return;
+      if (!document.getElementById("view-analysis").classList.contains("active")) return;
+      dataAnalysisTourSeen = true;
+      setTimeout(() => startTour("dataAnalysis"), 350);
+    }
+
     window.addEventListener("resize", () => {
       if (activeTourName) renderTourStep();
     });
@@ -2583,6 +2602,7 @@ dask worker tcp://192.168.199.1:8786 --nworkers 6 --nthreads 1 --name MacPro_sha
       if (name === "prediction") maybeStartPredictionWorkspaceTour();
       if (name === "training") maybeStartModelTrainingTour();
       if (name === "dataset") maybeStartFeatureGenerationTour();
+      if (name === "analysis") maybeStartDataAnalysisTour();
       if (name === "results") {
         clearPredictionResultGuide();
         setTimeout(initResultMap, 0);

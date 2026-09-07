@@ -439,6 +439,28 @@ class AppSuiteStaticTests(unittest.TestCase):
         self.assertIn("Clear selected files, generated output state, temporary files, and progress before preparing another dataset.", html)
         self.assertIn('if (name === "dataset") maybeStartFeatureGenerationTour()', html)
 
+    def test_data_analysis_has_contextual_tour(self):
+        html = self.read_app()
+        self.assertIn("dataAnalysis", html)
+        self.assertIn("asset.skipDataAnalysisTour", html)
+        self.assertIn('data-tour-target="analysis-tabs"', html)
+        self.assertIn('data-tour-target="analysis-prediction-csv-files"', html)
+        self.assertIn('data-tour-target="analysis-type"', html)
+        self.assertIn('data-tour-target="analysis-file-table"', html)
+        self.assertIn('data-tour-target="analysis-run"', html)
+        self.assertIn('data-tour-target="analysis-output"', html)
+        self.assertIn('data-tour-target="analysis-download"', html)
+        self.assertIn('data-tour-target="analysis-reset"', html)
+        self.assertIn("Choose the analysis module. Prediction CSV Analyzer is used for generated predict_RSS CSV outputs.", html)
+        self.assertIn("Select a folder and choose prediction CSV files for analysis.", html)
+        self.assertIn("Pick the calculation or figure type, such as CDF, calibration, baseline comparison, or spatial error map.", html)
+        self.assertIn("Use checkboxes to select one or more CSV files and assign colors for plots.", html)
+        self.assertIn("Run the selected analysis. Invalid files are skipped with an explanation.", html)
+        self.assertIn("Review the generated figure and per-file summary directly in the app.", html)
+        self.assertIn("Download publication-ready SVG or PNG outputs after analysis completes.", html)
+        self.assertIn("Clear selected files, generated analysis output, and temporary analysis files.", html)
+        self.assertIn('if (name === "analysis") maybeStartDataAnalysisTour()', html)
+
     def test_prediction_workspace_tour_locks_page_scroll(self):
         html = self.read_app()
         self.assertIn(".tour-scroll-locked", html)
