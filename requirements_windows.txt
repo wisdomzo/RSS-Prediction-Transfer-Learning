@@ -27,6 +27,7 @@ grpcio==1.78.1
 h5py==3.15.1
 idna==3.11
 Jinja2==3.1.6
+joblib==1.5.2
 jsonschema==4.26.0
 jsonschema-specifications==2025.9.1
 keras==3.13.2
@@ -67,6 +68,8 @@ requests==2.32.5
 rich==14.3.3
 rpds-py==0.30.0
 rtree==1.4.1
+scipy==1.16.3
+scikit-learn==1.7.2
 setuptools==82.0.0
 shapely==2.1.2
 six==1.17.0
@@ -76,6 +79,7 @@ tensorboard==2.20.0
 tensorboard-data-server==0.7.2
 tensorflow==2.20.0
 termcolor==3.3.0
+threadpoolctl==3.6.0
 toolz==1.1.0
 tornado==6.5.5
 tqdm==4.67.3
@@ -86,5 +90,4 @@ wheel==0.46.3
 wrapt==2.1.1
 xyzservices==2026.3.0
 zict==3.0.0
-scikit-learn
 dill

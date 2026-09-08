@@ -152,5 +152,16 @@ class BuildScriptVersionTests(unittest.TestCase):
         self.assertIn("Application location: $ScriptDir\\dist\\$AppName.exe", script)
 
 
+class WindowsRequirementsTests(unittest.TestCase):
+    def test_windows_requirements_pin_scientific_stack_for_clean_venv_rebuilds(self):
+        requirements = (ROOT / "requirements_windows.txt").read_text(encoding="utf-8").splitlines()
+        self.assertIn("numpy==2.4.4", requirements)
+        self.assertIn("scipy==1.16.3", requirements)
+        self.assertIn("scikit-learn==1.7.2", requirements)
+        self.assertIn("joblib==1.5.2", requirements)
+        self.assertIn("threadpoolctl==3.6.0", requirements)
+        self.assertNotIn("scikit-learn", requirements)
+
+
 if __name__ == "__main__":
     unittest.main()
