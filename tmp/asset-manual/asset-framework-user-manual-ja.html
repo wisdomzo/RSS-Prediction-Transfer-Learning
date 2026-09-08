@@ -1,0 +1,344 @@
+<!doctype html><html lang="ja"><head><meta charset="utf-8"><title>ASSET Framework App 使用説明書 v1.2</title><style>
+@page cover { size: A4; margin: 0; }
+@page manual { size: A4; margin: 18mm 18mm 20mm; }
+@font-face { font-family: "Asset Hiragino W3"; src: local("HiraKakuProN-W3"), local("Hiragino Kaku Gothic ProN W3"); font-weight: 300; }
+@font-face { font-family: "Asset Hiragino W6"; src: local("HiraKakuProN-W6"), local("Hiragino Kaku Gothic ProN W6"); font-weight: 600; }
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body { font-family: "Asset Hiragino W3", sans-serif; font-weight: 300; color: #102a43; font-size: 10pt; line-height: 1.65; letter-spacing: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+.cover { page: cover; width: 210mm; height: 297mm; break-after: page; position: relative; overflow: hidden; background: #fff; }
+.cover-rail { position: absolute; inset: 0 auto 0 0; width: 78mm; background-color: #082f49; background-image: linear-gradient(rgba(21,94,117,.45) 1px, transparent 1px), linear-gradient(90deg, rgba(21,94,117,.45) 1px, transparent 1px); background-size: 11mm 11mm; }
+.cover-bottom { position: absolute; inset: auto 0 0; height: 8mm; background: #a3e635; }
+.signal { position: absolute; width: 66mm; height: 66mm; border: 1.2px solid #22d3ee; border-radius: 50%; opacity: .62; }
+.signal::before, .signal::after { content: ""; position: absolute; border: 1.2px solid currentColor; border-radius: 50%; inset: 10mm; }
+.signal::after { inset: 22mm; background: currentColor; }
+.signal.one { left: 4mm; top: 28mm; color: #22d3ee; } .signal.two { left: 24mm; top: 137mm; color: #a3e635; } .signal.three { left: -8mm; top: 220mm; color: #22d3ee; }
+.cover-copy { position: absolute; left: 90mm; right: 14mm; top: 37mm; }
+.kicker { color: #0891b2; font-size: 10pt; font-family: "Asset Hiragino W6", sans-serif; font-weight: 600; }
+.cover h1 { margin: 16mm 0 0; font-family: "Asset Hiragino W6", sans-serif; font-size: 27pt; line-height: 1.32; font-weight: 600; color: #102a43; }
+.cover h1 span { display: block; color: #0891b2; font-size: 25pt; }
+.cover-lead { margin: 10mm 0 17mm; color: #526777; font-size: 11pt; }
+.benefit { border-left: 2.5mm solid #a3e635; padding-left: 5mm; margin: 0 0 9mm; }
+.benefit strong { display: block; font-family: "Asset Hiragino W6", sans-serif; font-weight: 600; font-size: 11pt; } .benefit small { color: #526777; font-size: 9.5pt; }
+.cover-meta { position: absolute; left: 90mm; bottom: 20mm; color: #526777; font-size: 9.5pt; }
+.manual { page: manual; }
+.pagebreak { break-before: page; }
+h2 { margin: 4mm 0; padding-left: 4mm; border-left: 2mm solid #a3e635; font-family: "Asset Hiragino W6", sans-serif; font-size: 18pt; line-height: 1.35; font-weight: 600; break-after: avoid; }
+h3 { margin: 5mm 0 2.5mm; color: #52820e; font-family: "Asset Hiragino W6", sans-serif; font-size: 13.5pt; line-height: 1.45; font-weight: 600; break-after: avoid; }
+p { margin: 0 0 3.2mm; orphans: 3; widows: 3; }
+code { color: #007f92; font-family: "Asset Hiragino W6", sans-serif; font-weight: 600; background: #f0f9ff; padding: .15em .35em; border-radius: 2px; }
+strong { font-family: "Asset Hiragino W6", sans-serif; font-weight: 600; }
+table { width: 100%; border-collapse: collapse; margin: 2mm 0 5mm; font-size: 9.2pt; break-inside: auto; }
+thead { display: table-header-group; } tr { break-inside: avoid; }
+th { padding: 2.1mm 2.5mm; text-align: left; color: #fff; background: #082f49; border-bottom: .7mm solid #0891b2; font-weight: 600; }
+td { padding: 2mm 2.5mm; vertical-align: top; border-bottom: .25mm solid #d7e3ea; }
+tbody tr:nth-child(even) { background: #f8fbfc; } th:first-child, td:first-child { width: 29%; }
+.steps { list-style: none; padding: 0; counter-reset: steps; }
+.steps li { counter-increment: steps; position: relative; margin: 0 0 2.5mm; padding: 3mm 4mm 3mm 15mm; border: .25mm solid #d7e3ea; border-left: 1.4mm solid #a3e635; background: #fbfdf7; break-inside: avoid; }
+.steps li::before { content: counter(steps); position: absolute; left: 0; top: 0; bottom: 0; width: 11mm; display: grid; place-items: center; color: #fff; background: #65a30d; font-weight: 600; }
+ul { margin: 0 0 3mm; padding-left: 6mm; } li::marker { color: #65a30d; }
+.callout { margin: 2mm 0 5mm; padding: 3mm 4mm; border: .3mm solid #0891b2; border-left-width: 1.5mm; background: #f0f9ff; break-inside: avoid; }
+.callout.warning { border-color: #d97706; background: #fff7ed; } .callout.success { border-color: #65a30d; background: #f7fee7; }
+.callout strong { display: block; color: #087e99; } .callout.warning strong { color: #b45309; } .callout.success strong { color: #52820e; }
+figure { margin: 4mm auto 6mm; break-inside: avoid; } figure img { display: block; width: 100%; max-height: 104mm; object-fit: contain; border: .25mm solid #b9cbd5; box-shadow: 0 1.5mm 4mm rgba(8,47,73,.14); }
+figcaption { margin-top: 2mm; color: #526777; font-size: 8.5pt; text-align: center; }
+.toc { margin-top: 5mm; } .toc a { display: grid; grid-template-columns: auto 1fr auto; gap: 2mm; align-items: end; color: #102a43; text-decoration: none; margin: 0 0 2mm; }
+.toc a.sub { padding-left: 7mm; color: #526777; font-size: 9.3pt; } .toc .dots { border-bottom: .25mm dotted #9aacb7; transform: translateY(-1.4mm); } .toc .page { color: #52820e; font-weight: 600; }
+</style></head><body><section class="cover"><div class="cover-rail"><i class="signal one"></i><i class="signal two"></i><i class="signal three"></i></div><div class="cover-bottom"></div><div class="cover-copy"><div class="kicker">VISUAL QUICKSTART</div><h1>ASSET Framework App<span>使用説明書</span></h1><p class="cover-lead">はじめての RSS 予測を、かんたんに。</p><div class="benefit"><strong>かんたん予測</strong><small>地図上でエリアを選ぶだけ</small></div><div class="benefit"><strong>結果をすぐ確認</strong><small>CSV に保存して再利用</small></div><div class="benefit"><strong>やさしい手順</strong><small>初めてでも迷わない</small></div></div><div class="cover-meta">文書版&nbsp;&nbsp;v1.2<br>更新日&nbsp;&nbsp;2026年9月8日</div></section><main class="manual"><h2 id="toc">目次</h2>
+<nav class="toc">
+<a class="sub" href="#このマニュアルの進み方"><span>このマニュアルの進み方</span><span class="dots"></span><span class="page">2</span></a>
+<a href="#1.-このアプリでできること"><span>1. このアプリでできること</span><span class="dots"></span><span class="page">4</span></a>
+<a class="sub" href="#画面全体の考え方"><span>画面全体の考え方</span><span class="dots"></span><span class="page">4</span></a>
+<a href="#2.-利用前に準備するもの"><span>2. 利用前に準備するもの</span><span class="dots"></span><span class="page">6</span></a>
+<a class="sub" href="#rss-予測に必要なもの"><span>RSS 予測に必要なもの</span><span class="dots"></span><span class="page">6</span></a>
+<a class="sub" href="#csv-ファイルを使う場合"><span>CSV ファイルを使う場合</span><span class="dots"></span><span class="page">6</span></a>
+<a class="sub" href="#アンテナ高さの見方"><span>アンテナ高さの見方</span><span class="dots"></span><span class="page">6</span></a>
+<a href="#3.-アプリを起動して画面を確認する"><span>3. アプリを起動して画面を確認する</span><span class="dots"></span><span class="page">8</span></a>
+<a class="sub" href="#初回ガイド"><span>初回ガイド</span><span class="dots"></span><span class="page">5</span></a>
+<a class="sub" href="#右側の-runtime-monitor"><span>右側の Runtime Monitor</span><span class="dots"></span><span class="page">8</span></a>
+<a href="#4.-rss-予測を実行する"><span>4. RSS 予測を実行する</span><span class="dots"></span><span class="page">9</span></a>
+<a class="sub" href="#4.1-地図範囲で予測する"><span>4.1 地図範囲で予測する</span><span class="dots"></span><span class="page">9</span></a>
+<a class="sub" href="#4.2-csv-ファイルで予測する"><span>4.2 CSV ファイルで予測する</span><span class="dots"></span><span class="page">10</span></a>
+<a class="sub" href="#4.3-パラメータを保存して再利用する"><span>4.3 パラメータを保存して再利用する</span><span class="dots"></span><span class="page">10</span></a>
+<a href="#5.-予測結果を見るcsv-を保存する"><span>5. 予測結果を見る、CSV を保存する</span><span class="dots"></span><span class="page">11</span></a>
+<a class="sub" href="#5.1-最新結果を読み込む"><span>5.1 最新結果を読み込む</span><span class="dots"></span><span class="page">11</span></a>
+<a class="sub" href="#5.2-表示を切り替える"><span>5.2 表示を切り替える</span><span class="dots"></span><span class="page">11</span></a>
+<a class="sub" href="#5.3-csv-を保存する"><span>5.3 CSV を保存する</span><span class="dots"></span><span class="page">11</span></a>
+<a class="sub" href="#5.4-出力-csv-の列"><span>5.4 出力 CSV の列</span><span class="dots"></span><span class="page">12</span></a>
+<a href="#6.-feature-generation-で学習用データを作る"><span>6. Feature Generation で学習用データを作る</span><span class="dots"></span><span class="page">13</span></a>
+<a class="sub" href="#6.1-入力ファイル"><span>6.1 入力ファイル</span><span class="dots"></span><span class="page">13</span></a>
+<a class="sub" href="#6.2-操作手順"><span>6.2 操作手順</span><span class="dots"></span><span class="page">13</span></a>
+<a class="sub" href="#6.3-csv-が読み込めないとき"><span>6.3 CSV が読み込めないとき</span><span class="dots"></span><span class="page">14</span></a>
+<a href="#7.-model-training-でモデルを作る"><span>7. Model Training でモデルを作る</span><span class="dots"></span><span class="page">15</span></a>
+<a class="sub" href="#7.1-まず-feature-vector-を用意する"><span>7.1 まず Feature Vector を用意する</span><span class="dots"></span><span class="page">15</span></a>
+<a class="sub" href="#7.2-モデル設定の意味"><span>7.2 モデル設定の意味</span><span class="dots"></span><span class="page">15</span></a>
+<a class="sub" href="#7.3-学習を実行する"><span>7.3 学習を実行する</span><span class="dots"></span><span class="page">15</span></a>
+<a class="sub" href="#7.4-分散実行を使う場合"><span>7.4 分散実行を使う場合</span><span class="dots"></span><span class="page">16</span></a>
+<a href="#8.-data-analysis-で図を作成する"><span>8. Data Analysis で図を作成する</span><span class="dots"></span><span class="page">17</span></a>
+<a class="sub" href="#8.1-基本手順"><span>8.1 基本手順</span><span class="dots"></span><span class="page">17</span></a>
+<a class="sub" href="#8.2-選べる分析"><span>8.2 選べる分析</span><span class="dots"></span><span class="page">17</span></a>
+<a class="sub" href="#8.3-分析できない-csv-がある場合"><span>8.3 分析できない CSV がある場合</span><span class="dots"></span><span class="page">18</span></a>
+<a href="#9.-log-console-を使う"><span>9. Log Console を使う</span><span class="dots"></span><span class="page">19</span></a>
+<a class="sub" href="#9.1-ログを見る"><span>9.1 ログを見る</span><span class="dots"></span><span class="page">19</span></a>
+<a class="sub" href="#9.2-ログを保存する"><span>9.2 ログを保存する</span><span class="dots"></span><span class="page">19</span></a>
+<a class="sub" href="#9.3-ログを消す"><span>9.3 ログを消す</span><span class="dots"></span><span class="page">19</span></a>
+<a href="#10.-よくある質問と困ったとき"><span>10. よくある質問と困ったとき</span><span class="dots"></span><span class="page">20</span></a>
+<a class="sub" href="#予測結果が表示されません"><span>予測結果が表示されません</span><span class="dots"></span><span class="page">20</span></a>
+<a class="sub" href="#download-csv-を押しても保存できません"><span><code>Download CSV</code> を押しても保存できません</span><span class="dots"></span><span class="page">20</span></a>
+<a class="sub" href="#csv-が選べるのに処理で失敗します"><span>CSV が選べるのに処理で失敗します</span><span class="dots"></span><span class="page">20</span></a>
+<a class="sub" href="#処理中に別画面へ移動できません"><span>処理中に別画面へ移動できません</span><span class="dots"></span><span class="page">20</span></a>
+<a class="sub" href="#処理を止めたいです"><span>処理を止めたいです</span><span class="dots"></span><span class="page">20</span></a>
+<a class="sub" href="#custom-model-を選んだらファイル選択が出ます"><span><code>Custom Model</code> を選んだらファイル選択が出ます</span><span class="dots"></span><span class="page">20</span></a>
+<a class="sub" href="#分析図は-svg-と-png-のどちらで保存すべきですか"><span>分析図は SVG と PNG のどちらで保存すべきですか</span><span class="dots"></span><span class="page">20</span></a>
+<a href="#11.-用語集"><span>11. 用語集</span><span class="dots"></span><span class="page">21</span></a>
+<a href="#12.-推奨ワークフロー"><span>12. 推奨ワークフロー</span><span class="dots"></span><span class="page">22</span></a>
+<a href="#13.-更新履歴"><span>13. 更新履歴</span><span class="dots"></span><span class="page">23</span></a>
+<a href="#14.-サポート時に伝える情報"><span>14. サポート時に伝える情報</span><span class="dots"></span><span class="page">23</span></a>
+</nav>
+<h3 id="このマニュアルの進み方">このマニュアルの進み方</h3>
+<table><thead><tr><th>ステップ</th><th>目的</th><th>主な画面</th></tr></thead><tbody>
+<tr><td>1 はじめる</td><td>アプリと入力データを準備する</td><td>Prediction Workspace</td></tr>
+<tr><td>2 予測する</td><td>地図または CSV から RSS を予測する</td><td>Prediction Workspace</td></tr>
+<tr><td>3 確認する</td><td>結果を地図で見て CSV に保存する</td><td>Results Explorer</td></tr>
+<tr><td>4 深く調べる</td><td>結果を図にして比較する</td><td>Data Analysis</td></tr>
+<tr><td>5 学習する</td><td>特徴量と新しいモデルを作る</td><td>Feature Generation / Model Training</td></tr>
+</tbody></table>
+<div class="pagebreak"></div>
+<h2 id="1.-このアプリでできること">1. このアプリでできること</h2>
+<p>ASSET Framework App は、電波の受信信号強度、つまり RSS を地図上で予測し、予測結果を確認し、必要に応じて新しい学習用データやモデルを作るためのアプリです。</p>
+<p>難しい専門用語が画面に出ることがありますが、通常の利用では次の流れだけ覚えれば十分です。</p>
+<ol class="steps"><li>予測したい地域、周波数、アンテナ条件を入力します。</li><li>地図または CSV ファイルで予測地点を指定します。</li><li><code>Run RSS Prediction</code> を押して予測を実行します。</li><li><code>Results Explorer</code> で地図表示を確認し、CSV を保存します。</li><li>必要に応じて <code>Data Analysis</code> で図を作成します。</li></ol>
+<h3 id="画面全体の考え方">画面全体の考え方</h3>
+<p>左側のメニューで作業場所を切り替えます。中央が現在の作業画面、右側が実行状況と簡易ログです。</p>
+<table><thead><tr><th>画面</th><th>主な用途</th></tr></thead><tbody>
+<tr><td>Prediction Workspace</td><td>RSS 予測を実行する</td></tr>
+<tr><td>Results Explorer</td><td>最新の予測結果を地図で見る、CSV を保存する</td></tr>
+<tr><td>Model Training</td><td>新しいモデル、転移学習モデル、追加学習モデルを作る</td></tr>
+<tr><td>Feature Generation</td><td>測定 CSV や地図データから学習用特徴量を作る</td></tr>
+<tr><td>Data Analysis</td><td>予測 CSV を分析し、図を SVG/PNG で保存する</td></tr>
+<tr><td>Log Console</td><td>実行ログ、警告、エラーを確認する</td></tr>
+<tr><td>Reference</td><td>研究上の参考文献を確認する</td></tr>
+</tbody></table>
+<figure><img src="file:///Users/zhaoou/Local/wisdomZODev/RSS-Prediction-Transfer-Learning/docs/app-manuals/assets/prediction-workspace.png" alt="実際の ASSET Framework App 起動画面（初回ガイド表示例）"><figcaption>実際の ASSET Framework App 起動画面（初回ガイド表示例）</figcaption></figure>
+<p>画面左側で機能を選び、中央で設定と操作を行います。初回ガイドが表示された場合は、<code>Next</code> で各機能の位置を確認するか、<code>Skip</code> で閉じてください。</p>
+<div class="pagebreak"></div>
+<h2 id="2.-利用前に準備するもの">2. 利用前に準備するもの</h2>
+<p>すべての機能を一度に使う必要はありません。まず予測だけを行う場合は、地域、周波数、アンテナ位置が分かれば始められます。</p>
+<h3 id="rss-予測に必要なもの">RSS 予測に必要なもの</h3>
+<table><thead><tr><th>項目</th><th>説明</th></tr></thead><tbody>
+<tr><td>Base Model</td><td>通常は <code>General Model M0 (NICT 202605)</code> を選びます。独自モデルを使う場合は <code>Custom Model</code> を選びます。</td></tr>
+<tr><td>Database</td><td>予測対象地域の地図データです。例: Nagano Matsumoto, Okinawa Naha など。一覧にない地域が必要な場合は、アプリ開発会社へお問い合わせいただくか、今後の更新をお待ちください。</td></tr>
+<tr><td>Prediction Data</td><td>地図範囲から作るか、CSV ファイルから読み込むかを選びます。</td></tr>
+<tr><td>Frequency in MHz</td><td>使用する無線周波数です。例: 920。</td></tr>
+<tr><td>SF</td><td>LoRa の Spreading Factor です。不明な場合や使わない場合は <code>None</code> を選びます。</td></tr>
+<tr><td>EIRP in dBm</td><td>送信条件を表す値です。分からない場合は管理者または測定担当者に確認してください。</td></tr>
+<tr><td>Fixed Longitude / Latitude</td><td>固定アンテナの経度と緯度です。</td></tr>
+<tr><td>Fixed Elevation / Fixed Height / Mobile Height</td><td>アンテナの高さ条件です。</td></tr>
+</tbody></table>
+<h3 id="csv-ファイルを使う場合">CSV ファイルを使う場合</h3>
+<p>予測地点を CSV で指定する場合、CSV には経度と緯度の列が必要です。</p>
+<table><thead><tr><th>種類</th><th>使用できる列名の例</th></tr></thead><tbody>
+<tr><td>経度</td><td><code>longitude</code>, <code>lon</code>, <code>lng</code>, <code>x</code></td></tr>
+<tr><td>緯度</td><td><code>latitude</code>, <code>lat</code>, <code>y</code></td></tr>
+<tr><td>RSSI</td><td>予測 CSV では任意。学習用 CSV では必要です。列名例: <code>RSSI</code>, <code>rssi</code></td></tr>
+</tbody></table>
+<h3 id="アンテナ高さの見方">アンテナ高さの見方</h3>
+<p>次の図は、画面上の <code>Fixed Elevation</code>, <code>Fixed Height</code>, <code>Mobile Height</code> の関係を示します。</p>
+<figure><img src="file:///Users/zhaoou/Local/wisdomZODev/RSS-Prediction-Transfer-Learning/web/assets/help/antenna-height-reference.png" alt="固定局と移動局の高さの考え方"><figcaption>固定局と移動局の高さの考え方</figcaption></figure>
+<table><thead><tr><th>項目</th><th>意味</th></tr></thead><tbody>
+<tr><td>Fixed Elevation</td><td>固定局の設置地点そのものの標高です。</td></tr>
+<tr><td>Fixed Height</td><td>設置地点から固定アンテナまでの高さです。</td></tr>
+<tr><td>Mobile Height</td><td>移動側アンテナの地面または車両基準からの高さです。</td></tr>
+</tbody></table>
+<div class="pagebreak"></div>
+<h2 id="3.-アプリを起動して画面を確認する">3. アプリを起動して画面を確認する</h2>
+<p>アプリを起動すると、最初に ASSET の画面が表示されます。初回は画面案内が出る場合があります。</p>
+<h3 id="初回ガイド">初回ガイド</h3>
+<p>画面案内では、左メニューや主要ボタンの位置が順番にハイライトされます。</p>
+<ul><li><code>Next</code> を押すと次の説明に進みます。</li><li><code>Back</code> を押すと前の説明に戻ります。</li><li><code>Skip</code> を押すと案内を閉じます。</li><li><code>Do not show this guide again</code> にチェックすると、次回から同じ案内を表示しません。</li></ul>
+<h3 id="右側の-runtime-monitor">右側の Runtime Monitor</h3>
+<p>右側の <code>Runtime Monitor</code> は、現在の処理の進み具合を表示します。</p>
+<table><thead><tr><th>表示</th><th>意味</th></tr></thead><tbody>
+<tr><td>Ready</td><td>何も実行していない状態です。</td></tr>
+<tr><td>30%, 40%, 70% など</td><td>予測や学習が進行中です。</td></tr>
+<tr><td>Completed</td><td>処理が正常に終わりました。</td></tr>
+<tr><td>Error</td><td>何らかの問題で処理が止まりました。</td></tr>
+</tbody></table>
+<p>処理中に画面が一部操作できなくなることがあります。これは、途中で条件が変わって結果が壊れないようにするためです。</p>
+<div class="pagebreak"></div>
+<h2 id="4.-rss-予測を実行する">4. RSS 予測を実行する</h2>
+<p>RSS 予測は <code>Prediction Workspace</code> で行います。通常はこの画面から作業を始めます。</p>
+<h3 id="4.1-地図範囲で予測する">4.1 地図範囲で予測する</h3>
+<p>地図上の範囲を使って予測する場合は、次の手順で操作します。</p>
+<ol class="steps"><li>左メニューで <code>Prediction Workspace</code> を開きます。</li><li><code>Base Model</code> で使用するモデルを選びます。通常は <code>General Model M0 (NICT 202605)</code> です。</li><li><code>Database</code> で対象地域を選びます。</li><li><code>Prediction Data</code> を <code>Map bounds</code> にします。</li><li><code>Mesh Longitude</code> と <code>Mesh Latitude</code> を入力します。値が大きいほど細かく予測できますが、処理時間も長くなります。</li><li>周波数、SF、EIRP、アンテナ位置、高さを入力します。</li><li><code>Draw Area</code> を押し、地図上で予測したい範囲を指定します。</li><li><code>Run RSS Prediction</code> を押します。</li><li><code>Runtime Monitor</code> が <code>Completed</code> になるまで待ちます。</li></ol>
+<aside class="callout success"><strong>成功のサイン</strong><code>Runtime Monitor</code> に <code>Completed</code> と表示され、<code>Results Explorer</code> に <code>New</code> が表示されれば予測完了です。</aside>
+<aside class="callout warning"><strong>ご注意</strong>メッシュ数を大きくすると細かく予測できますが、処理時間と使用メモリも増えます。初回は既定値のまま試してください。</aside>
+<h3 id="4.2-csv-ファイルで予測する">4.2 CSV ファイルで予測する</h3>
+<p>予測したい地点が CSV として用意されている場合は、次の手順で操作します。</p>
+<ol class="steps"><li><code>Prediction Data</code> を <code>CSV file selected by native dialog</code> にします。</li><li>モデル、地域、周波数、アンテナ条件を入力します。</li><li><code>Run RSS Prediction</code> を押します。</li><li>ファイル選択画面が出たら、予測地点 CSV を選びます。</li><li><code>Runtime Monitor</code> が <code>Completed</code> になるまで待ちます。</li></ol>
+<p>CSV で予測する場合、地図上の範囲指定は使いません。CSV の経度・緯度列が予測地点になります。</p>
+<h3 id="4.3-パラメータを保存して再利用する">4.3 パラメータを保存して再利用する</h3>
+<p>同じ条件で何度も試す場合は、<code>Save Params</code> と <code>Reload Params</code> を使います。</p>
+<table><thead><tr><th>ボタン</th><th>用途</th></tr></thead><tbody>
+<tr><td>Save Params</td><td>現在の入力値を一時保存します。</td></tr>
+<tr><td>Reload Params</td><td>保存した入力値を画面に戻します。</td></tr>
+<tr><td>Reset</td><td>実行中の予測を停止し、予測画面の一時状態を整理します。</td></tr>
+</tbody></table>
+<div class="pagebreak"></div>
+<h2 id="5.-予測結果を見るcsv-を保存する">5. 予測結果を見る、CSV を保存する</h2>
+<p>予測が完了すると、左メニューの <code>Results Explorer</code> に <code>New</code> の表示が出る場合があります。</p>
+<h3 id="5.1-最新結果を読み込む">5.1 最新結果を読み込む</h3>
+<ol class="steps"><li>左メニューで <code>Results Explorer</code> を開きます。</li><li><code>Load Latest Result</code> を押します。</li><li>地図上に予測結果が表示されることを確認します。</li></ol>
+<h3 id="5.2-表示を切り替える">5.2 表示を切り替える</h3>
+<p>結果地図では、次の表示を切り替えられます。</p>
+<table><thead><tr><th>表示</th><th>説明</th></tr></thead><tbody>
+<tr><td>Prediction RSS</td><td>予測された RSS の強さを色で表示します。</td></tr>
+<tr><td>Uncertainty</td><td>予測の不確実さを表示します。</td></tr>
+</tbody></table>
+<p><code>Uncertainty</code> では <code>η</code> の値で、上位・下位の判定範囲を調整できます。専門的な判断が必要な場合は、研究担当者または管理者の指示値を使ってください。</p>
+<h3 id="5.3-csv-を保存する">5.3 CSV を保存する</h3>
+<ol class="steps"><li><code>Results Explorer</code> で <code>Download CSV</code> を押します。</li><li>保存先を選びます。</li><li>保存された CSV を表計算ソフトや <code>Data Analysis</code> で利用します。</li></ol>
+<aside class="callout success"><strong>成功のサイン</strong>保存先に CSV ファイルが作成され、表計算ソフトで経度・緯度・予測値の列を確認できれば完了です。</aside>
+<p><code>Download CSV</code> は、アプリ内部に残っている最新の予測結果を保存します。複数回予測した場合は、最後に成功した結果が対象です。</p>
+<h3 id="5.4-出力-csv-の列">5.4 出力 CSV の列</h3>
+<table><thead><tr><th>列名</th><th>意味</th></tr></thead><tbody>
+<tr><td>Latitude</td><td>緯度。予測地点の南北方向の位置です。</td></tr>
+<tr><td>Longitude</td><td>経度。予測地点の東西方向の位置です。</td></tr>
+<tr><td>RSSI</td><td>実測した RSS 値です。実測値がない予測用データでは占位値が入る場合があります。</td></tr>
+<tr><td>DN</td><td>予測地点の海抜高度です。</td></tr>
+<tr><td>FresnelR_H</td><td>水平方向のフレネル半径です。</td></tr>
+<tr><td>FresnelR_V</td><td>垂直方向のフレネル半径です。</td></tr>
+<tr><td>disBtwTxRx</td><td>送信アンテナと受信アンテナの空間距離です。</td></tr>
+<tr><td>Model_0</td><td>0 号モデルが出力した予測 RSS 値です。</td></tr>
+<tr><td>Model_1</td><td>1 号モデルが出力した予測 RSS 値です。</td></tr>
+<tr><td>Predicted_Value</td><td>全モデルが出力した予測 RSS 値の中央値です。</td></tr>
+<tr><td>Uncertainty</td><td>全モデルの予測結果から求めた不確実さです。</td></tr>
+<tr><td>pathLoss_eta_2</td><td>古典的な距離減衰モデルによる自由空間向けの予測 RSS 値です。</td></tr>
+<tr><td>pathLoss_eta_3</td><td>古典的な距離減衰モデルによる都市環境向けの予測 RSS 値です。</td></tr>
+</tbody></table>
+<div class="pagebreak"></div>
+<h2 id="6.-feature-generation-で学習用データを作る">6. Feature Generation で学習用データを作る</h2>
+<p><code>Feature Generation</code> は、測定 CSV や地図データを使って、モデル学習で使う特徴量ファイルを作る画面です。</p>
+<h3 id="6.1-入力ファイル">6.1 入力ファイル</h3>
+<table><thead><tr><th>ファイル</th><th>必須</th><th>説明</th></tr></thead><tbody>
+<tr><td>Training CSV</td><td>必須</td><td>測定点の経度、緯度、RSSI を含む CSV です。</td></tr>
+<tr><td>Altitude TIFF</td><td>必須</td><td>標高や地形を表す TIFF ファイルです。</td></tr>
+<tr><td>Building GPKG</td><td>任意</td><td>建物データです。遮蔽や周辺環境の特徴作成に使います。生成には専用の地理データ処理が必要です。</td></tr>
+<tr><td>Land-use GPKG</td><td>任意</td><td>用途地域や土地利用のデータです。生成には専用の地理データ処理が必要です。</td></tr>
+</tbody></table>
+<aside class="callout warning"><strong>ご注意</strong><code>Building GPKG</code> と <code>Land-use GPKG</code> の新規生成は、本 APP の通常機能には含まれません。必要な場合はアプリ開発会社へお問い合わせください。</aside>
+<h3 id="6.2-操作手順">6.2 操作手順</h3>
+<ol class="steps"><li>左メニューで <code>Feature Generation</code> を開きます。</li><li><code>Dataset Parameters</code> に周波数、SF、EIRP、固定局位置、高さを入力します。</li><li><code>Training CSV</code> を押して測定 CSV を選びます。</li><li><code>Altitude TIFF</code> を押して標高 TIFF を選びます。</li><li>必要に応じて <code>Building GPKG (Optional)</code> と <code>Land-use GPKG (Optional)</code> を選びます。</li><li><code>Upload and Process</code> を押します。</li><li>完了後、<code>Download Output</code> が表示されたら押して保存します。</li></ol>
+<h3 id="6.3-csv-が読み込めないとき">6.3 CSV が読み込めないとき</h3>
+<p>CSV の列名が合わない、空の値が多い、ファイル形式が違う場合は、処理が失敗または一部スキップされます。</p>
+<p>最低限、学習用 CSV には次の列が必要です。</p>
+<table><thead><tr><th>種類</th><th>列名例</th></tr></thead><tbody>
+<tr><td>経度</td><td><code>longitude</code>, <code>lon</code>, <code>lng</code>, <code>x</code></td></tr>
+<tr><td>緯度</td><td><code>latitude</code>, <code>lat</code>, <code>y</code></td></tr>
+<tr><td>測定 RSSI</td><td><code>RSSI</code>, <code>rssi</code></td></tr>
+</tbody></table>
+<div class="pagebreak"></div>
+<h2 id="7.-model-training-でモデルを作る">7. Model Training でモデルを作る</h2>
+<p><code>Model Training</code> は、特徴量ファイルを使って新しいモデルや転移学習モデルを作る画面です。</p>
+<h3 id="7.1-まず-feature-vector-を用意する">7.1 まず Feature Vector を用意する</h3>
+<p>モデル学習には特徴量ファイルが必要です。まだ用意していない場合は、<code>Open Feature Generation</code> を押して先に特徴量を作成します。</p>
+<p>既に <code>.xz</code> 形式の特徴量ファイルがある場合は、<code>Feature Vector Mode</code> を <code>Use existing feature vectors</code> にして、<code>Select *.xz Feature Vectors</code> から選択します。</p>
+<h3 id="7.2-モデル設定の意味">7.2 モデル設定の意味</h3>
+<table><thead><tr><th>項目</th><th>説明</th></tr></thead><tbody>
+<tr><td>Feature Vector Mode</td><td>特徴量を新しく作るか、既存の <code>.xz</code> ファイルを使うかを選びます。</td></tr>
+<tr><td>Scheduler</td><td>分散実行する場合の Dask scheduler アドレスです。空欄ならローカル実行です。</td></tr>
+<tr><td>Base Model</td><td>新規学習、一般モデルからの転移学習、独自モデルからの転移学習を選びます。</td></tr>
+<tr><td>Kernel Count</td><td>学習に使用するカーネル数です。値を大きくするとモデル性能が高くなる傾向がありますが、学習速度は低下します。推奨値は <code>16</code> です。</td></tr>
+<tr><td>Learning Type</td><td><code>Transfer Learning</code> を選択します。<code>Incremental Learning</code> は今後のアップデートで追加予定です。</td></tr>
+<tr><td>Train Judge Model</td><td>転移モデルの性能を判定するための判断モデルを同時に学習します。On にすると計算量が大幅に増えます。主に研究用途向けのため、目的が明確でない場合は Off を推奨します。</td></tr>
+<tr><td>Freeze Layer</td><td>転移学習で固定する層を指定します。通常は既定値を使います。</td></tr>
+<tr><td>Learning Rate</td><td>学習率の初期値です。通常は既定値 <code>0.0001</code> を使います。プログラムは学習の進行に合わせて値を自動的に小さくし、モデルの学習完了まで調整します。</td></tr>
+</tbody></table>
+<h3 id="7.3-学習を実行する">7.3 学習を実行する</h3>
+<ol class="steps"><li><code>Model Training</code> を開きます。</li><li>特徴量ファイルを用意します。</li><li><code>Base Model</code> と <code>Learning Type</code> を選びます。</li><li>分散実行しない場合は <code>Scheduler</code> を空欄にします。</li><li><code>Generate Model</code> を押します。</li><li><code>Runtime Monitor</code> が <code>Completed</code> になるまで待ちます。</li><li>保存ダイアログが表示されたら、生成モデルを保存します。</li></ol>
+<h3 id="7.4-分散実行を使う場合">7.4 分散実行を使う場合</h3>
+<p>複数台の PC やサーバで Dask を使う場合は、<code>Open Guide</code> を押して手順を確認します。</p>
+<p><code>Scheduler</code> には、例として <code>tcp://host:8786</code> または <code>host_ip:8786</code> の形式で入力します。接続できない場合、アプリはローカル実行に戻ることがあります。</p>
+<div class="pagebreak"></div>
+<h2 id="8.-data-analysis-で図を作成する">8. Data Analysis で図を作成する</h2>
+<p><code>Data Analysis</code> は、予測結果 CSV を分析し、報告書や論文に使える図を作る画面です。</p>
+<h3 id="8.1-基本手順">8.1 基本手順</h3>
+<ol class="steps"><li>左メニューで <code>Data Analysis</code> を開きます。</li><li><code>Prediction CSV Analyzer</code> が選ばれていることを確認します。</li><li><code>Select Folder</code> を押し、予測 CSV が入っているフォルダを選びます。</li><li>一覧から分析に使う CSV にチェックを入れます。</li><li>必要に応じて色を選びます。</li><li><code>Analysis Type</code> で作りたい図や表を選びます。</li><li><code>Run Analysis</code> を押します。</li><li>画面下部の <code>Analysis Output</code> で結果を確認します。</li><li><code>Download SVG</code> または <code>Download PNG</code> を押して保存します。</li></ol>
+<aside class="callout tip"><strong>使い方のヒント</strong>拡大して印刷する資料には SVG、メールやスライドに貼る場合は PNG が扱いやすいです。</aside>
+<h3 id="8.2-選べる分析">8.2 選べる分析</h3>
+<table><thead><tr><th>Analysis Type</th><th>何を見るためのものか</th></tr></thead><tbody>
+<tr><td>RSSI CDF</td><td>RSSI の分布を確認します。</td></tr>
+<tr><td>Predicted Value CDF</td><td>予測値の分布を確認します。</td></tr>
+<tr><td>Uncertainty CDF</td><td>不確実さの分布を確認します。</td></tr>
+<tr><td>Absolute Error CDF</td><td>誤差の大きさの分布を確認します。</td></tr>
+<tr><td>Model Error Box Plot</td><td>複数モデルの誤差を箱ひげ図で比較します。</td></tr>
+<tr><td>Summary Statistics Table</td><td>平均、中央値などの統計表を作ります。</td></tr>
+<tr><td>Predicted vs RSSI Scatter Plot</td><td>実測値と予測値の関係を散布図で確認します。</td></tr>
+<tr><td>Error vs Distance Plot</td><td>距離と誤差の関係を見ます。</td></tr>
+<tr><td>Error vs Altitude / Fresnel Features</td><td>標高やフレネル関連特徴と誤差の関係を見ます。</td></tr>
+<tr><td>Path Loss Baseline Comparison</td><td>パスロス基準との比較をします。</td></tr>
+<tr><td>Uncertainty Calibration Plot</td><td>不確実さが誤差と対応しているか確認します。</td></tr>
+<tr><td>Model Ensemble Violin Plot</td><td>モデル群のばらつきを比較します。</td></tr>
+<tr><td>Spatial Error Map</td><td>誤差を地理的に確認します。</td></tr>
+</tbody></table>
+<h3 id="8.3-分析できない-csv-がある場合">8.3 分析できない CSV がある場合</h3>
+<p>分析ごとに必要な列は異なります。アプリは、必要な列がない CSV をスキップし、理由を表示します。</p>
+<p>1つの CSV がスキップされても、ほかの CSV が有効なら分析は続きます。エラーが出た場合は、<code>Log Console</code> で詳細を確認してください。</p>
+<div class="pagebreak"></div>
+<h2 id="9.-log-console-を使う">9. Log Console を使う</h2>
+<p><code>Log Console</code> は、アプリ内部の処理状況、警告、エラーを確認する場所です。</p>
+<h3 id="9.1-ログを見る">9.1 ログを見る</h3>
+<p>左メニューで <code>Log Console</code> を開くと、アプリの実行ログを大きな画面で確認できます。右側の <code>Compact Log</code> から <code>Open</code> を押して開くこともできます。</p>
+<h3 id="9.2-ログを保存する">9.2 ログを保存する</h3>
+<ol class="steps"><li><code>Export Log</code> を押します。</li><li>保存先を選びます。</li><li><code>ASSET_application_log_YYYYMMDD_HHMMSS.txt</code> のような名前で保存されます。</li></ol>
+<p>問い合わせや不具合報告をする場合は、保存したログを添付すると原因調査が進みやすくなります。</p>
+<h3 id="9.3-ログを消す">9.3 ログを消す</h3>
+<p><code>Clear Logs</code> を押すと画面上のログ表示を消せます。処理結果そのものを削除する操作ではありません。</p>
+<div class="pagebreak"></div>
+<h2 id="10.-よくある質問と困ったとき">10. よくある質問と困ったとき</h2>
+<h3 id="予測結果が表示されません">予測結果が表示されません</h3>
+<p>まず <code>Results Explorer</code> で <code>Load Latest Result</code> を押してください。それでも表示されない場合は、予測が最後まで完了していない可能性があります。<code>Log Console</code> でエラーを確認してください。</p>
+<h3 id="download-csv-を押しても保存できません"><code>Download CSV</code> を押しても保存できません</h3>
+<p>最新の予測結果がアプリ内部にない可能性があります。もう一度 <code>Run RSS Prediction</code> を実行し、完了後に保存してください。</p>
+<h3 id="csv-が選べるのに処理で失敗します">CSV が選べるのに処理で失敗します</h3>
+<p>ファイル拡張子が <code>.csv</code> でも、必要な列がないと処理できません。経度、緯度、必要に応じて RSSI の列名を確認してください。</p>
+<h3 id="処理中に別画面へ移動できません">処理中に別画面へ移動できません</h3>
+<p>予測、特徴量生成、モデル学習の実行中は、条件変更を防ぐため一部の画面移動が制限されます。ログ画面は確認できます。</p>
+<h3 id="処理を止めたいです">処理を止めたいです</h3>
+<p>現在の作業画面に戻り、<code>Reset</code> を押してください。実行中の予測または学習を停止し、一時状態を整理します。</p>
+<h3 id="custom-model-を選んだらファイル選択が出ます"><code>Custom Model</code> を選んだらファイル選択が出ます</h3>
+<p><code>Custom Model</code> には、本ソフトウェアで生成したモデルのみ使用できます。他のソフトウェアや異なる形式で作成したモデルには対応していません。通常利用では <code>General Model M0 (NICT 202605)</code> を選んでください。</p>
+<h3 id="分析図は-svg-と-png-のどちらで保存すべきですか">分析図は SVG と PNG のどちらで保存すべきですか</h3>
+<p>報告書や論文で拡大して使う場合は SVG が向いています。スライド、メール、一般的な資料に貼る場合は PNG が扱いやすいです。</p>
+<div class="pagebreak"></div>
+<h2 id="11.-用語集">11. 用語集</h2>
+<table><thead><tr><th>用語</th><th>やさしい説明</th></tr></thead><tbody>
+<tr><td>RSS</td><td>受信した電波の強さです。値が大きいほど受信しやすい傾向があります。</td></tr>
+<tr><td>RSSI</td><td>RSS とほぼ同じ意味で使われる受信強度の値です。</td></tr>
+<tr><td>EIRP</td><td>送信機とアンテナを含めた送信の強さを表す値です。</td></tr>
+<tr><td>SF</td><td>LoRa 通信で使う Spreading Factor です。通信距離や速度に関係します。</td></tr>
+<tr><td>Mesh</td><td>地図を細かい格子に分けて予測するための点や範囲です。</td></tr>
+<tr><td>Feature Vector</td><td>モデル学習に使う特徴量データです。</td></tr>
+<tr><td>Transfer Learning</td><td>既存モデルを使って、新しい地域や条件に合わせて調整する学習方法です。</td></tr>
+<tr><td>Incremental Training</td><td>既存モデルに新しいデータを追加して学習を続ける方法です。</td></tr>
+<tr><td>Dask</td><td>複数の CPU や複数台のコンピュータで処理を分担する仕組みです。</td></tr>
+<tr><td>Uncertainty</td><td>予測結果の不確実さです。値が大きい場所は追加測定の候補になります。</td></tr>
+<tr><td>CDF</td><td>値の分布を確認するグラフです。</td></tr>
+<tr><td>GPKG</td><td>地図データを保存する GeoPackage 形式です。</td></tr>
+</tbody></table>
+<div class="pagebreak"></div>
+<h2 id="12.-推奨ワークフロー">12. 推奨ワークフロー</h2>
+<p>初めて使う場合は、次の順番がおすすめです。</p>
+<ol class="steps"><li><code>Prediction Workspace</code> で既存の <code>General Model M0</code> を使い、対象地域の RSS 予測を試します。</li><li><code>Results Explorer</code> で地図を確認し、CSV を保存します。</li><li><code>Data Analysis</code> で RSSI CDF や Uncertainty CDF を作り、結果の傾向を確認します。</li><li>実測データが増えたら <code>Feature Generation</code> で特徴量を作ります。</li><li><code>Model Training</code> で転移学習モデルを作ります。</li><li>新しいモデルで再度予測し、結果を比較します。</li></ol>
+<p>重要なのは、予測と分析を一度で終わらせないことです。結果地図と不確実さを見ながら、測定、学習、再予測を繰り返すことで精度を高めます。</p>
+<div class="pagebreak"></div>
+<h2 id="13.-更新履歴">13. 更新履歴</h2>
+<table><thead><tr><th>日付</th><th>文書版</th><th>内容</th></tr></thead><tbody>
+<tr><td>2026年9月8日</td><td>v1.2</td><td>ヒラギノ角ゴシックへ変更。全面表紙、実画面、CSV 列説明、モデル学習および地域データに関する注意事項を追加。用語を「不確実さ」に統一。</td></tr>
+<tr><td>2026年9月8日</td><td>v1.1</td><td>Visual Quickstart 版へ改訂。表紙、目次、手順表示、表、ページナビゲーションを再設計。</td></tr>
+<tr><td>2026年9月8日</td><td>v1.0</td><td>ASSET Framework App の現行画面に合わせて、一般利用者向けの日本語使用説明書を新規作成。Prediction Workspace、Results Explorer、Feature Generation、Model Training、Data Analysis、Log Console、用語集、FAQ を追加。</td></tr>
+</tbody></table>
+<h2 id="14.-サポート時に伝える情報">14. サポート時に伝える情報</h2>
+<p>問い合わせや不具合報告をする場合は、次の情報を伝えると確認が早くなります。</p>
+<ul><li>使用している OS</li><li>アプリ画面に表示されているバージョンまたは <code>Development Build</code> 表示</li><li>実行した画面名</li><li>入力した Database、Frequency、Prediction Data の種類</li><li>エラーが出た場合は <code>Export Log</code> で保存したログ</li><li>使用した CSV の列名</li></ul>
+<p>この説明書の更新日: 2026年9月8日</p></main></body></html>
