@@ -17,6 +17,7 @@
 
     function person(points, color, hiker, phase) {
       const group = new T.Group(), shirt = material(color);
+      group.userData.speechHeight=.235;
       part(group, sphere, skin, [.027,.031,.027], [0,.2,0]);
       part(group, box, shirt, [.065,.08,.04], [0,.135,0]);
       const limbs = [];
@@ -44,7 +45,7 @@
         call={active:false,remaining:4+Math.random()*16,elapsed:0,pose:0,phone,signal,rings};
         group.userData.phoneCall=call;
       }
-      collider(group,.085,.075);world.add(group); walkers.push({group, limbs, route, phase, speed:hiker?.007:.015,travel:0,call});
+      collider(group,.085,.075);world.add(group); walkers.push({group, limbs, route, phase, speed:hiker?.007:.12/route.getLength(),travel:0,call});
     }
     // A visible switchback route on the near slope; hikers stay on the ground.
     const trail = [[-2.8,2.95],[-2.55,2.4],[-1.85,2.2],[-1.55,1.7],[-1.85,1.15],[-1.2,.75],[-.95,.1],[-1.4,-.55]];
@@ -54,9 +55,13 @@
     for(let i=0;i<4;i++) person(trail,[0xed653f,0x287eb5,0xe4c347,0x82458e][i],true,.12+i*.2);
     person([[2.55,1.7],[2.15,1.35],[1.7,1.65],[1.25,1.3]],0xf2853d,true,.35);
     person([[2.85,-.65],[2.25,-.85],[1.9,-1.2],[1.65,-1.65]],0xd34d72,true,.6);
+    // Follow the road shoulder, outside the vehicle lanes, in both directions.
+    const sidewalk=Array.from({length:25},(_,i)=>{
+      const t=.05+i/24*.9,p=road.getPoint(t),tangent=road.getTangent(t);
+      return [p.x-tangent.z*.38,p.z+tangent.x*.38];
+    });
     for(let i=0;i<6;i++) {
-      const x=-3.6+i*1.25;
-      person([[x,3.99],[x+.28,4.02],[x+.5,3.96]],[0x487db0,0xb44b45,0x59764e][i%3],false,i*.14);
+      person(sidewalk,[0x487db0,0xb44b45,0x59764e][i%3],false,.12+i*.29);
     }
     const cars = [];
     const tires = new T.CylinderGeometry(.023,.023,.015,10);
@@ -171,7 +176,7 @@
         }
         if(!call||(!call.active&&call.pose===0))walker.travel+=dt;
         const cycle=(walker.travel*speed+phase)%2,t=cycle<=1?cycle:2-cycle;
-        const p=route.getPoint(t),tangent=route.getTangent(t);
+        const p=route.getPointAt(t),tangent=route.getTangentAt(t);
         if(!player||Math.hypot(player.x-p.x,player.z-p.z)>.16)group.position.set(p.x,heightAt(p.x,p.z)+.045,p.z);
         group.rotation.y=Math.atan2(tangent.x,tangent.z)+(cycle>1?Math.PI:0);
         syncCollider(group,.085,.075);

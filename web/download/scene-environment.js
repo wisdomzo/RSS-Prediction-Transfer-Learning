@@ -104,25 +104,64 @@
       treePositions.push({x,z,y:height+.02,size:.19+random()*.2,variation:random()});
     }
     const count = treePositions.length;
-    const trunks = new T.InstancedMesh(new T.CylinderGeometry(.012, .018, 1, 5), new T.MeshStandardMaterial({color:0x745b3d,roughness:1}), count);
-    const pine = new T.InstancedMesh(new T.ConeGeometry(1, 1, 7), new T.MeshStandardMaterial({color:0xffffff,roughness:.92}), count * 2);
-    const canopy = new T.InstancedMesh(new T.IcosahedronGeometry(1, 1), new T.MeshStandardMaterial({color:0xffffff,roughness:.95}), count);
-    let pineCount=0, canopyCount=0;
-    treePositions.forEach((tree,index)=>{
-      const {x,y,z,size,variation}=tree;
-      matrixObject.position.set(x,y+size*.4,z);matrixObject.rotation.set(0,variation*6.28,0);matrixObject.scale.set(1,size*.8,1);matrixObject.updateMatrix();trunks.setMatrixAt(index,matrixObject.matrix);
-      if(variation<.68){
-        for(let tier=0;tier<2;tier++){
-          matrixObject.position.set(x,y+size*(.64+tier*.25),z);matrixObject.scale.set(size*(.37-tier*.08),size*.75,size*(.37-tier*.08));matrixObject.updateMatrix();pine.setMatrixAt(pineCount,matrixObject.matrix);
-          pine.setColorAt(pineCount,new T.Color().setHSL(.30+variation*.05,.32+variation*.2,.22+variation*.08+tier*.025,T.SRGBColorSpace));pineCount++;
+    // Shared geometry keeps the richer forest to four instanced draw calls.
+    const bark = new T.MeshStandardMaterial({color:0x796047,roughness:1});
+    const leaves = new T.MeshStandardMaterial({color:0xffffff,roughness:.93});
+    const trunks = new T.InstancedMesh(new T.CylinderGeometry(.65,1,1,7),bark,count*9);
+    const pine = new T.InstancedMesh(new T.IcosahedronGeometry(1,0),leaves,count*32);
+    const canopy = new T.InstancedMesh(new T.IcosahedronGeometry(1,1),leaves,count*12);
+    const shrubs = new T.InstancedMesh(new T.IcosahedronGeometry(1,1),leaves,count*3);
+    const counts=new Map([[trunks,0],[pine,0],[canopy,0],[shrubs,0]]);
+    function instance(mesh,position,scale,rotation,color){
+      matrixObject.position.set(...position);matrixObject.scale.set(...scale);
+      matrixObject.rotation.set(...rotation);matrixObject.updateMatrix();
+      const index=counts.get(mesh);mesh.setMatrixAt(index,matrixObject.matrix);
+      if(color)mesh.setColorAt(index,color);counts.set(mesh,index+1);
+    }
+    const green=(h,l)=>new T.Color().setHSL(h,.38+random()*.18,l,T.SRGBColorSpace);
+    function branch(x,y,z,dx,dy,dz,radius){
+      const direction=new T.Vector3(dx,dy,dz),length=direction.length();
+      matrixObject.position.set(x+dx/2,y+dy/2,z+dz/2);
+      matrixObject.quaternion.setFromUnitVectors(new T.Vector3(0,1,0),direction.normalize());
+      matrixObject.scale.set(radius,length,radius);matrixObject.updateMatrix();
+      const index=counts.get(trunks);trunks.setMatrixAt(index,matrixObject.matrix);counts.set(trunks,index+1);
+    }
+    treePositions.forEach(({x,y,z,size,variation})=>{
+      // Foreground trees carry extra branches; distant/mobile trees use fewer clusters.
+      const detailed=!mobile&&z>-.6,angle=variation*Math.PI*2;
+      branch(x,y,z,size*.045,size*.85,0,size*.048);
+      if(variation<.62){
+        const tiers=detailed?5:3;
+        for(let tier=0;tier<tiers;tier++){
+          const f=tier/(tiers-1),spread=size*(.35-f*.24),cy=y+size*(.38+f*.64);
+          const lobes=detailed?5:3;
+          for(let n=0;n<lobes;n++){
+            const a=angle+n*Math.PI*2/lobes+tier*1.7;
+            instance(pine,[x+Math.cos(a)*spread*.55,cy+random()*size*.04,z+Math.sin(a)*spread*.55],
+              [spread*.8,size*(.24-f*.09),spread*.62],[.1,a,.12],green(.31+variation*.05,.22+f*.09+random()*.035));
+          }
+          if(detailed&&tier<3)branch(x,cy-size*.12,z,Math.cos(angle+tier*2)*spread, size*.06,Math.sin(angle+tier*2)*spread,size*.015);
         }
+        instance(pine,[x,y+size*1.09,z],[size*.09,size*.19,size*.09],[0,angle,0],green(.32,.33));
       }else{
-        matrixObject.position.set(x,y+size*.8,z);matrixObject.scale.set(size*.42,size*.5,size*.4);matrixObject.updateMatrix();canopy.setMatrixAt(canopyCount,matrixObject.matrix);
-        canopy.setColorAt(canopyCount,new T.Color().setHSL(.24+variation*.05,.43,.29+variation*.09,T.SRGBColorSpace));canopyCount++;
+        const lobes=detailed?9:5;
+        for(let n=0;n<lobes;n++){
+          const a=angle+n*2.39996,spread=size*(n===0?0:.18+random()*.12);
+          const dx=Math.cos(a)*spread,dz=Math.sin(a)*spread,cy=size*(.67+random()*.33);
+          if(n<4)branch(x,y+size*.35,z,dx,cy-size*.35,dz,size*.018);
+          instance(canopy,[x+dx,y+cy,z+dz],[size*(.19+random()*.09),size*(.23+random()*.1),size*(.19+random()*.09)],
+            [random()*.5,a,random()*.4],green(.24+variation*.055,.28+random()*.13));
+        }
+      }
+      if(variation>.8){
+        for(let n=0;n<3;n++)instance(shrubs,[x+(n-1)*size*.13,y+size*.14,z+size*.18],
+          [size*.18,size*.17,size*.16],[0,n*2,0],green(.25,.29+random()*.09));
       }
     });
-    pine.count=pineCount;canopy.count=canopyCount;
-    for(const mesh of [trunks,pine,canopy]){mesh.castShadow=true;mesh.receiveShadow=true;world.add(mesh);}
+    for(const mesh of [trunks,pine,canopy,shrubs]){
+      mesh.count=counts.get(mesh);mesh.name='forest-'+(['trunks','pine','canopy','shrubs'][[trunks,pine,canopy,shrubs].indexOf(mesh)]);
+      mesh.castShadow=true;mesh.receiveShadow=true;world.add(mesh);
+    }
     const rocks = new T.InstancedMesh(new T.IcosahedronGeometry(1, 0),new T.MeshStandardMaterial({color:0x999c8f,roughness:1}),45);
     let rockCount=0;
     for(let n=0;n<400 && rockCount<45;n++){

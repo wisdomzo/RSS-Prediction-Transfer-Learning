@@ -138,7 +138,9 @@
   gridGeometry.setAttribute('position', new T.Float32BufferAttribute(gridPoints, 3));
   world.add(new T.LineSegments(gridGeometry, new T.LineBasicMaterial({ color: 0x34545d, transparent: true, opacity: 0.025, depthWrite: false })));
   const natural = window.ASSETNaturalEnvironment(T, world, terrainHeight, mobile.matches);
+  const updateSnowPlay = window.ASSETSnowPlay(T, world, terrainHeight, natural.mainRoad, natural.obstacles);
   const updateLife = window.ASSETSceneLife(T, world, terrainHeight, natural.mainRoad, natural.obstacles);
+  const updateSpeech = window.ASSETSpeech(T, world);
 
   const steel = new T.MeshStandardMaterial({ color: 0x415979, metalness: 0.72, roughness: 0.24 });
   const white = new T.MeshStandardMaterial({ color: 0xbdcce1, metalness: 0.35, roughness: 0.3 });
@@ -244,7 +246,9 @@
       material.opacity = 0.85 * Math.pow(Math.sin(phase * Math.PI), 0.7);
       material.color.set(world.userData.isNight ? 0x69caff : 0x245aff);
     });
+    updateSnowPlay(elapsed);
     updateLife(elapsed,firstPerson.active?camera.position:null);
+    updateSpeech(elapsed);
     drones.forEach(({ drone, rotors, phase }) => {
       const angle = elapsed * 0.12 + phase;
       drone.position.set(Math.cos(angle) * 3.3, 3.35 + Math.sin(angle * 2 + phase) * 0.18, Math.sin(angle) * 2.3);

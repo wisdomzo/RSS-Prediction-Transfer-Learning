@@ -125,6 +125,7 @@
       set(weather,time){
         mode=weather;night=time==='night';
         world.userData.isNight=night;
+        world.userData.weather=weather;
         viewport.dataset.weather=mode;viewport.dataset.time=time;
         if(viewport.ownerDocument)viewport.ownerDocument.documentElement.dataset.time=time;
         sunDisc.visible=!night;moon.visible=night;

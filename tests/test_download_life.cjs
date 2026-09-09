@@ -45,3 +45,15 @@ test('phone calls stop walking, emit small rings, pause and finish cleanly',()=>
  call.remaining=0;update(1.24);assert.equal(call.signal.visible,false);
  for(let i=32;i<=50;i++)update(i*.04);assert.equal(call.phone.visible,false);assert.notDeepEqual(actor.position,position);
 });
+test('every roadside pedestrian visibly walks along the road over time',()=>{
+ const T=context.window.ASSETThree,world=new T.Group();
+ const road=new T.CatmullRomCurve3([new T.Vector3(-4.9,0,3.65),new T.Vector3(0,0,3.85),new T.Vector3(4.9,0,3.25)]);
+ const update=context.window.ASSETSceneLife(T,world,terrainHeight,road);
+ const people=world.children.filter(o=>o.userData.collider).slice(6,12);
+ assert.equal(people.length,6);
+ update(0);
+ for(const person of people)if(person.userData.phoneCall)person.userData.phoneCall.remaining=1000;
+ const starts=people.map(o=>o.position.clone());
+ for(let frame=1;frame<=300;frame++)update(frame/60);
+ people.forEach((o,i)=>assert.ok(o.position.distanceTo(starts[i])>.3,'pedestrian must travel visibly in five seconds'));
+});
