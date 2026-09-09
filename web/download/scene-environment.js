@@ -103,6 +103,23 @@
       if (treePositions.some(t=>Math.hypot(x-t.x,z-t.z)<.13)) continue;
       treePositions.push({x,z,y:height+.02,size:.19+random()*.2,variation:random()});
     }
+    // Mixed mature garden trees at side/rear corners; keep road-facing fronts open.
+    const gardens=[];
+    sites.forEach(([bx,bz,w,d],i)=>{
+      if(i%2!==0)return;
+      for(const side of [-1,1]){
+        const x=bx+side*(w/2+.19),z=bz+d/2+.13;
+        if(Math.abs(x)>4.75||z>4.78)continue;
+        if(roadSamples.some(([rx,rz])=>Math.hypot(x-rx,z-rz)<.4))continue;
+        if(sites.some(([hx,hz,hw,hd])=>Math.abs(x-hx)<hw/2+.12&&Math.abs(z-hz)<hd/2+.12))continue;
+        gardens.push({x,z});
+        if(!treePositions.some(t=>Math.hypot(x-t.x,z-t.z)<.2)){
+          const kind=(gardens.length-1)%3;
+          treePositions.push({x,z,y:heightAt(x,z)+.02,size:.36+random()*.2,
+            variation:kind===0?.2+random()*.25:.72+random()*.25,slender:kind===2});
+        }
+      }
+    });
     const count = treePositions.length;
     // Shared geometry keeps the richer forest to four instanced draw calls.
     const bark = new T.MeshStandardMaterial({color:0x796047,roughness:1});
@@ -126,7 +143,7 @@
       matrixObject.scale.set(radius,length,radius);matrixObject.updateMatrix();
       const index=counts.get(trunks);trunks.setMatrixAt(index,matrixObject.matrix);counts.set(trunks,index+1);
     }
-    treePositions.forEach(({x,y,z,size,variation})=>{
+    treePositions.forEach(({x,y,z,size,variation,slender=false})=>{
       // Foreground trees carry extra branches; distant/mobile trees use fewer clusters.
       const detailed=!mobile&&z>-.6,angle=variation*Math.PI*2;
       branch(x,y,z,size*.045,size*.85,0,size*.048);
@@ -146,10 +163,10 @@
       }else{
         const lobes=detailed?9:5;
         for(let n=0;n<lobes;n++){
-          const a=angle+n*2.39996,spread=size*(n===0?0:.18+random()*.12);
+          const a=angle+n*2.39996,spread=size*(n===0?0:.18+random()*.12)*(slender?.5:1);
           const dx=Math.cos(a)*spread,dz=Math.sin(a)*spread,cy=size*(.67+random()*.33);
           if(n<4)branch(x,y+size*.35,z,dx,cy-size*.35,dz,size*.018);
-          instance(canopy,[x+dx,y+cy,z+dz],[size*(.19+random()*.09),size*(.23+random()*.1),size*(.19+random()*.09)],
+          instance(canopy,[x+dx,y+cy,z+dz],[size*(.19+random()*.09)*(slender?.55:1),size*(.23+random()*.1)*(slender?1.45:1),size*(.19+random()*.09)*(slender?.55:1)],
             [random()*.5,a,random()*.4],green(.24+variation*.055,.28+random()*.13));
         }
       }
@@ -162,6 +179,27 @@
       mesh.count=counts.get(mesh);mesh.name='forest-'+(['trunks','pine','canopy','shrubs'][[trunks,pine,canopy,shrubs].indexOf(mesh)]);
       mesh.castShadow=true;mesh.receiveShadow=true;world.add(mesh);
     }
+    // Three crossed, tapered blades per clump; one draw call for the meadow.
+    const bladeVertices=[];
+    for(let i=0;i<3;i++){
+      const a=i*Math.PI/3,dx=Math.cos(a)*.12,dz=Math.sin(a)*.12;
+      bladeVertices.push(-dx,0,-dz,dx,0,dz,.16*Math.cos(a+.4),1,.16*Math.sin(a+.4));
+    }
+    const bladeGeometry=new T.BufferGeometry();bladeGeometry.setAttribute('position',new T.Float32BufferAttribute(bladeVertices,3));bladeGeometry.computeVertexNormals();
+    const meadow=new T.InstancedMesh(bladeGeometry,new T.MeshStandardMaterial({color:0xffffff,side:T.DoubleSide,roughness:1}),mobile?900:2400);
+    meadow.name='meadow-grass';let grassCount=0;
+    for(let attempt=0;attempt<16000&&grassCount<meadow.instanceMatrix.count;attempt++){
+      const garden=attempt<gardens.length*35?gardens[Math.floor(attempt/35)]:null;
+      const x=garden?garden.x+(random()-.5)*.3:(random()-.5)*9.3,z=garden?garden.z+(random()-.5)*.22:(random()-.5)*9.3,h=heightAt(x,z);
+      if((!garden&&h<.015)||h>1.6||Math.hypot(heightAt(x+.04,z)-h,heightAt(x,z+.04)-h)>.05)continue;
+      if(roadSamples.some(([rx,rz])=>Math.hypot(x-rx,z-rz)<.34))continue;
+      if(sites.some(([bx,bz,w,d])=>Math.abs(x-bx)<w/2+.1&&Math.abs(z-bz)<d/2+.1))continue;
+      if(Math.hypot(x-hutX,z-hutZ)<.5)continue;
+      const size=.022+random()*.035;
+      matrixObject.position.set(x,h+.019,z);matrixObject.rotation.set(0,random()*Math.PI*2,0);matrixObject.scale.set(size,size,size);matrixObject.updateMatrix();
+      meadow.setMatrixAt(grassCount,matrixObject.matrix);meadow.setColorAt(grassCount,new T.Color().setHSL(.23+random()*.08,.35+random()*.2,.25+random()*.13,T.SRGBColorSpace));grassCount++;
+    }
+    meadow.count=grassCount;meadow.receiveShadow=true;world.add(meadow);
     const rocks = new T.InstancedMesh(new T.IcosahedronGeometry(1, 0),new T.MeshStandardMaterial({color:0x999c8f,roughness:1}),45);
     let rockCount=0;
     for(let n=0;n<400 && rockCount<45;n++){

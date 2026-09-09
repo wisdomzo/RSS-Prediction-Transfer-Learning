@@ -329,8 +329,8 @@
     .tour-scrim {
       position: absolute;
       inset: 0;
-      background: rgba(3, 6, 10, 0.68);
-      backdrop-filter: blur(4px);
+      background: rgba(3, 6, 10, 0.46);
+      backdrop-filter: blur(2px);
     }
 
     .tour-spotlight {
@@ -339,7 +339,7 @@
       border: 1px solid rgba(79, 213, 231, 0.78);
       border-radius: 8px;
       box-shadow:
-        0 0 0 9999px rgba(3, 6, 10, 0.58),
+        0 0 0 9999px rgba(3, 6, 10, 0.38),
         0 0 32px rgba(79, 213, 231, 0.34);
       pointer-events: none;
       transition: left 180ms ease, top 180ms ease, width 180ms ease, height 180ms ease;
@@ -1801,7 +1801,7 @@ dask worker tcp://192.168.199.1:8786 --nworkers 6 --nthreads 1 --name MacPro_sha
               <div class="field">
                 <label>Base Model <span class="parameter-help" tabindex="0" data-help-for="p-model">?<span class="help-tooltip" role="tooltip">Select the trained RSS model used for prediction. Use the NICT general model for standard runs or a custom model for site-specific prediction.</span></span></label>
                 <select id="p-model">
-                  <option value="NICT_latest_model">General Model M0 (NICT 202605)</option>
+                  <option value="NICT_latest_model">General Model M0 (Shinshu Univ. &amp; NICT 202605)</option>
                   <option value="customized_model">Custom Model</option>
                 </select>
               </div>
@@ -1863,7 +1863,7 @@ dask worker tcp://192.168.199.1:8786 --nworkers 6 --nthreads 1 --name MacPro_sha
             <div class="grid">
               <div class="field"><label>Feature Vector Mode <span class="parameter-help" tabindex="0" data-help-for="m-isGenFV">?<span class="help-tooltip" role="tooltip">Choose whether feature vectors should be generated through Feature Generation or loaded from existing .xz feature vector files.</span></span></label><select id="m-isGenFV" onchange="toggleFeatureVectorFiles()"><option value="yes">Generate feature vectors</option><option value="no">Use existing feature vectors</option></select></div>
               <div class="field" data-tour-target="training-generate-mode"><label>Scheduler <span class="parameter-help" tabindex="0" data-help-for="m-scheduler">?<span class="help-tooltip" role="tooltip">Optional Dask scheduler address, such as tcp://host:8786. Leave blank to run model training in local single-machine mode.</span></span></label><input id="m-scheduler" placeholder="host_ip:8786" /></div>
-              <div class="field"><label>Base Model <span class="parameter-help" tabindex="0" data-help-for="m-model">?<span class="help-tooltip" role="tooltip">Select New model for training from scratch, General Model M0 for transfer learning, or a custom model for site-specific adaptation.</span></span></label><select id="m-model" onchange="toggleModelTrainingControls()"><option value="noModel">New model</option><option value="NICT_latest_model">General Model M0</option><option value="customized_model">Custom model for transfer</option></select></div>
+              <div class="field"><label>Base Model <span class="parameter-help" tabindex="0" data-help-for="m-model">?<span class="help-tooltip" role="tooltip">Select New model for training from scratch, General Model M0 for transfer learning, or a custom model for site-specific adaptation.</span></span></label><select id="m-model" onchange="toggleModelTrainingControls()"><option value="noModel">New model</option><option value="NICT_latest_model">General Model M0 (Shinshu Univ. &amp; NICT 202605)</option><option value="customized_model">Custom model for transfer</option></select></div>
               <div class="field"><label>Kernel Count <span class="parameter-help" tabindex="0" data-help-for="m-numCore1">?<span class="help-tooltip" role="tooltip">Number of worker kernels used for local training workloads. Larger values can speed computation but require more CPU and memory.</span></span></label><select id="m-numCore1"><option>2</option><option>4</option><option>8</option><option>16</option><option selected>64</option><option>128</option></select></div>
               <div class="field"><label>Learning Type <span class="parameter-help" tabindex="0" data-help-for="m-learningType">?<span class="help-tooltip" role="tooltip">Training strategy for adapting an existing model. Transfer Learning updates selected layers; Incremental Training continues learning from new data.</span></span></label><select id="m-learningType" onchange="toggleModelTrainingControls()"><option value="type_None">None</option><option value="type_TL" selected>Transfer Learning</option><option value="type_IT">Incremental Training</option></select></div>
               <div class="field"><label>Train Judge Model <span class="parameter-help" tabindex="0" data-help-for="m-trainJudgeModel">?<span class="help-tooltip" role="tooltip">Optional second-stage transfer-learning step. When enabled, the app waits for expert models, cleans resources, and trains the judge model. Default is off to skip this stage and shorten model generation.</span></span></label><label class="switch-row"><input class="switch-input" id="m-trainJudgeModel" type="checkbox" /><span class="switch-track"><span class="switch-thumb"></span></span><span class="switch-copy">Off by default</span></label></div>

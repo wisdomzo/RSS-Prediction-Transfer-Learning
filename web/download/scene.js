@@ -115,7 +115,7 @@
     const color=grass.clone().lerp(forest,Math.min(1,h*.65));
     color.lerp(rock,Math.max(0,Math.min(.9,(h-1.05)*.48+(slope-1.2)*.22)));
     if(h>2.1)color.lerp(summit,Math.min(.72,(h-2.1)*.55));
-    color.multiplyScalar(.94+.06*Math.sin(x*4.3+Math.cos(z*3)));
+    color.multiplyScalar(.94+.045*Math.sin(x*4.3+Math.cos(z*3))+.035*Math.sin(x*31+z*17)*Math.cos(z*29));
     colors.push(color.r,color.g,color.b);
   }
   terrainGeometry.setAttribute('color',new T.Float32BufferAttribute(colors,3));
@@ -140,6 +140,7 @@
   const natural = window.ASSETNaturalEnvironment(T, world, terrainHeight, mobile.matches);
   const updateSnowPlay = window.ASSETSnowPlay(T, world, terrainHeight, natural.mainRoad, natural.obstacles);
   const updateLife = window.ASSETSceneLife(T, world, terrainHeight, natural.mainRoad, natural.obstacles);
+  const updateMountainPlay = window.ASSETMountainPlay(T, world, terrainHeight);
   const updateSpeech = window.ASSETSpeech(T, world);
 
   const steel = new T.MeshStandardMaterial({ color: 0x415979, metalness: 0.72, roughness: 0.24 });
@@ -232,7 +233,9 @@
       schedule();
     });
   }
-  weather.set('clear', 'day');
+  const initialTime=window.ASSETSceneMath.localTimeOfDay();
+  document.getElementById('scene-time').value=initialTime;
+  weather.set('clear', initialTime);
   const firstPerson = window.ASSETFirstPerson(T, camera, controls, canvas, terrainHeight, natural.obstacles, schedule);
   const clock = createMotionClock(); clock.setPaused(reduced.matches);
   let request = 0, inView = true, disposed = false;
@@ -248,6 +251,7 @@
     });
     updateSnowPlay(elapsed);
     updateLife(elapsed,firstPerson.active?camera.position:null);
+    updateMountainPlay(elapsed);
     updateSpeech(elapsed);
     drones.forEach(({ drone, rotors, phase }) => {
       const angle = elapsed * 0.12 + phase;

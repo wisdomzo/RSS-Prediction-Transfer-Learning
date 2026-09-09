@@ -481,6 +481,20 @@ class AppSuiteStaticTests(unittest.TestCase):
         self.assertIn("z-index: 10001", html)
         self.assertIn("z-index: 10002", html)
 
+    def test_tour_overlay_keeps_underlying_app_more_readable(self):
+        html = self.read_app()
+        self.assertIn("background: rgba(3, 6, 10, 0.46);", html)
+        self.assertIn("0 0 0 9999px rgba(3, 6, 10, 0.38)", html)
+        self.assertNotIn("background: rgba(3, 6, 10, 0.68);", html)
+        self.assertNotIn("0 0 0 9999px rgba(3, 6, 10, 0.58)", html)
+
+    def test_general_model_m0_uses_joint_shinshu_nict_label(self):
+        html = self.read_app()
+        new_label = "General Model M0 (Shinshu Univ. &amp; NICT 202605)"
+        self.assertIn(new_label, html)
+        self.assertNotIn("General Model M0 (NICT 202605)", html)
+        self.assertGreaterEqual(html.count(new_label), 2)
+
     def test_reset_stops_backend_and_clears_inputs_and_logs(self):
         html = self.read_app()
         self.assertIn("async function resetPrediction", html)

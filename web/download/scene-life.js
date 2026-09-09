@@ -45,6 +45,8 @@
         call={active:false,remaining:4+Math.random()*16,elapsed:0,pose:0,phone,signal,rings};
         group.userData.phoneCall=call;
       }
+      const initial=route.getPointAt(phase<=1?phase:2-phase);
+      group.position.set(initial.x,heightAt(initial.x,initial.z)+.045,initial.z);
       collider(group,.085,.075);world.add(group); walkers.push({group, limbs, route, phase, speed:hiker?.007:.12/route.getLength(),travel:0,call});
     }
     // A visible switchback route on the near slope; hikers stay on the ground.
@@ -174,10 +176,14 @@
             ring.material.color.set(world.userData.isNight?0x69caff:0x245aff);
           });
         }
+        const previousTravel=walker.travel;
         if(!call||(!call.active&&call.pose===0))walker.travel+=dt;
         const cycle=(walker.travel*speed+phase)%2,t=cycle<=1?cycle:2-cycle;
         const p=route.getPointAt(t),tangent=route.getTangentAt(t);
-        if(!player||Math.hypot(player.x-p.x,player.z-p.z)>.16)group.position.set(p.x,heightAt(p.x,p.z)+.045,p.z);
+        // People follow independent routes; only the first-person player blocks them.
+        if(!player||Math.hypot(player.x-p.x,player.z-p.z)>.17){
+          group.position.set(p.x,heightAt(p.x,p.z)+.045,p.z);
+        }else walker.travel=previousTravel;
         group.rotation.y=Math.atan2(tangent.x,tangent.z)+(cycle>1?Math.PI:0);
         syncCollider(group,.085,.075);
         limbs.forEach((limb,i)=>{limb.rotation.x=Math.sin(walker.travel*5+phase*12)*(i===0||i===3?1:-1)*.35*(1-(call?call.pose:0));});

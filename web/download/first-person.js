@@ -11,7 +11,7 @@
     function set(value){
       if(active===value)return;
       clear();active=value;button.setAttribute('aria-pressed',String(active));pad.hidden=!active;
-      button.innerHTML=active?'Exit first person<small lang="en">Overview</small>':'First person<small lang="en">Explore</small>';
+      button.innerHTML=active?'一人称を終了<small lang="en">Exit first person</small>':'一人称<small lang="en">First person</small>';
       zoomButtons.forEach(b=>b.disabled=active);
       if(active){
         controls.enableDamping=false;controls.update();controls.enableDamping=true;

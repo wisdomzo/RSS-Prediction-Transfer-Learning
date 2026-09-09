@@ -57,3 +57,27 @@ test('every roadside pedestrian visibly walks along the road over time',()=>{
  for(let frame=1;frame<=300;frame++)update(frame/60);
  people.forEach((o,i)=>assert.ok(o.position.distanceTo(starts[i])>.3,'pedestrian must travel visibly in five seconds'));
 });
+test('walkers retain dynamic colliders and stop for the first-person player',()=>{
+ const T=context.window.ASSETThree,world=new T.Group(),obstacles=[];
+ const road=new T.CatmullRomCurve3([new T.Vector3(-4.9,0,3.65),new T.Vector3(4.9,0,3.25)]);
+ const update=context.window.ASSETSceneLife(T,world,terrainHeight,road,obstacles);
+ const actor=world.children.filter(o=>o.userData.speechHeight)[7];update(0);
+ const position=actor.position.clone();
+ for(let i=1;i<=60;i++)update(i/60,position);
+ assert.deepEqual(actor.position,position);
+ assert.ok(obstacles.includes(actor.userData.collider));assert.equal(actor.userData.collider.dynamic,true);
+ for(let i=61;i<=180;i++)update(i/60);
+ assert.ok(actor.position.distanceTo(position)>.1);
+ assert.equal(actor.userData.collider.x,actor.position.x);
+});
+test('every roadside walker still makes progress after prolonged opposing traffic',()=>{
+ const T=context.window.ASSETThree,world=new T.Group();
+ const road=new T.CatmullRomCurve3([new T.Vector3(-4.9,0,3.65),new T.Vector3(0,0,3.85),new T.Vector3(4.9,0,3.25)]);
+ const update=context.window.ASSETSceneLife(T,world,terrainHeight,road);
+ const people=world.children.filter(o=>o.userData.speechHeight).slice(6);
+ world.children.forEach(o=>{if(o.userData.phoneCall)o.userData.phoneCall.remaining=1000;});
+ update(0);for(let i=1;i<=10800;i++)update(i/60);
+ const starts=people.map(o=>o.position.clone()),distances=people.map(()=>0);
+ for(let i=10801;i<=12600;i++){update(i/60);people.forEach((o,n)=>distances[n]=Math.max(distances[n],o.position.distanceTo(starts[n])));}
+ distances.forEach(d=>assert.ok(d>.4,'each walker must keep moving instead of forming a permanent queue'));
+});
