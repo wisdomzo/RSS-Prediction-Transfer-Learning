@@ -1876,7 +1876,7 @@ dask worker tcp://192.168.199.1:8786 --nworkers 6 --nthreads 1 --name MacPro_sha
                   <div class="eyebrow">Neural Training Flow</div>
                   <h3>Feature vectors become deployable RSS models.</h3>
                 </div>
-                <span class="pill" id="training-visual-state">Idle</span>
+                <div class="toolbar"><span class="pill" id="training-visual-state">Idle</span><button type="button" class="ghost-btn" data-training-observer onclick="window.trainingObserver.open(this)">First-Person View</button></div>
               </div>
               <div class="training-visual-stage">
                 <div class="training-node"><span>FV</span><small>Feature vectors</small></div>
@@ -2568,7 +2568,7 @@ dask worker tcp://192.168.199.1:8786 --nworkers 6 --nthreads 1 --name MacPro_sha
       document.querySelectorAll(".nav-item").forEach((button) => {
         button.disabled = modelTrainingLocked && !allowedViewsDuringTraining.has(button.dataset.view);
       });
-      document.querySelectorAll("#view-training input, #view-training select, #view-training button").forEach((control) => {
+      document.querySelectorAll("#view-training input, #view-training select, #view-training button:not([data-training-observer])").forEach((control) => {
         control.disabled = modelTrainingLocked;
       });
       if (!modelTrainingLocked) {
@@ -3663,5 +3663,7 @@ dask worker tcp://192.168.199.1:8786 --nworkers 6 --nthreads 1 --name MacPro_sha
       await loadTourPreferences();
     });
   </script>
+  <script src="vendor/three/three.local.js"></script>
+  <script src="training-observer.js"></script>
 </body>
 </html>

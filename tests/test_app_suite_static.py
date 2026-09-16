@@ -786,7 +786,7 @@ class AppSuiteStaticTests(unittest.TestCase):
         self.assertIn("setModelTrainingLocked(false)", html)
         self.assertIn("button.disabled = modelTrainingLocked && !allowedViewsDuringTraining.has(button.dataset.view)", html)
         self.assertIn("Model training is running. Only Model Training and Log Console remain available.", html)
-        self.assertIn('document.querySelectorAll("#view-training input, #view-training select, #view-training button")', html)
+        self.assertIn('document.querySelectorAll("#view-training input, #view-training select, #view-training button:not([data-training-observer])")', html)
         self.assertNotIn('button:not([data-training-reset])', html)
         self.assertIn("control.disabled = modelTrainingLocked", html)
         self.assertIn('if (modelTrainingLocked && Number(percent) >= 100) setModelTrainingLocked(false)', html)
