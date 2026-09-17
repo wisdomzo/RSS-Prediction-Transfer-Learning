@@ -64,6 +64,8 @@
     const actions=document.createElement('div');actions.className='observer-actions';exitButton.replaceWith(actions);actions.appendChild(exitButton);
     const rideButton=document.createElement('button');rideButton.type='button';rideButton.className='observer-train-button';rideButton.title='Train window view';rideButton.setAttribute('aria-label','Train window view');rideButton.setAttribute('aria-pressed','false');rideButton.innerHTML='<img src="assets/download/train-front.svg" alt="">';actions.prepend(rideButton);
     rideButton.disabled=true;
+    const flightButton=rideButton.cloneNode(true);flightButton.title='Waiting for a passing aircraft';flightButton.setAttribute('aria-label','Aircraft window view');flightButton.innerHTML='<img src="assets/download/plane.svg" alt="">';actions.insertBefore(flightButton,exitButton);
+    const boatButton=rideButton.cloneNode(true);boatButton.title='Waiting for a passing boat';boatButton.setAttribute('aria-label','Boat view');boatButton.innerHTML='<img src="assets/download/ship.svg" alt="">';actions.insertBefore(boatButton,exitButton);
     dialog.insertAdjacentHTML('beforeend','<div class="observer-cabin" aria-hidden="true"><div class="observer-window"></div><div class="observer-seat"><div class="observer-seat-seam"></div><div class="observer-table-latch"></div><div class="observer-table-hinge"></div><div class="observer-seat-pocket"></div></div><div class="observer-armrest"></div></div>');
     document.body.appendChild(dialog);
     dialog.showModal();
@@ -102,6 +104,7 @@
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     const camera = new THREE.PerspectiveCamera(62, 1, .1, 180);
+    scene.add(camera);
     resize = new ResizeObserver(() => {const w = dialog.clientWidth, h = dialog.clientHeight; renderer.setSize(w,h); camera.aspect=w/h; camera.fov=w<h?85:62; camera.updateProjectionMatrix();});
     resize.observe(dialog);
     scene.fog = new THREE.FogExp2(0x071014, .009);
@@ -164,6 +167,30 @@
       for(let level=.3;level<h-.1;level+=.28)for(const dx of [-.25,0,.25])box(x+dx,ground+level,z+.406,.13,.15,.018,glass);
     }
     const parkGrass=material(0x446d40),pathMat=material(0xb2aba0),bark=material(0x55483a),leaf=material(0x326a42);
+    const hutX=-6,hutZ=-9;
+    const hutY=Math.max(...[-.65,.65].flatMap(dx=>[-.5,.65].map(dz=>height(hutX+dx,hutZ+dz))))+.08;
+    const hut=new THREE.Group();hut.name='mountain-hut';hut.position.set(hutX,hutY,hutZ);scene.add(hut);
+    const timberCanvas=document.createElement('canvas');timberCanvas.width=512;timberCanvas.height=256;
+    const timberContext=timberCanvas.getContext('2d');timberContext.fillStyle='#89613e';timberContext.fillRect(0,0,512,256);
+    for(let i=0;i<160;i++){timberContext.strokeStyle=i%3?'#68462b55':'#c79a6666';timberContext.lineWidth=.5+i%2;timberContext.beginPath();for(let x=0;x<=512;x+=8){const y=i*1.6+2*Math.sin(x*.035+i)+Math.sin(x*.087+i*.4);x?timberContext.lineTo(x,y):timberContext.moveTo(x,y);}timberContext.stroke();}
+    const timberTexture=new THREE.CanvasTexture(timberCanvas);timberTexture.colorSpace=THREE.SRGBColorSpace;timberTexture.anisotropy=Math.min(8,renderer.capabilities.getMaxAnisotropy());textures.push(timberTexture);
+    const timber=material(0xffffff,{map:timberTexture,roughness:.88}),darkTimber=material(0x4c3829,{roughness:.95});
+    box(0,.035,.08,1.6,.07,1.45,darkTimber,hut);
+    for(let row=0;row<8;row++){const y=.12+row*.09;
+      for(const z of [-.48,.48])box(0,y,z,1.3,.083,.065,timber,hut);
+      for(const x of [-.64,.64])box(x,y,0,.065,.083,.99,timber,hut);
+    }
+    for(const x of [-.62,.62])for(const z of [-.46,.46])box(x,.43,z,.085,.86,.085,darkTimber,hut);
+    for(const side of [-1,1]){const roof=box(side*.39,.97,0,.92,.07,1.35,roofMat,hut);roof.rotation.z=-side*.53;
+      for(let j=0;j<8;j++){const strip=box(side*.39,1.01,-.59+j*.17,.93,.015,.014,concrete,hut);strip.rotation.z=-side*.53;}}
+    const gable=new THREE.Shape();gable.moveTo(-.66,0);gable.lineTo(0,.39);gable.lineTo(.66,0);gable.closePath();
+    mesh(new THREE.ExtrudeGeometry(gable,{depth:.04,bevelEnabled:false}),timber,0,.77,.46,hut);
+    box(0,.37,.525,.24,.61,.04,darkTimber,hut);box(.075,.35,.554,.025,.025,.018,white,hut);
+    for(const x of [-.4,.4]){box(x,.48,.535,.28,.31,.04,darkTimber,hut);box(x,.48,.56,.22,.25,.012,glass,hut);box(x,.48,.571,.018,.25,.018,timber,hut);box(x,.48,.571,.22,.018,.018,timber,hut);box(x,.3,.55,.34,.05,.13,timber,hut);}
+    for(let i=0;i<10;i++)box(-.72+i*.16,.08,.69,.15,.025,.3,timber,hut);
+    for(const x of [-.72,.72])for(const z of [-.57,.7]){const ground=height(hutX+x,hutZ+z)-hutY;box(x,ground/2,z,.09,-ground,.09,darkTimber,hut);}
+    for(let i=0;i<3;i++)box(0,-.06-i*.1,.94+i*.13,.46,.09,.16,timber,hut);
+    box(.44,1.07,-.25,.17,.5,.19,concrete,hut);box(.44,1.34,-.25,.23,.045,.25,roofMat,hut);
     box(1.5,.38,1.5,3.5,.1,3.1,parkGrass);
     box(1.5,.44,1.5,3.4,.025,.3,pathMat);box(1.5,.44,1.5,.3,.025,3,pathMat);
     const parkLoop=mesh(new THREE.RingGeometry(.9,1.1,64),pathMat,1.5,.455,1.5);parkLoop.rotation.x=-Math.PI/2;parkLoop.scale.set(1.35,1.05,1);
@@ -189,7 +216,7 @@
     const broadleaf=new THREE.InstancedMesh(new THREE.IcosahedronGeometry(.3,2),leaf,120);
     for(const part of [forest,trunks,broadleaf]){part.castShadow=true;part.receiveShadow=true;scene.add(part);}
     const transform=new THREE.Object3D();
-    for(let i=0;i<360;i++){let x=Math.sin(i*127.1)*16;const z=-5-(.5+.5*Math.sin(i*311.7))*14,s=.55+(i%7)*.1;if(Math.abs(x-riverX(z))<1.2)x-=2;
+    for(let i=0;i<360;i++){let x=Math.sin(i*127.1)*16;const z=-5-(.5+.5*Math.sin(i*311.7))*14,s=.55+(i%7)*.1;if(Math.abs(x-riverX(z))<1.2)x-=2;if(Math.abs(x-hutX)<1.3&&Math.abs(z-hutZ)<1.4)x-=2.6;
       const y=height(x,z);transform.rotation.y=i;transform.scale.setScalar(s);transform.position.set(x,y+s*.4,z);transform.updateMatrix();trunks.setMatrixAt(i,transform.matrix);
       for(let layer=0;layer<3;layer++){transform.position.set(x,y+s*(.55+layer*.23),z);transform.scale.setScalar(s*(1-layer*.2));transform.updateMatrix();forest.setMatrixAt(i*3+layer,transform.matrix);}
       if(i<120){transform.position.set(x+.15,y+s*.68,z);transform.scale.set(s*1.2,s,s);transform.updateMatrix();broadleaf.setMatrixAt(i,transform.matrix);}
@@ -372,29 +399,63 @@
     let yaw=0,pitch=0,targetYaw=0,targetPitch=0, previousTime=0, checkAt=-1, state='Idle', progress=0;
     const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
     const start=performance.now();
+    // Aircraft-local +X is forward. The swept wing trails toward -X in both directions.
+    const cabinWing=new THREE.Group();cabinWing.name='passenger-wing';scene.add(cabinWing);cabinWing.visible=false;
+    const reflectionCanvas=document.createElement('canvas');reflectionCanvas.width=512;reflectionCanvas.height=256;
+    const reflectionContext=reflectionCanvas.getContext('2d'),sky=reflectionContext.createLinearGradient(0,0,0,256);
+    sky.addColorStop(0,'#537896');sky.addColorStop(.45,'#e3eff5');sky.addColorStop(.52,'#adbcc2');sky.addColorStop(1,'#364447');reflectionContext.fillStyle=sky;reflectionContext.fillRect(0,0,512,256);
+    const reflection=new THREE.CanvasTexture(reflectionCanvas);reflection.mapping=THREE.EquirectangularReflectionMapping;reflection.colorSpace=THREE.SRGBColorSpace;textures.push(reflection);
+    const aluminum=material(0xaab7c2,{metalness:.88,roughness:.27,envMap:reflection,envMapIntensity:1.1});
+    const leadingMetal=material(0xd2dae0,{metalness:.95,roughness:.18,envMap:reflection,envMapIntensity:1.2});
+    const outline=new THREE.Shape();outline.moveTo(.4,.08);outline.lineTo(-.42,1.55);outline.lineTo(-.72,1.72);outline.lineTo(-.9,1.65);outline.lineTo(-.53,.08);outline.closePath();
+    const wingGeo=new THREE.ExtrudeGeometry(outline,{depth:.035,bevelEnabled:true,bevelThickness:.012,bevelSize:.012,bevelSegments:3});wingGeo.rotateX(Math.PI/2);
+    mesh(wingGeo,aluminum,0,-.035,0,cabinWing);
+    const leadingPath=new THREE.CatmullRomCurve3([new THREE.Vector3(.4,-.035,.08),new THREE.Vector3(-.42,-.035,1.55),new THREE.Vector3(-.72,-.035,1.72)]);
+    mesh(new THREE.TubeGeometry(leadingPath,32,.013,10,false),leadingMetal,0,0,0,cabinWing);
+    for(let i=0;i<6;i++){const z=.25+i*.22,front=.4-(z-.08)*.558,back=-.53-(z-.08)*.235;
+      line([[front,-.02,z],[back,-.02,z]],0x52616a,.7,cabinWing);
+      for(let j=0;j<5;j++)mesh(new THREE.SphereGeometry(.0035,5,4),leadingMetal,THREE.MathUtils.lerp(front,back,j/4),-.016,z,cabinWing);
+    }
+    line([[-.35,-.02,.14],[-.69,-.02,1.42]],0x45535e,.85,cabinWing);
+    for(const z of [.5,.95]){const fairing=mesh(new THREE.SphereGeometry(1,16,10),aluminum,-.5,-.095,z,cabinWing);fairing.scale.set(.23,.055,.045);}
+    const wingRoot=mesh(new THREE.SphereGeometry(1,32,20),aluminum,-.06,-.07,.06,cabinWing);
+    wingRoot.scale.set(.62,.09,.27);
+    const fuselageSection=mesh(new THREE.CapsuleGeometry(.18,1.9,10,24),aluminum,0,-.13,-.12,cabinWing);
+    fuselageSection.rotation.z=Math.PI/2;
     let cameraMode='overview',cameraTransition=null,cabinOpacity=0;
     const cabin=dialog.querySelector('.observer-cabin');
     const canBoardTrain=()=>trainWait<=0&&train.visible&&Math.abs(train.position.x)<16;
-    function switchCamera(toTrain) {
+    const canBoardAircraft=()=>flightWait<=0&&aircraft.visible&&Math.abs(aircraft.position.x)<17;
+    let selectedBoat=null;
+    const availableBoat=()=>boats.find(v=>v.wait<=0&&v.boat.visible&&v.z> -15&&v.z<6);
+    function switchCamera(toTrain,toPlane=false,toBoat=false) {
       if(cameraTransition)return;
+      if(toPlane&&!canBoardAircraft())return;
+      if(toBoat){const vessel=availableBoat();if(!vessel)return;selectedBoat=vessel;}
       if(toTrain){
         if(!canBoardTrain())return;
         cabin.classList.toggle('reverse-direction',trainDirection>0);
         cabin.dataset.travelDirection=trainDirection>0?'left-to-right':'right-to-left';
         dialog.classList.add('train-view');
       }
-      cameraMode=toTrain?'boarding':'returning';dialog.dataset.cameraMode=cameraMode;
-      cameraTransition={toTrain,start:performance.now(),position:camera.position.clone(),quaternion:camera.quaternion.clone(),opacity:cabinOpacity,fov:camera.fov};
+      if(toPlane||toBoat){dialog.classList.add('train-view');}
+      cameraMode=toTrain||toPlane||toBoat?'boarding':'returning';dialog.dataset.cameraMode=cameraMode;
+      cameraTransition={toTrain,toPlane,toBoat,start:performance.now(),position:camera.position.clone(),quaternion:camera.quaternion.clone(),opacity:cabinOpacity,fov:camera.fov};
       targetYaw=targetPitch=0;rideButton.disabled=true;
       rideButton.setAttribute('aria-pressed',String(toTrain));
       const text=toTrain?'Return to observatory':'Train window view';rideButton.title=text;rideButton.setAttribute('aria-label',text);
-      dialog.querySelector('.observer-hud h2').textContent=toTrain?'Train Window View':'Neural Training Observatory';
-      dialog.querySelector('.observer-hud p').textContent=toTrain?'Window seat · Scenic rail journey':'Illustrative digital twin · Live application log';
+      flightButton.setAttribute('aria-pressed',String(toPlane));flightButton.setAttribute('aria-label',toPlane?'Return from aircraft':'Aircraft window view');flightButton.title=toPlane?'Return to observatory':'Aircraft window view';
+      boatButton.setAttribute('aria-pressed',String(toBoat));boatButton.setAttribute('aria-label',toBoat?'Return from boat':'Boat view');boatButton.title=toBoat?'Return to observatory':'Boat view';
+      dialog.querySelector('.observer-hud h2').textContent=toBoat?'Boat View':toPlane?'Aircraft Window View':toTrain?'Train Window View':'Neural Training Observatory';
+      dialog.querySelector('.observer-hud p').textContent=toBoat?'Forward deck · River journey':toPlane?'Wing-side seat · Scenic flight':toTrain?'Window seat · Scenic rail journey':'Illustrative digital twin · Live application log';
     }
     rideButton.onclick=()=>switchCamera(cameraMode==='overview');
-    renderer.domElement.addEventListener('pointermove',event=>{targetYaw=-(event.clientX/dialog.clientWidth-.5)*.419;targetPitch=-(event.clientY/dialog.clientHeight-.5)*.209;});
+    flightButton.onclick=()=>switchCamera(false,cameraMode==='overview');
+    boatButton.onclick=()=>switchCamera(false,false,cameraMode==='overview');
+    const lookLimits=()=>cameraMode==='boat'?{yaw:Math.PI/4,pitch:Math.PI/9}:{yaw:.2095,pitch:.1045};
+    renderer.domElement.addEventListener('pointermove',event=>{const limits=lookLimits();targetYaw=-(event.clientX/dialog.clientWidth-.5)*limits.yaw*2;targetPitch=-(event.clientY/dialog.clientHeight-.5)*limits.pitch*2;});
     renderer.domElement.addEventListener('pointerleave',()=>{targetYaw=0;targetPitch=0;});
-    dialog.addEventListener('keydown',event=>{if(event.target.matches('input'))return;if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(event.key)){event.preventDefault();targetYaw=THREE.MathUtils.clamp(targetYaw+(event.key==='ArrowLeft'?.03:event.key==='ArrowRight'?-.03:0),-.2095,.2095);targetPitch=THREE.MathUtils.clamp(targetPitch+(event.key==='ArrowUp'?.02:event.key==='ArrowDown'?-.02:0),-.1045,.1045);}if(event.key==='Home'){targetYaw=0;targetPitch=0;}});
+    dialog.addEventListener('keydown',event=>{if(event.target.matches('input'))return;if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(event.key)){event.preventDefault();const limits=lookLimits();targetYaw=THREE.MathUtils.clamp(targetYaw+(event.key==='ArrowLeft'?.03:event.key==='ArrowRight'?-.03:0),-limits.yaw,limits.yaw);targetPitch=THREE.MathUtils.clamp(targetPitch+(event.key==='ArrowUp'?.02:event.key==='ArrowDown'?-.02:0),-limits.pitch,limits.pitch);}if(event.key==='Home'){targetYaw=0;targetPitch=0;}});
     renderer.domElement.addEventListener('webglcontextlost',event=>{event.preventDefault();dialog.querySelector('.observer-status').textContent='Graphics paused. Exit and reopen this view.';cancelAnimationFrame(frame);});
     function animate(now) {
       frame=requestAnimationFrame(animate);
@@ -444,24 +505,37 @@
       nodes.forEach(({node,l,i})=>{const active=state==='Training'&&Math.sin(motion*3-l*.9+i*.4)>.3;node.material.emissiveIntensity=state==='Complete'?.6:active?2:.08;});
       edges.forEach((edge,i)=>edge.material.opacity=state==='Training'?.12+.23*(.5+.5*Math.sin(motion*3-i)):.12);
       if(cameraMode!=='overview'){
-        const toTrain=cameraTransition?cameraTransition.toTrain:true;
-        const targetPosition=toTrain?new THREE.Vector3(train.position.x+trainDirection*2,1.54,railZ):new THREE.Vector3(0,7.5,17.5);
+        const toTrain=cameraTransition?cameraTransition.toTrain:cameraMode==='train';
+        const toPlane=cameraTransition?cameraTransition.toPlane:cameraMode==='flight';
+        const toBoat=cameraTransition?cameraTransition.toBoat:cameraMode==='boat';
+        const deckOffset=toBoat?new THREE.Vector3(0,.3,.15).applyAxisAngle(new THREE.Vector3(0,1,0),selectedBoat.boat.rotation.y):null;
+        const targetPosition=toBoat?selectedBoat.boat.position.clone().add(deckOffset):toPlane?aircraft.position.clone().add(new THREE.Vector3(flightDirection*.65,.65,.05)):toTrain?new THREE.Vector3(train.position.x+trainDirection*2,1.54,railZ):new THREE.Vector3(0,7.5,17.5);
         // Look along travel through the side window; the cabin mirrors separately.
-        const targetRotation=new THREE.Quaternion().setFromEuler(new THREE.Euler(toTrain?-.035+pitch*.65:-.2+pitch,toTrain?-trainDirection*.5+yaw*.9:yaw,0,'YXZ'));
-        const targetFov=toTrain?(camera.aspect<1?90:82):(camera.aspect<1?85:62);
+        const targetRotation=new THREE.Quaternion().setFromEuler(new THREE.Euler(toBoat?-.08+pitch*.65:toPlane?-.95+pitch*.7:toTrain?-.035+pitch*.65:-.2+pitch,toBoat?selectedBoat.boat.rotation.y+Math.PI+yaw:toPlane?Math.PI-flightDirection*.22+yaw*.7:toTrain?-trainDirection*.5+yaw*.9:yaw,0,'YXZ'));
+        const targetFov=toBoat?88:toPlane?76:toTrain?(camera.aspect<1?90:82):(camera.aspect<1?85:62);
         if(cameraTransition){
           const fraction=reduce?1:Math.min(1,(now-cameraTransition.start)/1900),blend=Math.max(0,fraction*fraction*(3-2*fraction));
           camera.position.lerpVectors(cameraTransition.position,targetPosition,blend);camera.quaternion.slerpQuaternions(cameraTransition.quaternion,targetRotation,blend);
           cabinOpacity=THREE.MathUtils.lerp(cameraTransition.opacity,toTrain?1:0,blend);
           camera.fov=THREE.MathUtils.lerp(cameraTransition.fov,targetFov,blend);camera.updateProjectionMatrix();
-          if(fraction>=1){cameraMode=toTrain?'train':'overview';dialog.dataset.cameraMode=cameraMode;cameraTransition=null;rideButton.disabled=false;if(!toTrain)dialog.classList.remove('train-view');}
+          if(fraction>=1){cameraMode=toBoat?'boat':toPlane?'flight':toTrain?'train':'overview';dialog.dataset.cameraMode=cameraMode;cameraTransition=null;rideButton.disabled=false;if(!toTrain&&!toPlane&&!toBoat)dialog.classList.remove('train-view');}
         }else{camera.position.copy(targetPosition);camera.quaternion.copy(targetRotation);camera.fov=targetFov;camera.updateProjectionMatrix();}
         cabin.style.opacity=String(cabinOpacity);
         // Hide the exterior shell while seated inside its window.
         if(toTrain)train.visible=false;
+        if(toPlane)aircraft.visible=false;
+        cabinWing.visible=toPlane&&!cameraTransition;
+        cabinWing.position.copy(aircraft.position);cabinWing.rotation.y=aircraft.rotation.y;cabinWing.scale.set(.75,.75,.75*flightDirection);
+        if(cameraMode==='flight'&&Math.abs(aircraft.position.x)>22)switchCamera(false);
         if(cameraMode==='train'&&Math.abs(train.position.x)>18)switchCamera(false);
+        if(cameraMode==='boat'&&(selectedBoat.z>8||selectedBoat.z< -20))switchCamera(false);
       }
-      rideButton.disabled=!!cameraTransition||(cameraMode==='overview'&&!canBoardTrain());
+      if(cameraMode==='overview')cabinWing.visible=false;
+      rideButton.disabled=!!cameraTransition||!['overview','train'].includes(cameraMode)||(cameraMode==='overview'&&!canBoardTrain());
+      flightButton.disabled=!!cameraTransition||!['overview','flight'].includes(cameraMode)||(cameraMode==='overview'&&!canBoardAircraft());
+      boatButton.disabled=!!cameraTransition||!['overview','boat'].includes(cameraMode)||(cameraMode==='overview'&&!availableBoat());
+      if(cameraMode==='overview')boatButton.title=boatButton.disabled?'Waiting for a passing boat':'Boat view';
+      if(cameraMode==='overview')flightButton.title=flightButton.disabled?'Waiting for a passing aircraft':'Aircraft window view';
       if(cameraMode==='overview')rideButton.title=rideButton.disabled?'Waiting for a passing train':'Train window view';
       renderer.render(scene,camera);
     }
