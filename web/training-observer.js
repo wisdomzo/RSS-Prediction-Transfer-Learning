@@ -11,6 +11,36 @@
     .observer-hud h2 {font-size:18px;margin:0 0 5px;letter-spacing:0;}
     .observer-hud p {font-size:12px;margin:0;color:#a4c6cb;}
     .observer-hud button {pointer-events:auto;background:#122c35;color:white;border:1px solid #6396a3;padding:10px 16px;border-radius:6px;cursor:pointer;}
+    .observer-hud {z-index:3;}
+    .observer-actions {display:flex;gap:8px;align-items:center;}
+    .observer-hud .observer-train-button {width:42px;height:42px;padding:9px;display:grid;place-items:center;}
+    .observer-train-button img {width:22px;height:22px;filter:invert(1);}
+    .observer-train-button[aria-pressed=true] {background:#23685e;border-color:#98e5cf;}
+    .observer-train-button:disabled {opacity:.35;filter:grayscale(1);cursor:not-allowed;box-shadow:none;}
+    .observer-train-button:not(:disabled) {border-color:#91e7d2;box-shadow:0 0 12px #56d6cc44;}
+    .observer-cabin {position:absolute;inset:0;pointer-events:none;opacity:0;z-index:1;}
+    .observer-window {position:absolute;inset:-8% -16% 10% 24%;border:14px solid #303532;border-left:22px solid #aca596;border-radius:16px;transform:perspective(1100px) rotateY(-12deg);transform-origin:left center;box-shadow:0 0 0 150vmax #353a3a,inset 0 0 12px #09171965,0 8px 25px #000;}
+    .observer-window::after {content:'';position:absolute;left:-22px;right:-14px;bottom:-43px;height:29px;background:linear-gradient(#b6a282,#786b57);border-radius:3px;box-shadow:0 7px 12px #0006;}
+    .observer-seat {position:absolute;left:-4%;top:8%;bottom:-12%;width:25%;max-width:330px;background:repeating-linear-gradient(0deg,#363c3d 0px,#363c3d 4px,#535450 5px,#303637 7px);border:10px solid #85867c;border-left:0;border-radius:20px 68px 24px 0;box-shadow:inset -18px 0 25px #0007,12px 0 26px #0007;transform:perspective(800px) rotateY(9deg);}
+    .observer-seat::before {content:'';position:absolute;top:0;bottom:36%;left:0;width:20%;background:#dddcd2;border-right:2px dashed #a7a89f;border-radius:0 0 12px 0;}
+    .observer-seat::after {content:'';position:absolute;bottom:15%;left:10%;right:9%;height:24%;border:5px solid #8b8d83;border-radius:12px;background:#505754;box-shadow:inset 0 3px 6px #0008;}
+    .observer-cabin.reverse-direction {transform:scaleX(-1);}
+    .observer-window {border-color:#252b2c;border-left-color:#b6b9b4;box-shadow:0 0 0 3px #080e11,0 0 0 10px #c4c5be,0 0 0 150vmax #525959,inset 0 0 0 3px #0e1518,inset 0 0 24px #10242c44,0 10px 30px #0009;}
+    .observer-window::before {content:'';position:absolute;inset:0;background:linear-gradient(112deg,transparent 30%,#e3f6ff0a 31%,transparent 47%);border-top:5px solid #747b78;}
+    .observer-window::after {height:35px;background:linear-gradient(#d0d2cb 0%,#b3b9b6 14%,#8f9795 22%,#b8bcb6 72%,#697370 100%);border-top:1px solid #e4e5df;}
+    .observer-seat {background:repeating-linear-gradient(0deg,#ffffff08 0px,#ffffff08 1px,transparent 1px,transparent 4px),repeating-linear-gradient(90deg,#233840 0px,#30454b 2px,#263c45 3px,#263c45 5px);border-color:#929d9c;box-shadow:inset -20px 0 35px #07131799,inset 4px 3px 8px #cfdbdc55,10px 0 22px #0008;}
+    .observer-seat::before {top:4%;bottom:auto;left:14%;width:70%;height:21%;background:linear-gradient(100deg,#c8cfc9,#f2f0e9 35%,#dedfd6 75%,#bfc8c3);border:0;border-bottom:2px dashed #b2b9b2;border-radius:12px 20px 18px 12px;box-shadow:0 5px 7px #0003;}
+    .observer-seat::after {bottom:20%;height:27%;border-color:#7e8b8b;background:linear-gradient(115deg,#7b8989,#536567 40%,#697779);box-shadow:inset 0 0 0 2px #9caaaa55,inset 0 3px 6px #17272b88,0 3px 5px #0006;}
+    .observer-seat-seam {position:absolute;inset:29% 9% 10%;border:1px dashed #94a4a366;border-radius:22px;}
+    .observer-table-latch {position:absolute;z-index:1;bottom:45%;left:47%;width:14%;height:3%;min-height:12px;border:2px solid #9aa6a5;border-radius:4px;background:#35464b;box-shadow:0 2px 3px #0007;}
+    .observer-table-hinge {position:absolute;z-index:1;bottom:20%;left:21%;right:19%;height:5px;background:linear-gradient(#b7c4c3,#546b70);border-radius:3px;}
+    .observer-seat-pocket {position:absolute;bottom:5%;left:13%;right:12%;height:12%;background:repeating-linear-gradient(45deg,transparent 0px,transparent 6px,#566a6d 7px,#566a6d 8px),repeating-linear-gradient(-45deg,#1b3035 0px,#1b3035 6px,#566a6d 7px,#566a6d 8px);border:4px solid #748687;border-radius:5px 5px 16px 16px;}
+    .observer-armrest {position:absolute;left:14%;bottom:2%;width:13%;height:5%;background:linear-gradient(#8b9693,#485957);border:3px solid #8a9795;border-radius:18px 24px 8px 8px;box-shadow:0 9px 12px #0008;transform:rotate(-8deg);}
+    .observer-window {left:17%;}
+    .observer-seat {width:18%;max-width:250px;}
+    .observer-armrest {left:9%;width:10%;}
+    .observer-dialog.train-view .observer-controls,.observer-dialog.train-view .observer-footer {visibility:hidden;}
+    @media(max-width:600px) {.observer-window{inset:80px -28% 12% 16%;border-width:10px;border-radius:12px}.observer-seat{top:100px;width:20%;border-width:6px;border-radius:15px 35px 15px 0}.observer-actions{gap:4px}.observer-hud .observer-train-button{flex-shrink:0}}
     .observer-footer {position:absolute;bottom:20px;left:24px;right:24px;display:flex;justify-content:space-between;gap:12px;font:12px sans-serif;color:#bdd9df;pointer-events:none;}
     .observer-legend {display:flex;align-items:center;gap:8px;}
     .observer-controls {position:absolute;bottom:52px;right:24px;display:flex;gap:12px;align-items:center;font:12px sans-serif;color:#d2eced;background:#10212ac9;padding:10px;border-radius:6px;}
@@ -30,6 +60,11 @@
     dialog.setAttribute('aria-label', 'Neural training first-person observatory');
     dialog.innerHTML = `<div class="observer-hud"><div><h2>Neural Training Observatory</h2><p>Illustrative digital twin · Live application log</p></div><button type="button" aria-label="Exit first-person view">Exit View</button></div><div class="observer-footer"><span class="observer-status">Initializing scene</span><span class="observer-legend">Weak <span class="observer-scale"></span> Strong · Illustrative field</span></div>`;
     dialog.insertAdjacentHTML('beforeend','<div class="observer-controls"><label><input type="checkbox" id="observer-heat" checked>Signal field</label><label>Opacity <input id="observer-opacity" type="range" min="0" max="75" value="40" aria-label="Signal field opacity"><output>40%</output></label></div>');
+    const exitButton=dialog.querySelector('button');
+    const actions=document.createElement('div');actions.className='observer-actions';exitButton.replaceWith(actions);actions.appendChild(exitButton);
+    const rideButton=document.createElement('button');rideButton.type='button';rideButton.className='observer-train-button';rideButton.title='Train window view';rideButton.setAttribute('aria-label','Train window view');rideButton.setAttribute('aria-pressed','false');rideButton.innerHTML='<img src="assets/download/train-front.svg" alt="">';actions.prepend(rideButton);
+    rideButton.disabled=true;
+    dialog.insertAdjacentHTML('beforeend','<div class="observer-cabin" aria-hidden="true"><div class="observer-window"></div><div class="observer-seat"><div class="observer-seat-seam"></div><div class="observer-table-latch"></div><div class="observer-table-hinge"></div><div class="observer-seat-pocket"></div></div><div class="observer-armrest"></div></div>');
     document.body.appendChild(dialog);
     dialog.showModal();
     const previousOverflow = document.body.style.overflow;
@@ -49,7 +84,7 @@
       trigger?.focus();
     }
     current = {close};
-    dialog.querySelector('button').onclick = close;
+    exitButton.onclick = close;
     dialog.addEventListener('cancel', event => {event.preventDefault(); close();});
     try {
       renderer = new THREE.WebGLRenderer({antialias:true, alpha:false});
@@ -337,6 +372,26 @@
     let yaw=0,pitch=0,targetYaw=0,targetPitch=0, previousTime=0, checkAt=-1, state='Idle', progress=0;
     const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
     const start=performance.now();
+    let cameraMode='overview',cameraTransition=null,cabinOpacity=0;
+    const cabin=dialog.querySelector('.observer-cabin');
+    const canBoardTrain=()=>trainWait<=0&&train.visible&&Math.abs(train.position.x)<16;
+    function switchCamera(toTrain) {
+      if(cameraTransition)return;
+      if(toTrain){
+        if(!canBoardTrain())return;
+        cabin.classList.toggle('reverse-direction',trainDirection>0);
+        cabin.dataset.travelDirection=trainDirection>0?'left-to-right':'right-to-left';
+        dialog.classList.add('train-view');
+      }
+      cameraMode=toTrain?'boarding':'returning';dialog.dataset.cameraMode=cameraMode;
+      cameraTransition={toTrain,start:performance.now(),position:camera.position.clone(),quaternion:camera.quaternion.clone(),opacity:cabinOpacity,fov:camera.fov};
+      targetYaw=targetPitch=0;rideButton.disabled=true;
+      rideButton.setAttribute('aria-pressed',String(toTrain));
+      const text=toTrain?'Return to observatory':'Train window view';rideButton.title=text;rideButton.setAttribute('aria-label',text);
+      dialog.querySelector('.observer-hud h2').textContent=toTrain?'Train Window View':'Neural Training Observatory';
+      dialog.querySelector('.observer-hud p').textContent=toTrain?'Window seat · Scenic rail journey':'Illustrative digital twin · Live application log';
+    }
+    rideButton.onclick=()=>switchCamera(cameraMode==='overview');
     renderer.domElement.addEventListener('pointermove',event=>{targetYaw=-(event.clientX/dialog.clientWidth-.5)*.419;targetPitch=-(event.clientY/dialog.clientHeight-.5)*.209;});
     renderer.domElement.addEventListener('pointerleave',()=>{targetYaw=0;targetPitch=0;});
     dialog.addEventListener('keydown',event=>{if(event.target.matches('input'))return;if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(event.key)){event.preventDefault();targetYaw=THREE.MathUtils.clamp(targetYaw+(event.key==='ArrowLeft'?.03:event.key==='ArrowRight'?-.03:0),-.2095,.2095);targetPitch=THREE.MathUtils.clamp(targetPitch+(event.key==='ArrowUp'?.02:event.key==='ArrowDown'?-.02:0),-.1045,.1045);}if(event.key==='Home'){targetYaw=0;targetPitch=0;}});
@@ -388,6 +443,26 @@
       rings.forEach(({ring,phase,altitude})=>{const p=(motion*.23+phase)%1;ring.scale.setScalar(.4+p*6);ring.position.y=altitude+p*.8;ring.material.opacity=(1-p)*.65;});
       nodes.forEach(({node,l,i})=>{const active=state==='Training'&&Math.sin(motion*3-l*.9+i*.4)>.3;node.material.emissiveIntensity=state==='Complete'?.6:active?2:.08;});
       edges.forEach((edge,i)=>edge.material.opacity=state==='Training'?.12+.23*(.5+.5*Math.sin(motion*3-i)):.12);
+      if(cameraMode!=='overview'){
+        const toTrain=cameraTransition?cameraTransition.toTrain:true;
+        const targetPosition=toTrain?new THREE.Vector3(train.position.x+trainDirection*2,1.54,railZ):new THREE.Vector3(0,7.5,17.5);
+        // Look along travel through the side window; the cabin mirrors separately.
+        const targetRotation=new THREE.Quaternion().setFromEuler(new THREE.Euler(toTrain?-.035+pitch*.65:-.2+pitch,toTrain?-trainDirection*.5+yaw*.9:yaw,0,'YXZ'));
+        const targetFov=toTrain?(camera.aspect<1?90:82):(camera.aspect<1?85:62);
+        if(cameraTransition){
+          const fraction=reduce?1:Math.min(1,(now-cameraTransition.start)/1900),blend=Math.max(0,fraction*fraction*(3-2*fraction));
+          camera.position.lerpVectors(cameraTransition.position,targetPosition,blend);camera.quaternion.slerpQuaternions(cameraTransition.quaternion,targetRotation,blend);
+          cabinOpacity=THREE.MathUtils.lerp(cameraTransition.opacity,toTrain?1:0,blend);
+          camera.fov=THREE.MathUtils.lerp(cameraTransition.fov,targetFov,blend);camera.updateProjectionMatrix();
+          if(fraction>=1){cameraMode=toTrain?'train':'overview';dialog.dataset.cameraMode=cameraMode;cameraTransition=null;rideButton.disabled=false;if(!toTrain)dialog.classList.remove('train-view');}
+        }else{camera.position.copy(targetPosition);camera.quaternion.copy(targetRotation);camera.fov=targetFov;camera.updateProjectionMatrix();}
+        cabin.style.opacity=String(cabinOpacity);
+        // Hide the exterior shell while seated inside its window.
+        if(toTrain)train.visible=false;
+        if(cameraMode==='train'&&Math.abs(train.position.x)>18)switchCamera(false);
+      }
+      rideButton.disabled=!!cameraTransition||(cameraMode==='overview'&&!canBoardTrain());
+      if(cameraMode==='overview')rideButton.title=rideButton.disabled?'Waiting for a passing train':'Train window view';
       renderer.render(scene,camera);
     }
     frame=requestAnimationFrame(animate);
