@@ -16,6 +16,16 @@ class ManualContentTests(unittest.TestCase):
 
     def test_required_product_explanations_are_present(self):
         required = [
+            "対象アプリ版: v2.8.4",
+            "文書版: v1.3",
+            "更新日: 2026年9月17日",
+            "General Model M0 (Shinshu Univ. & NICT 202605)",
+            "Incremental Training",
+            "First-Person View",
+            "Train Window View",
+            "Aircraft Window View",
+            "Boat View",
+            "モデルの出力や学習内容には影響しません",
             "不確実さ",
             "FresnelR_H",
             "FresnelR_V",
@@ -29,6 +39,10 @@ class ManualContentTests(unittest.TestCase):
         ]
         for phrase in required:
             self.assertIn(phrase, self.markdown)
+
+    def test_latest_training_features_are_not_marked_as_future(self):
+        self.assertNotIn("Incremental Learning` は今後のアップデートで追加予定", self.markdown)
+        self.assertNotIn("General Model M0 (NICT 202605)", self.markdown)
 
     def test_removed_reader_label_is_absent(self):
         self.assertNotIn("対象読者", self.markdown)

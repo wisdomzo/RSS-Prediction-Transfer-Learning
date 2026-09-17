@@ -59,7 +59,7 @@ thead { display: table-header-group; } tr { break-inside: avoid; }
 th { padding: 2.1mm 2.5mm; text-align: left; color: #fff; background: #082f49; border-bottom: .7mm solid #0891b2; font-weight: 600; }
 td { padding: 2mm 2.5mm; vertical-align: top; border-bottom: .25mm solid #d7e3ea; }
 tbody tr:nth-child(even) { background: #f8fbfc; } th:first-child, td:first-child { width: 29%; }
-.steps { list-style: none; padding: 0; counter-reset: steps; }
+.steps { list-style: none; padding: 0; counter-reset: steps; break-inside: avoid; }
 .steps li { counter-increment: steps; position: relative; margin: 0 0 2.5mm; padding: 3mm 4mm 3mm 15mm; border: .25mm solid #d7e3ea; border-left: 1.4mm solid #a3e635; background: #fbfdf7; break-inside: avoid; }
 .steps li::before { content: counter(steps); position: absolute; left: 0; top: 0; bottom: 0; width: 11mm; display: grid; place-items: center; color: #fff; background: #65a30d; font-weight: 600; }
 ul { margin: 0 0 3mm; padding-left: 6mm; } li::marker { color: #65a30d; }
@@ -147,8 +147,8 @@ def markdown_body(lines, headings, toc_pages=None) -> str:
 
 def render_html(lines, pages=None) -> str:
     headings = collect_headings(lines); body = markdown_body(lines, headings, pages)
-    cover = """<section class="cover"><div class="cover-rail"><i class="signal one"></i><i class="signal two"></i><i class="signal three"></i></div><div class="cover-bottom"></div><div class="cover-copy"><div class="kicker">VISUAL QUICKSTART</div><h1>ASSET Framework App<span>使用説明書</span></h1><p class="cover-lead">はじめての RSS 予測を、かんたんに。</p><div class="benefit"><strong>かんたん予測</strong><small>地図上でエリアを選ぶだけ</small></div><div class="benefit"><strong>結果をすぐ確認</strong><small>CSV に保存して再利用</small></div><div class="benefit"><strong>やさしい手順</strong><small>初めてでも迷わない</small></div></div><div class="cover-meta">文書版&nbsp;&nbsp;v1.2<br>更新日&nbsp;&nbsp;2026年9月8日</div></section>"""
-    return f'<!doctype html><html lang="ja"><head><meta charset="utf-8"><title>ASSET Framework App 使用説明書 v1.2</title><style>{CSS}</style></head><body>{cover}<main class="manual">{body}</main></body></html>'
+    cover = """<section class="cover"><div class="cover-rail"><i class="signal one"></i><i class="signal two"></i><i class="signal three"></i></div><div class="cover-bottom"></div><div class="cover-copy"><div class="kicker">VISUAL QUICKSTART</div><h1>ASSET Framework App<span>使用説明書</span></h1><p class="cover-lead">はじめての RSS 予測を、かんたんに。</p><div class="benefit"><strong>かんたん予測</strong><small>地図上でエリアを選ぶだけ</small></div><div class="benefit"><strong>結果をすぐ確認</strong><small>CSV に保存して再利用</small></div><div class="benefit"><strong>やさしい手順</strong><small>初めてでも迷わない</small></div></div><div class="cover-meta">対象アプリ版&nbsp;&nbsp;v2.8.4<br>文書版&nbsp;&nbsp;v1.3<br>更新日&nbsp;&nbsp;2026年9月17日</div></section>"""
+    return f'<!doctype html><html lang="ja"><head><meta charset="utf-8"><title>ASSET Framework App 使用説明書 v1.3</title><style>{CSS}</style></head><body>{cover}<main class="manual">{body}</main></body></html>'
 
 def chrome_print():
     if not CHROME.exists(): raise FileNotFoundError(f"Google Chrome was not found: {CHROME}")
@@ -193,7 +193,7 @@ def finish_pdf(raw_pdf, output, headings, pages):
         if key not in pages: continue
         item = writer.add_outline_item(title, pages[key]-1, parent=parent if level == 3 else None)
         if level == 2: parent = item
-    writer.add_metadata({"/Title":"ASSET Framework App 使用説明書 v1.2","/Author":"ASSET Framework"}); output.parent.mkdir(parents=True, exist_ok=True)
+    writer.add_metadata({"/Title":"ASSET Framework App 使用説明書 v1.3","/Author":"ASSET Framework"}); output.parent.mkdir(parents=True, exist_ok=True)
     with output.open("wb") as handle: writer.write(handle)
 
 def main() -> int:

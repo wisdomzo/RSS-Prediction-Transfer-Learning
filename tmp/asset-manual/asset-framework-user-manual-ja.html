@@ -1,4 +1,4 @@
-<!doctype html><html lang="ja"><head><meta charset="utf-8"><title>ASSET Framework App 使用説明書 v1.2</title><style>
+<!doctype html><html lang="ja"><head><meta charset="utf-8"><title>ASSET Framework App 使用説明書 v1.3</title><style>
 @page cover { size: A4; margin: 0; }
 @page manual { size: A4; margin: 18mm 18mm 20mm; }
 @font-face { font-family: "Asset Hiragino W3"; src: local("HiraKakuProN-W3"), local("Hiragino Kaku Gothic ProN W3"); font-weight: 300; }
@@ -33,7 +33,7 @@ thead { display: table-header-group; } tr { break-inside: avoid; }
 th { padding: 2.1mm 2.5mm; text-align: left; color: #fff; background: #082f49; border-bottom: .7mm solid #0891b2; font-weight: 600; }
 td { padding: 2mm 2.5mm; vertical-align: top; border-bottom: .25mm solid #d7e3ea; }
 tbody tr:nth-child(even) { background: #f8fbfc; } th:first-child, td:first-child { width: 29%; }
-.steps { list-style: none; padding: 0; counter-reset: steps; }
+.steps { list-style: none; padding: 0; counter-reset: steps; break-inside: avoid; }
 .steps li { counter-increment: steps; position: relative; margin: 0 0 2.5mm; padding: 3mm 4mm 3mm 15mm; border: .25mm solid #d7e3ea; border-left: 1.4mm solid #a3e635; background: #fbfdf7; break-inside: avoid; }
 .steps li::before { content: counter(steps); position: absolute; left: 0; top: 0; bottom: 0; width: 11mm; display: grid; place-items: center; color: #fff; background: #65a30d; font-weight: 600; }
 ul { margin: 0 0 3mm; padding-left: 6mm; } li::marker { color: #65a30d; }
@@ -44,7 +44,7 @@ figure { margin: 4mm auto 6mm; break-inside: avoid; } figure img { display: bloc
 figcaption { margin-top: 2mm; color: #526777; font-size: 8.5pt; text-align: center; }
 .toc { margin-top: 5mm; } .toc a { display: grid; grid-template-columns: auto 1fr auto; gap: 2mm; align-items: end; color: #102a43; text-decoration: none; margin: 0 0 2mm; }
 .toc a.sub { padding-left: 7mm; color: #526777; font-size: 9.3pt; } .toc .dots { border-bottom: .25mm dotted #9aacb7; transform: translateY(-1.4mm); } .toc .page { color: #52820e; font-weight: 600; }
-</style></head><body><section class="cover"><div class="cover-rail"><i class="signal one"></i><i class="signal two"></i><i class="signal three"></i></div><div class="cover-bottom"></div><div class="cover-copy"><div class="kicker">VISUAL QUICKSTART</div><h1>ASSET Framework App<span>使用説明書</span></h1><p class="cover-lead">はじめての RSS 予測を、かんたんに。</p><div class="benefit"><strong>かんたん予測</strong><small>地図上でエリアを選ぶだけ</small></div><div class="benefit"><strong>結果をすぐ確認</strong><small>CSV に保存して再利用</small></div><div class="benefit"><strong>やさしい手順</strong><small>初めてでも迷わない</small></div></div><div class="cover-meta">文書版&nbsp;&nbsp;v1.2<br>更新日&nbsp;&nbsp;2026年9月8日</div></section><main class="manual"><h2 id="toc">目次</h2>
+</style></head><body><section class="cover"><div class="cover-rail"><i class="signal one"></i><i class="signal two"></i><i class="signal three"></i></div><div class="cover-bottom"></div><div class="cover-copy"><div class="kicker">VISUAL QUICKSTART</div><h1>ASSET Framework App<span>使用説明書</span></h1><p class="cover-lead">はじめての RSS 予測を、かんたんに。</p><div class="benefit"><strong>かんたん予測</strong><small>地図上でエリアを選ぶだけ</small></div><div class="benefit"><strong>結果をすぐ確認</strong><small>CSV に保存して再利用</small></div><div class="benefit"><strong>やさしい手順</strong><small>初めてでも迷わない</small></div></div><div class="cover-meta">対象アプリ版&nbsp;&nbsp;v2.8.4<br>文書版&nbsp;&nbsp;v1.3<br>更新日&nbsp;&nbsp;2026年9月17日</div></section><main class="manual"><h2 id="toc">目次</h2>
 <nav class="toc">
 <a class="sub" href="#このマニュアルの進み方"><span>このマニュアルの進み方</span><span class="dots"></span><span class="page">2</span></a>
 <a href="#1.-このアプリでできること"><span>1. このアプリでできること</span><span class="dots"></span><span class="page">4</span></a>
@@ -67,16 +67,17 @@ figcaption { margin-top: 2mm; color: #526777; font-size: 8.5pt; text-align: cent
 <a class="sub" href="#5.4-出力-csv-の列"><span>5.4 出力 CSV の列</span><span class="dots"></span><span class="page">12</span></a>
 <a href="#6.-feature-generation-で学習用データを作る"><span>6. Feature Generation で学習用データを作る</span><span class="dots"></span><span class="page">13</span></a>
 <a class="sub" href="#6.1-入力ファイル"><span>6.1 入力ファイル</span><span class="dots"></span><span class="page">13</span></a>
-<a class="sub" href="#6.2-操作手順"><span>6.2 操作手順</span><span class="dots"></span><span class="page">13</span></a>
+<a class="sub" href="#6.2-操作手順"><span>6.2 操作手順</span><span class="dots"></span><span class="page">14</span></a>
 <a class="sub" href="#6.3-csv-が読み込めないとき"><span>6.3 CSV が読み込めないとき</span><span class="dots"></span><span class="page">14</span></a>
 <a href="#7.-model-training-でモデルを作る"><span>7. Model Training でモデルを作る</span><span class="dots"></span><span class="page">15</span></a>
 <a class="sub" href="#7.1-まず-feature-vector-を用意する"><span>7.1 まず Feature Vector を用意する</span><span class="dots"></span><span class="page">15</span></a>
 <a class="sub" href="#7.2-モデル設定の意味"><span>7.2 モデル設定の意味</span><span class="dots"></span><span class="page">15</span></a>
-<a class="sub" href="#7.3-学習を実行する"><span>7.3 学習を実行する</span><span class="dots"></span><span class="page">15</span></a>
+<a class="sub" href="#7.3-学習を実行する"><span>7.3 学習を実行する</span><span class="dots"></span><span class="page">16</span></a>
 <a class="sub" href="#7.4-分散実行を使う場合"><span>7.4 分散実行を使う場合</span><span class="dots"></span><span class="page">16</span></a>
+<a class="sub" href="#7.5-first-person-view-で学習状況を見る"><span>7.5 First-Person View で学習状況を見る</span><span class="dots"></span><span class="page">16</span></a>
 <a href="#8.-data-analysis-で図を作成する"><span>8. Data Analysis で図を作成する</span><span class="dots"></span><span class="page">17</span></a>
 <a class="sub" href="#8.1-基本手順"><span>8.1 基本手順</span><span class="dots"></span><span class="page">17</span></a>
-<a class="sub" href="#8.2-選べる分析"><span>8.2 選べる分析</span><span class="dots"></span><span class="page">17</span></a>
+<a class="sub" href="#8.2-選べる分析"><span>8.2 選べる分析</span><span class="dots"></span><span class="page">18</span></a>
 <a class="sub" href="#8.3-分析できない-csv-がある場合"><span>8.3 分析できない CSV がある場合</span><span class="dots"></span><span class="page">18</span></a>
 <a href="#9.-log-console-を使う"><span>9. Log Console を使う</span><span class="dots"></span><span class="page">19</span></a>
 <a class="sub" href="#9.1-ログを見る"><span>9.1 ログを見る</span><span class="dots"></span><span class="page">19</span></a>
@@ -126,7 +127,7 @@ figcaption { margin-top: 2mm; color: #526777; font-size: 8.5pt; text-align: cent
 <p>すべての機能を一度に使う必要はありません。まず予測だけを行う場合は、地域、周波数、アンテナ位置が分かれば始められます。</p>
 <h3 id="rss-予測に必要なもの">RSS 予測に必要なもの</h3>
 <table><thead><tr><th>項目</th><th>説明</th></tr></thead><tbody>
-<tr><td>Base Model</td><td>通常は <code>General Model M0 (NICT 202605)</code> を選びます。独自モデルを使う場合は <code>Custom Model</code> を選びます。</td></tr>
+<tr><td>Base Model</td><td>通常は <code>General Model M0 (Shinshu Univ. &amp; NICT 202605)</code> を選びます。独自モデルを使う場合は <code>Custom Model</code> を選びます。</td></tr>
 <tr><td>Database</td><td>予測対象地域の地図データです。例: Nagano Matsumoto, Okinawa Naha など。一覧にない地域が必要な場合は、アプリ開発会社へお問い合わせいただくか、今後の更新をお待ちください。</td></tr>
 <tr><td>Prediction Data</td><td>地図範囲から作るか、CSV ファイルから読み込むかを選びます。</td></tr>
 <tr><td>Frequency in MHz</td><td>使用する無線周波数です。例: 920。</td></tr>
@@ -170,7 +171,7 @@ figcaption { margin-top: 2mm; color: #526777; font-size: 8.5pt; text-align: cent
 <p>RSS 予測は <code>Prediction Workspace</code> で行います。通常はこの画面から作業を始めます。</p>
 <h3 id="4.1-地図範囲で予測する">4.1 地図範囲で予測する</h3>
 <p>地図上の範囲を使って予測する場合は、次の手順で操作します。</p>
-<ol class="steps"><li>左メニューで <code>Prediction Workspace</code> を開きます。</li><li><code>Base Model</code> で使用するモデルを選びます。通常は <code>General Model M0 (NICT 202605)</code> です。</li><li><code>Database</code> で対象地域を選びます。</li><li><code>Prediction Data</code> を <code>Map bounds</code> にします。</li><li><code>Mesh Longitude</code> と <code>Mesh Latitude</code> を入力します。値が大きいほど細かく予測できますが、処理時間も長くなります。</li><li>周波数、SF、EIRP、アンテナ位置、高さを入力します。</li><li><code>Draw Area</code> を押し、地図上で予測したい範囲を指定します。</li><li><code>Run RSS Prediction</code> を押します。</li><li><code>Runtime Monitor</code> が <code>Completed</code> になるまで待ちます。</li></ol>
+<ol class="steps"><li>左メニューで <code>Prediction Workspace</code> を開きます。</li><li><code>Base Model</code> で使用するモデルを選びます。通常は <code>General Model M0 (Shinshu Univ. &amp; NICT 202605)</code> です。</li><li><code>Database</code> で対象地域を選びます。</li><li><code>Prediction Data</code> を <code>Map bounds</code> にします。</li><li><code>Mesh Longitude</code> と <code>Mesh Latitude</code> を入力します。値が大きいほど細かく予測できますが、処理時間も長くなります。</li><li>周波数、SF、EIRP、アンテナ位置、高さを入力します。</li><li><code>Draw Area</code> を押し、地図上で予測したい範囲を指定します。</li><li><code>Run RSS Prediction</code> を押します。</li><li><code>Runtime Monitor</code> が <code>Completed</code> になるまで待ちます。</li></ol>
 <aside class="callout success"><strong>成功のサイン</strong><code>Runtime Monitor</code> に <code>Completed</code> と表示され、<code>Results Explorer</code> に <code>New</code> が表示されれば予測完了です。</aside>
 <aside class="callout warning"><strong>ご注意</strong>メッシュ数を大きくすると細かく予測できますが、処理時間と使用メモリも増えます。初回は既定値のまま試してください。</aside>
 <h3 id="4.2-csv-ファイルで予測する">4.2 CSV ファイルで予測する</h3>
@@ -249,7 +250,7 @@ figcaption { margin-top: 2mm; color: #526777; font-size: 8.5pt; text-align: cent
 <tr><td>Scheduler</td><td>分散実行する場合の Dask scheduler アドレスです。空欄ならローカル実行です。</td></tr>
 <tr><td>Base Model</td><td>新規学習、一般モデルからの転移学習、独自モデルからの転移学習を選びます。</td></tr>
 <tr><td>Kernel Count</td><td>学習に使用するカーネル数です。値を大きくするとモデル性能が高くなる傾向がありますが、学習速度は低下します。推奨値は <code>16</code> です。</td></tr>
-<tr><td>Learning Type</td><td><code>Transfer Learning</code> を選択します。<code>Incremental Learning</code> は今後のアップデートで追加予定です。</td></tr>
+<tr><td>Learning Type</td><td>学習方法を選びます。既存モデルを新しい地域や条件へ適応させる場合は <code>Transfer Learning</code>、新しいデータを加えて学習を継続する場合は <code>Incremental Training</code> を選びます。新規モデルでは <code>None</code> を使用します。</td></tr>
 <tr><td>Train Judge Model</td><td>転移モデルの性能を判定するための判断モデルを同時に学習します。On にすると計算量が大幅に増えます。主に研究用途向けのため、目的が明確でない場合は Off を推奨します。</td></tr>
 <tr><td>Freeze Layer</td><td>転移学習で固定する層を指定します。通常は既定値を使います。</td></tr>
 <tr><td>Learning Rate</td><td>学習率の初期値です。通常は既定値 <code>0.0001</code> を使います。プログラムは学習の進行に合わせて値を自動的に小さくし、モデルの学習完了まで調整します。</td></tr>
@@ -259,7 +260,18 @@ figcaption { margin-top: 2mm; color: #526777; font-size: 8.5pt; text-align: cent
 <h3 id="7.4-分散実行を使う場合">7.4 分散実行を使う場合</h3>
 <p>複数台の PC やサーバで Dask を使う場合は、<code>Open Guide</code> を押して手順を確認します。</p>
 <p><code>Scheduler</code> には、例として <code>tcp://host:8786</code> または <code>host_ip:8786</code> の形式で入力します。接続できない場合、アプリはローカル実行に戻ることがあります。</p>
-<div class="pagebreak"></div>
+<h3 id="7.5-first-person-view-で学習状況を見る">7.5 First-Person View で学習状況を見る</h3>
+<p><code>Model Training</code> 画面の <code>First-Person View</code> を押すと、<code>Neural Training Observatory</code> が全画面で開きます。学習の状態とアプリの実行ログを、3D のデジタルツイン表現と一緒に確認できます。</p>
+<table><thead><tr><th>操作</th><th>説明</th></tr></thead><tbody>
+<tr><td>Signal field</td><td>電波強度をイメージした色付き表示の On / Off を切り替えます。</td></tr>
+<tr><td>Opacity</td><td>Signal field の透明度を調整します。</td></tr>
+<tr><td>Train Window View</td><td>列車が通過している間、車窓からの視点へ切り替えます。</td></tr>
+<tr><td>Aircraft Window View</td><td>航空機が通過している間、機内からの視点へ切り替えます。</td></tr>
+<tr><td>Boat View</td><td>船が通過している間、船上からの視点へ切り替えます。</td></tr>
+<tr><td>Exit View</td><td>3D 表示を閉じて <code>Model Training</code> 画面へ戻ります。</td></tr>
+</tbody></table>
+<p>車両や航空機が観測位置にない間は、対応する視点ボタンを押せない場合があります。しばらく待つと利用可能になります。各乗車視点からは同じボタンをもう一度押すと観測画面へ戻れます。</p>
+<aside class="callout tip"><strong>使い方のヒント</strong>この画面は学習状況を分かりやすく見るための説明用可視化です。モデルの出力や学習内容には影響しません。3D が表示できない場合も、モデル学習はそのまま継続します。</aside>
 <h2 id="8.-data-analysis-で図を作成する">8. Data Analysis で図を作成する</h2>
 <p><code>Data Analysis</code> は、予測結果 CSV を分析し、報告書や論文に使える図を作る画面です。</p>
 <h3 id="8.1-基本手順">8.1 基本手順</h3>
@@ -307,7 +319,7 @@ figcaption { margin-top: 2mm; color: #526777; font-size: 8.5pt; text-align: cent
 <h3 id="処理を止めたいです">処理を止めたいです</h3>
 <p>現在の作業画面に戻り、<code>Reset</code> を押してください。実行中の予測または学習を停止し、一時状態を整理します。</p>
 <h3 id="custom-model-を選んだらファイル選択が出ます"><code>Custom Model</code> を選んだらファイル選択が出ます</h3>
-<p><code>Custom Model</code> には、本ソフトウェアで生成したモデルのみ使用できます。他のソフトウェアや異なる形式で作成したモデルには対応していません。通常利用では <code>General Model M0 (NICT 202605)</code> を選んでください。</p>
+<p><code>Custom Model</code> には、本ソフトウェアで生成したモデルのみ使用できます。他のソフトウェアや異なる形式で作成したモデルには対応していません。通常利用では <code>General Model M0 (Shinshu Univ. &amp; NICT 202605)</code> を選んでください。</p>
 <h3 id="分析図は-svg-と-png-のどちらで保存すべきですか">分析図は SVG と PNG のどちらで保存すべきですか</h3>
 <p>報告書や論文で拡大して使う場合は SVG が向いています。スライド、メール、一般的な資料に貼る場合は PNG が扱いやすいです。</p>
 <div class="pagebreak"></div>
@@ -334,6 +346,7 @@ figcaption { margin-top: 2mm; color: #526777; font-size: 8.5pt; text-align: cent
 <div class="pagebreak"></div>
 <h2 id="13.-更新履歴">13. 更新履歴</h2>
 <table><thead><tr><th>日付</th><th>文書版</th><th>内容</th></tr></thead><tbody>
+<tr><td>2026年9月17日</td><td>v1.3</td><td>対象アプリを v2.8.4 に更新。一般モデルの表示名、Incremental Training の利用方法、Model Training の First-Person View と列車・航空機・船舶視点を追加。</td></tr>
 <tr><td>2026年9月8日</td><td>v1.2</td><td>ヒラギノ角ゴシックへ変更。全面表紙、実画面、CSV 列説明、モデル学習および地域データに関する注意事項を追加。用語を「不確実さ」に統一。</td></tr>
 <tr><td>2026年9月8日</td><td>v1.1</td><td>Visual Quickstart 版へ改訂。表紙、目次、手順表示、表、ページナビゲーションを再設計。</td></tr>
 <tr><td>2026年9月8日</td><td>v1.0</td><td>ASSET Framework App の現行画面に合わせて、一般利用者向けの日本語使用説明書を新規作成。Prediction Workspace、Results Explorer、Feature Generation、Model Training、Data Analysis、Log Console、用語集、FAQ を追加。</td></tr>
@@ -341,4 +354,4 @@ figcaption { margin-top: 2mm; color: #526777; font-size: 8.5pt; text-align: cent
 <h2 id="14.-サポート時に伝える情報">14. サポート時に伝える情報</h2>
 <p>問い合わせや不具合報告をする場合は、次の情報を伝えると確認が早くなります。</p>
 <ul><li>使用している OS</li><li>アプリ画面に表示されているバージョンまたは <code>Development Build</code> 表示</li><li>実行した画面名</li><li>入力した Database、Frequency、Prediction Data の種類</li><li>エラーが出た場合は <code>Export Log</code> で保存したログ</li><li>使用した CSV の列名</li></ul>
-<p>この説明書の更新日: 2026年9月8日</p></main></body></html>
+<p>この説明書の更新日: 2026年9月17日</p></main></body></html>

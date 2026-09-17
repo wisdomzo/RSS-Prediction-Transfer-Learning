@@ -1,8 +1,8 @@
 # ASSET Framework App 使用説明書
 
-対象版: 現行 ASSET Framework App  
-文書版: v1.2  
-更新日: 2026年9月8日  
+対象アプリ版: v2.8.4
+文書版: v1.3
+更新日: 2026年9月17日
 
 <!-- pagebreak -->
 
@@ -62,7 +62,7 @@ ASSET Framework App は、電波の受信信号強度、つまり RSS を地図�
 
 | 項目 | 説明 |
 |---|---|
-| Base Model | 通常は `General Model M0 (NICT 202605)` を選びます。独自モデルを使う場合は `Custom Model` を選びます。 |
+| Base Model | 通常は `General Model M0 (Shinshu Univ. & NICT 202605)` を選びます。独自モデルを使う場合は `Custom Model` を選びます。 |
 | Database | 予測対象地域の地図データです。例: Nagano Matsumoto, Okinawa Naha など。一覧にない地域が必要な場合は、アプリ開発会社へお問い合わせいただくか、今後の更新をお待ちください。 |
 | Prediction Data | 地図範囲から作るか、CSV ファイルから読み込むかを選びます。 |
 | Frequency in MHz | 使用する無線周波数です。例: 920。 |
@@ -132,7 +132,7 @@ RSS 予測は `Prediction Workspace` で行います。通常はこの画面か�
 地図上の範囲を使って予測する場合は、次の手順で操作します。
 
 1. 左メニューで `Prediction Workspace` を開きます。
-2. `Base Model` で使用するモデルを選びます。通常は `General Model M0 (NICT 202605)` です。
+2. `Base Model` で使用するモデルを選びます。通常は `General Model M0 (Shinshu Univ. & NICT 202605)` です。
 3. `Database` で対象地域を選びます。
 4. `Prediction Data` を `Map bounds` にします。
 5. `Mesh Longitude` と `Mesh Latitude` を入力します。値が大きいほど細かく予測できますが、処理時間も長くなります。
@@ -277,7 +277,7 @@ CSV の列名が合わない、空の値が多い、ファイル形式が違う�
 | Scheduler | 分散実行する場合の Dask scheduler アドレスです。空欄ならローカル実行です。 |
 | Base Model | 新規学習、一般モデルからの転移学習、独自モデルからの転移学習を選びます。 |
 | Kernel Count | 学習に使用するカーネル数です。値を大きくするとモデル性能が高くなる傾向がありますが、学習速度は低下します。推奨値は `16` です。 |
-| Learning Type | `Transfer Learning` を選択します。`Incremental Learning` は今後のアップデートで追加予定です。 |
+| Learning Type | 学習方法を選びます。既存モデルを新しい地域や条件へ適応させる場合は `Transfer Learning`、新しいデータを加えて学習を継続する場合は `Incremental Training` を選びます。新規モデルでは `None` を使用します。 |
 | Train Judge Model | 転移モデルの性能を判定するための判断モデルを同時に学習します。On にすると計算量が大幅に増えます。主に研究用途向けのため、目的が明確でない場合は Off を推奨します。 |
 | Freeze Layer | 転移学習で固定する層を指定します。通常は既定値を使います。 |
 | Learning Rate | 学習率の初期値です。通常は既定値 `0.0001` を使います。プログラムは学習の進行に合わせて値を自動的に小さくし、モデルの学習完了まで調整します。 |
@@ -298,7 +298,22 @@ CSV の列名が合わない、空の値が多い、ファイル形式が違う�
 
 `Scheduler` には、例として `tcp://host:8786` または `host_ip:8786` の形式で入力します。接続できない場合、アプリはローカル実行に戻ることがあります。
 
-<!-- pagebreak -->
+### 7.5 First-Person View で学習状況を見る
+
+`Model Training` 画面の `First-Person View` を押すと、`Neural Training Observatory` が全画面で開きます。学習の状態とアプリの実行ログを、3D のデジタルツイン表現と一緒に確認できます。
+
+| 操作 | 説明 |
+|---|---|
+| Signal field | 電波強度をイメージした色付き表示の On / Off を切り替えます。 |
+| Opacity | Signal field の透明度を調整します。 |
+| Train Window View | 列車が通過している間、車窓からの視点へ切り替えます。 |
+| Aircraft Window View | 航空機が通過している間、機内からの視点へ切り替えます。 |
+| Boat View | 船が通過している間、船上からの視点へ切り替えます。 |
+| Exit View | 3D 表示を閉じて `Model Training` 画面へ戻ります。 |
+
+車両や航空機が観測位置にない間は、対応する視点ボタンを押せない場合があります。しばらく待つと利用可能になります。各乗車視点からは同じボタンをもう一度押すと観測画面へ戻れます。
+
+> [TIP] この画面は学習状況を分かりやすく見るための説明用可視化です。モデルの出力や学習内容には影響しません。3D が表示できない場合も、モデル学習はそのまま継続します。
 
 ## 8. Data Analysis で図を作成する
 
@@ -390,7 +405,7 @@ CSV の列名が合わない、空の値が多い、ファイル形式が違う�
 
 ### `Custom Model` を選んだらファイル選択が出ます
 
-`Custom Model` には、本ソフトウェアで生成したモデルのみ使用できます。他のソフトウェアや異なる形式で作成したモデルには対応していません。通常利用では `General Model M0 (NICT 202605)` を選んでください。
+`Custom Model` には、本ソフトウェアで生成したモデルのみ使用できます。他のソフトウェアや異なる形式で作成したモデルには対応していません。通常利用では `General Model M0 (Shinshu Univ. & NICT 202605)` を選んでください。
 
 ### 分析図は SVG と PNG のどちらで保存すべきですか
 
@@ -436,6 +451,7 @@ CSV の列名が合わない、空の値が多い、ファイル形式が違う�
 
 | 日付 | 文書版 | 内容 |
 |---|---|---|
+| 2026年9月17日 | v1.3 | 対象アプリを v2.8.4 に更新。一般モデルの表示名、Incremental Training の利用方法、Model Training の First-Person View と列車・航空機・船舶視点を追加。 |
 | 2026年9月8日 | v1.2 | ヒラギノ角ゴシックへ変更。全面表紙、実画面、CSV 列説明、モデル学習および地域データに関する注意事項を追加。用語を「不確実さ」に統一。 |
 | 2026年9月8日 | v1.1 | Visual Quickstart 版へ改訂。表紙、目次、手順表示、表、ページナビゲーションを再設計。 |
 | 2026年9月8日 | v1.0 | ASSET Framework App の現行画面に合わせて、一般利用者向けの日本語使用説明書を新規作成。Prediction Workspace、Results Explorer、Feature Generation、Model Training、Data Analysis、Log Console、用語集、FAQ を追加。 |
@@ -451,4 +467,4 @@ CSV の列名が合わない、空の値が多い、ファイル形式が違う�
 - エラーが出た場合は `Export Log` で保存したログ
 - 使用した CSV の列名
 
-この説明書の更新日: 2026年9月8日
+この説明書の更新日: 2026年9月17日
