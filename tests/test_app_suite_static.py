@@ -543,7 +543,8 @@ class AppSuiteStaticTests(unittest.TestCase):
         self.assertIn("const meshCanvasOpacity = 0.58", html)
         self.assertIn("canvasContext.globalAlpha = meshCanvasOpacity", html)
         self.assertIn("bilinear", html)
-        self.assertNotIn("L.rectangle", html)
+        result_renderer = html.split("function renderResultMeshMap", 1)[1].split("function renderResultLegend", 1)[0]
+        self.assertNotIn("L.rectangle", result_renderer)
         self.assertIn("continuous mesh loaded", html)
 
     def test_results_explorer_uses_point_map_for_csv_prediction_results(self):

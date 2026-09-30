@@ -562,7 +562,8 @@ def worker_thread(coords):
             coords['mesh_lng'], coords['mesh_lat'],
             coords['frequency'], coords['SF'], coords['EIRP'],
             coords['fixAntenna_lng'], coords['fixAntenna_lat'], coords['fixAntenna_alt'],
-            coords['fixAntenna_height'], coords['moveAntenna_height'], select_prediction_file_path
+            coords['fixAntenna_height'], coords['moveAntenna_height'], select_prediction_file_path,
+            coords.get('area_circle')
         ]
 
         if coords['model'] == "NICT_latest_model":

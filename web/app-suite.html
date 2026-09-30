@@ -2210,6 +2210,7 @@ dask worker tcp://192.168.199.1:8786 --nworkers 6 --nthreads 1 --name MacPro_sha
     let latestResultData = [];
     let currentResultLayer = "prediction";
     let drawnItems;
+    let areaMeasurements;
     let predictionResultGuideTimer = null;
     const tourStorageKeys = {
       appOverview: "asset.skipAppOverviewTour",
@@ -2622,8 +2623,10 @@ dask worker tcp://192.168.199.1:8786 --nworkers 6 --nthreads 1 --name MacPro_sha
       L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(areaMap);
       drawnItems = new L.FeatureGroup();
       areaMap.addLayer(drawnItems);
+      areaMeasurements = L.layerGroup().addTo(areaMap);
+      drawnItems.on('layerremove', () => areaMeasurements.clearLayers());
       const drawControl = new L.Control.Draw({
-        draw: { rectangle: true, polyline: false, circle: false, marker: false, polygon: false, circlemarker: false },
+        draw: { rectangle: true, polyline: false, circle: true, marker: false, polygon: false, circlemarker: false },
         edit: { featureGroup: drawnItems }
       });
       areaMap.addControl(drawControl);
@@ -2631,11 +2634,42 @@ dask worker tcp://192.168.199.1:8786 --nworkers 6 --nthreads 1 --name MacPro_sha
         drawnItems.clearLayers();
         drawnItems.addLayer(event.layer);
         updateAreaBounds(event.layer.getBounds());
+        updateAreaMeasurements(event.layer);
       });
       areaMap.on(L.Draw.Event.EDITED, () => {
         const layer = drawnItems.getLayers()[0];
-        if (layer) updateAreaBounds(layer.getBounds());
+        if (layer) { updateAreaBounds(layer.getBounds()); updateAreaMeasurements(layer); }
       });
+      areaMap.on(L.Draw.Event.DELETED, () => {
+        areaMeasurements.clearLayers();
+        ["min-lng", "min-lat", "max-lng", "max-lat"].forEach(id => document.getElementById(id).value = "");
+        document.getElementById("area-status").textContent = "No area selected";
+      });
+    }
+
+    function getAreaCircle() {
+      const layer = drawnItems?.getLayers()[0];
+      if (!layer || !(layer instanceof L.Circle)) return null;
+      return {lat: layer.getLatLng().lat, lng: layer.getLatLng().lng, radius: layer.getRadius()};
+    }
+
+    function updateAreaMeasurements(layer) {
+      areaMeasurements.clearLayers();
+      const format = meters => meters >= 1000 ? `${(meters / 1000).toFixed(2)} km` : `${meters.toFixed(1)} m`;
+      const annotate = (point, text) => L.tooltip({permanent:true, direction:'center', interactive:false, opacity:1}).setLatLng(point).setContent(text).addTo(areaMeasurements);
+      if (layer instanceof L.Circle) {
+        const center = layer.getLatLng(), radius = layer.getRadius();
+        const end = L.latLng(center.lat + radius / 6371000 * 180 / Math.PI, center.lng);
+        L.polyline([center,end],{color:'#257287',weight:2,dashArray:'5 4',interactive:false}).addTo(areaMeasurements);
+        annotate(L.latLng((center.lat+end.lat)/2,center.lng), `Radius: ${format(radius)}`);
+        document.getElementById('area-status').textContent = `Circle · Radius ${format(radius)}`;
+      } else {
+        const bounds=layer.getBounds(),sw=bounds.getSouthWest(),ne=bounds.getNorthEast();
+        const width=areaMap.distance(sw,L.latLng(sw.lat,ne.lng)),height=areaMap.distance(sw,L.latLng(ne.lat,sw.lng));
+        annotate(L.latLng(sw.lat,(sw.lng+ne.lng)/2),`Width: ${format(width)}`);
+        annotate(L.latLng((sw.lat+ne.lat)/2,ne.lng),`Height: ${format(height)}`);
+        document.getElementById('area-status').textContent = `Rectangle · ${format(width)} × ${format(height)}`;
+      }
     }
 
     function openAreaPicker() {
@@ -2643,7 +2677,7 @@ dask worker tcp://192.168.199.1:8786 --nworkers 6 --nthreads 1 --name MacPro_sha
       document.getElementById("p-predictDataSelect").value = "predictData_map";
       togglePredictionArea();
       initAreaMap();
-      showToast("Use the rectangle tool on the map to draw a prediction area.");
+      showToast("Use the rectangle or circle tool on the map to draw a prediction area.");
     }
 
     function togglePredictionArea() {
@@ -2683,6 +2717,7 @@ dask worker tcp://192.168.199.1:8786 --nworkers 6 --nthreads 1 --name MacPro_sha
 
     function getPredictionCoords() {
       return {
+        area_circle: getAreaCircle(),
         model: document.getElementById("p-model").value,
         min_lng: document.getElementById("min-lng").value,
         min_lat: document.getElementById("min-lat").value,
@@ -2707,7 +2742,7 @@ dask worker tcp://192.168.199.1:8786 --nworkers 6 --nthreads 1 --name MacPro_sha
       return predictionParamIds.reduce((snapshot, id) => {
         snapshot[id] = document.getElementById(id).value;
         return snapshot;
-      }, {});
+      }, {area_circle: getAreaCircle()});
     }
 
     function applyPredictionParams(params) {
@@ -2720,6 +2755,12 @@ dask worker tcp://192.168.199.1:8786 --nworkers 6 --nthreads 1 --name MacPro_sha
       document.getElementById("area-status").textContent = hasBounds ? "Area restored" : "No area selected";
       togglePredictionArea();
       setDatabaseCenter();
+      if (hasBounds && document.getElementById('p-predictDataSelect').value === 'predictData_map') {
+        initAreaMap();drawnItems.clearLayers();
+        const circle=params.area_circle;
+        const layer=circle?L.circle([circle.lat,circle.lng],{radius:circle.radius}):L.rectangle([[Number(params['min-lat']),Number(params['min-lng'])],[Number(params['max-lat']),Number(params['max-lng'])]]);
+        drawnItems.addLayer(layer);updateAreaBounds(layer.getBounds());updateAreaMeasurements(layer);areaMap.fitBounds(layer.getBounds());
+      }
     }
 
     function savePredictionParams() {

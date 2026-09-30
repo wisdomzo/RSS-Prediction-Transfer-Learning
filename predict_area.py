@@ -6,6 +6,21 @@ from subFun import generate_grid_points
 import main_collect_data
 import shutil
 import pandas as pd
+import math
+
+def filter_circle_grid(csv_path, circle):
+    """Retain only geodesic grid samples inside the selected circle."""
+    lat, lon, radius = (float(circle[key]) for key in ("lat", "lng", "radius"))
+    if not all(math.isfinite(v) for v in (lat, lon, radius)) or radius <= 0 or not -90 <= lat <= 90 or not -180 <= lon <= 180:
+        raise ValueError("Invalid circular prediction area.")
+    frame = pd.read_csv(csv_path)
+    def inside(row):
+        a = math.sin(math.radians(row.Latitude-lat)/2)**2 + math.cos(math.radians(lat))*math.cos(math.radians(row.Latitude))*math.sin(math.radians(row.Longitude-lon)/2)**2
+        return 6371000 * 2 * math.asin(math.sqrt(min(1, max(0, a)))) <= radius + 0.01
+    frame = frame[frame.apply(inside, axis=1)]
+    if frame.empty:
+        raise ValueError("No grid points fall inside the circle. Increase Mesh Longitude and Mesh Latitude.")
+    frame.to_csv(csv_path, index=False)
 
 def get_app_root_directory():
     if hasattr(sys, '_MEIPASS'):
@@ -105,6 +120,8 @@ def run_prediction_process(args_list):
             N, M = int(args_list[7]), int(args_list[8])
         # Generate grid points.
         generate_grid_points(lon_min, lon_max, lat_min, lat_max, N, M, selected_folder_csv)
+        if len(args_list) > 18 and args_list[18]:
+            filter_circle_grid(os.path.join(selected_folder_csv, "grid_points.csv"), args_list[18])
     else:
         copy_prediction_data(predictDataSelectValue, selected_folder_csv)
 
