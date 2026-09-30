@@ -16,6 +16,18 @@ class AppSuiteStaticTests(unittest.TestCase):
     def test_app_suite_file_exists(self):
         self.assertTrue(APP.exists())
 
+    def test_base_maps_overlap_raster_edges_without_changing_grid_size(self):
+        html = self.read_app()
+        helper = html.split("function createBaseMapLayer()", 1)[1].split("function initAreaMap()", 1)[0]
+        self.assertIn('layer.on("tileloadstart"', helper)
+        self.assertIn("layer.getTileSize()", helper)
+        self.assertIn("size.x + 1", helper)
+        self.assertIn("size.y + 1", helper)
+        self.assertIn('tile.style.mixBlendMode = "normal"', helper)
+        self.assertNotIn("tileSize:", helper)
+        self.assertIn("createBaseMapLayer().addTo(areaMap)", html)
+        self.assertIn("createBaseMapLayer().addTo(resultMap)", html)
+
     def test_app_suite_wires_existing_pywebview_api_contract(self):
         html = self.read_app()
         required_calls = [

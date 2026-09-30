@@ -2614,13 +2614,27 @@ dask worker tcp://192.168.199.1:8786 --nworkers 6 --nthreads 1 --name MacPro_sha
       button.addEventListener("click", () => showView(button.dataset.view));
     });
 
+    function createBaseMapLayer() {
+      const layer = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png");
+      layer.on("tileloadstart", ({tile}) => {
+        // Overlap raster edges to cover fractional-pixel seams during WebKit zoom.
+        // Keep Leaflet's logical tile size and geographic placement unchanged.
+        const size = layer.getTileSize();
+        tile.style.width = `${size.x + 1}px`;
+        tile.style.height = `${size.y + 1}px`;
+        // Additive blending would turn the overlapping edge into a bright line.
+        tile.style.mixBlendMode = "normal";
+      });
+      return layer;
+    }
+
     function initAreaMap() {
       if (areaMap) {
         areaMap.invalidateSize();
         return;
       }
       areaMap = L.map("area-map").setView(dbCenters.DB_matumotoCity, 12);
-      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(areaMap);
+      createBaseMapLayer().addTo(areaMap);
       drawnItems = new L.FeatureGroup();
       areaMap.addLayer(drawnItems);
       areaMeasurements = L.layerGroup().addTo(areaMap);
@@ -3043,7 +3057,7 @@ dask worker tcp://192.168.199.1:8786 --nworkers 6 --nthreads 1 --name MacPro_sha
         return;
       }
       resultMap = L.map("result-map", { preferCanvas: true }).setView(dbCenters.DB_matumotoCity, 12);
-      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(resultMap);
+      createBaseMapLayer().addTo(resultMap);
     }
 
     async function loadResults() {
