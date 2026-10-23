@@ -996,6 +996,17 @@
       flex-wrap: wrap;
     }
 
+    #sampling-controls .form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(min(100%, 210px), 1fr));
+      gap: 0 16px;
+    }
+    #sampling-controls .actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+    #sampling-controls summary { cursor: pointer; color: var(--muted); margin-bottom: 12px; }
+    #sampling-controls input, #sampling-controls select { min-width: 0; width: 100%; }
+    #sampling-method-tip { left: 0; top: calc(100% + 10px); bottom: auto; transform: none; }
+    #sampling-method-tip::after { left: 8px; top: auto; bottom: 100%; border-top-color: transparent; border-bottom-color: rgba(8, 13, 20, 0.98); }
+
     .result-layer-controls {
       display: flex;
       align-items: center;
@@ -1954,7 +1965,7 @@ dask worker tcp://192.168.199.1:8786 --nworkers 6 --nthreads 1 --name MacPro_sha
           <div class="toolbar"><button class="ghost-btn" onclick="loadResults()">Load Latest Result</button><button class="primary-btn" onclick="downloadCsv()">Download CSV</button></div>
         </div>
         <div class="empty-state" id="result-empty-state"><div><h3>No result loaded</h3><p class="lead">Load the latest prediction output to display the RSS result map.</p></div></div>
-        <div class="panel hidden" id="result-map-panel"><div class="panel-header"><h3>Result Map</h3><span class="pill" id="result-status">No result loaded</span></div><div class="panel-body"><div class="result-layer-toolbar"><div class="result-layer-tabs"><button class="ghost-btn active" data-result-layer="prediction" onclick="showResultLayer('prediction')">Prediction RSS</button><button class="ghost-btn" data-result-layer="uncertainty" onclick="showResultLayer('uncertainty')">Uncertainty</button></div><div class="result-layer-controls"><label for="uncertainty-eta">η</label><input id="uncertainty-eta" type="number" min="0" max="1" step="0.05" value="0.1" onchange="renderUncertaintyLayerFromControl()" /><span class="result-layer-note" id="uncertainty-status">Top-η red, Bottom-η green, middle blue.</span></div></div><div class="result-map-wrap"><div id="result-map"></div><div class="result-legend hidden" id="result-legend"><div class="result-legend-title" id="result-legend-title">Median RSS</div><div class="result-legend-gradient" id="result-legend-gradient"></div><div class="result-legend-labels"><span id="result-legend-min">-- dBm</span><span id="result-legend-mid">-- dBm</span><span id="result-legend-max">-- dBm</span></div></div></div></div></div>
+        <div class="panel hidden" id="result-map-panel"><div class="panel-header"><h3>Result Map</h3><span class="pill" id="result-status">No result loaded</span></div><div class="panel-body"><div class="result-layer-toolbar"><div class="result-layer-tabs"><button class="ghost-btn active" data-result-layer="prediction" onclick="showResultLayer('prediction')">Prediction RSS</button><button class="ghost-btn" data-result-layer="uncertainty" onclick="showResultLayer('uncertainty')">Uncertainty</button><button class="ghost-btn" data-result-layer="sampling" onclick="showResultLayer('sampling')">Sampling Suggestions</button></div><div class="result-layer-controls"><label for="uncertainty-eta">η</label><input id="uncertainty-eta" type="number" min="0" max="1" step="0.05" value="0.1" onchange="renderUncertaintyLayerFromControl()" /><span class="result-layer-note" id="uncertainty-status">Top-η red, Bottom-η green, middle blue.</span></div></div><div class="result-map-wrap"><div id="result-map"></div><div class="result-legend hidden" id="result-legend"><div class="result-legend-title" id="result-legend-title">Median RSS</div><div class="result-legend-gradient" id="result-legend-gradient"></div><div class="result-legend-labels"><span id="result-legend-min">-- dBm</span><span id="result-legend-mid">-- dBm</span><span id="result-legend-max">-- dBm</span></div></div></div></div></div>
       </section>
 
       <section class="workspace" id="view-analysis">
@@ -3051,6 +3062,147 @@ dask worker tcp://192.168.199.1:8786 --nworkers 6 --nthreads 1 --name MacPro_sha
       showToast("Model generation started.");
     }
 
+    let samplingResult = null;
+    let samplingRevision = 0;
+    let samplingBusy = false;
+    const samplingMethodHelp = {
+      uras: 'URAS: Splits uncertainty into high, middle and low groups (20/60/20%). DBSCAN selects one region per group. Initial sampling quotas are 70/20/10%, with unused places filled by highest uncertainty.',
+      uras_spatial: 'URAS-Spatial: Combines uncertainty groups and ranked spatial clusters with a minimum spacing between all selected locations. Spacing decreases by 10 m per refill round; below 10 m, the restriction is removed.',
+      random: 'Random: Selects unique locations uniformly without replacement. The random seed makes the selection reproducible.',
+      top_u: 'Top-U: Selects locations with the highest Uncertainty values. It does not enforce spatial coverage or minimum spacing.',
+      bottom_u: 'Bottom-U: Selects locations with the lowest Uncertainty values. It does not enforce spatial coverage or minimum spacing.',
+      k_center: 'Spatial k-center: Starts at a seeded random location, then repeatedly selects the location farthest from its nearest selected point. Uses coordinates only to spread samples across the area.',
+      gp: 'Spatial GP: Selects locations by conditional variance under a fixed spatial Gaussian-process kernel. Uses coordinates only, not measured RSSI or committee uncertainty. Limited to 20,000 candidates and 500 selected points.',
+      dbscan_nn: 'DBSCAN-NN: Groups locations with DBSCAN and selects points using nearest-neighbor routes from the specified start. Uses coordinates only. Routes use geometric distances, not roads, and do not guarantee the shortest route.',
+      uras_no_u: 'URAS-noU: Removes uncertainty ranking and stratification. Visits spatial clusters from largest to smallest, selecting points in coordinate order, then fills from noise points. No minimum spacing.',
+      uras_no_dbscan: 'URAS-noDBSCAN: Keeps uncertainty groups and 70/20/10% initial quotas but removes regional clustering. Selects highest-uncertainty points within each group and fills any shortfall globally.',
+      uras_spatial_no_u: 'URAS-Spatial-noU: Uses spatial clusters and minimum spacing without uncertainty ranking or stratification. Visits larger clusters first. Spacing decreases by 10 m per refill round; below 10 m, the restriction is removed.'
+    };
+
+    function initSamplingControls() {
+      if (document.getElementById('sampling-controls')) return;
+      const controls = document.createElement('div');
+      controls.id = 'sampling-controls';
+      controls.className = 'hidden';
+      controls.innerHTML = `
+        <div class="form-grid">
+          <div class="field"><label for="sampling-method">Method <span class="parameter-help" tabindex="0" data-help-for="sampling-method" aria-label="Sampling method help" aria-describedby="sampling-method-tip">?<span class="help-tooltip" id="sampling-method-tip" role="tooltip"></span></span></label><select id="sampling-method" aria-describedby="sampling-method-tip">
+            <option value="uras">URAS</option><option value="uras_spatial">URAS-Spatial</option>
+            <option value="random">Random</option><option value="top_u">Top-U</option><option value="bottom_u">Bottom-U</option>
+            <option value="k_center">Spatial k-center</option><option value="gp">Spatial GP</option><option value="dbscan_nn">DBSCAN-NN</option>
+            <optgroup label="Other Methods"><option value="uras_no_u">URAS-noU</option><option value="uras_no_dbscan">URAS-noDBSCAN</option><option value="uras_spatial_no_u">URAS-Spatial-noU</option></optgroup>
+          </select></div>
+          <div class="field"><label for="sampling-budget-mode">Budget Type</label><select id="sampling-budget-mode"><option value="percent">Percentage of unique locations</option><option value="count">Number of locations</option></select></div>
+          <div class="field"><label for="sampling-budget">Budget</label><input id="sampling-budget" type="number" min="0.01" step="any" value="10"></div>
+          <div class="field" id="sampling-spacing-field"><label for="sampling-spacing">Initial spacing in m</label><input id="sampling-spacing" type="number" min="0" max="10000" value="30" step="any"></div>
+        </div>
+        <details><summary>Advanced Parameters</summary><div class="form-grid">
+          <div class="field"><label for="sampling-eps">DBSCAN epsilon in degrees</label><input id="sampling-eps" type="number" min="0.000001" step="any" value="0.0008"></div>
+          <div class="field"><label for="sampling-min">DBSCAN minimum samples</label><input id="sampling-min" type="number" min="1" step="1" value="20"></div>
+          <div class="field"><label for="sampling-seed">Random seed</label><input id="sampling-seed" type="number" min="0" max="4294967295" step="1" value="42"></div>
+          <div class="field"><label for="sampling-scale">GP length scale in m</label><input id="sampling-scale" type="number" min="0.01" step="any" value="100"></div>
+        </div></details>
+        <div class="form-grid hidden" id="sampling-origin">
+          <div class="field"><label for="sampling-start-lat">Start latitude in degrees</label><input id="sampling-start-lat" type="number" min="-90" max="90" step="any"></div>
+          <div class="field"><label for="sampling-start-lon">Start longitude in degrees</label><input id="sampling-start-lon" type="number" min="-180" max="180" step="any"></div>
+        </div>
+        <div class="actions"><button class="primary-btn" id="sampling-generate" onclick="generateSamplingSuggestions()">Generate Suggestions</button>
+          <button class="ghost-btn" id="sampling-download" onclick="downloadSamplingSuggestions()" disabled>Download CSV</button>
+          <button class="ghost-btn" id="sampling-reset" onclick="resetSamplingSuggestions(true)">Reset</button></div>
+        <p id="sampling-summary" role="status" style="color:var(--muted);overflow-wrap:anywhere;margin:12px 0">No sampling suggestions generated.</p>`;
+      document.querySelector('#result-map-panel .result-map-wrap').before(controls);
+      controls.addEventListener('change', () => { resetSamplingSuggestions(); updateSamplingControls(); });
+      controls.addEventListener('input', () => resetSamplingSuggestions());
+      updateSamplingControls();
+    }
+
+    function updateSamplingControls() {
+      const method = document.getElementById('sampling-method').value;
+      document.getElementById('sampling-method-tip').textContent = samplingMethodHelp[method];
+      const clustered = ['uras','uras_spatial','dbscan_nn','uras_no_u','uras_spatial_no_u'].includes(method);
+      document.getElementById('sampling-spacing-field').classList.toggle('hidden', !['uras_spatial','uras_spatial_no_u'].includes(method));
+      document.getElementById('sampling-origin').classList.toggle('hidden', method !== 'dbscan_nn');
+      document.getElementById('sampling-eps').disabled = !clustered;
+      document.getElementById('sampling-min').disabled = !clustered;
+      document.getElementById('sampling-seed').disabled = !['random','k_center','gp'].includes(method);
+      document.getElementById('sampling-scale').disabled = method !== 'gp';
+      const count = document.getElementById('sampling-budget-mode').value === 'count';
+      document.getElementById('sampling-budget').step = count ? '1' : 'any';
+      document.getElementById('sampling-budget').max = count ? String(latestResultData.length) : '100';
+    }
+
+    function resetSamplingSuggestions(restoreDefaults = false) {
+      samplingRevision++;
+      samplingResult = null;
+      if (restoreDefaults) {
+        const controls = document.getElementById('sampling-controls');
+        controls.querySelectorAll('input').forEach(el => { el.value = el.defaultValue; });
+        controls.querySelectorAll('select').forEach(el => { el.selectedIndex = 0; });
+        document.getElementById('sampling-start-lat').value = document.getElementById('p-fixAntenna_lat').value;
+        document.getElementById('sampling-start-lon').value = document.getElementById('p-fixAntenna_lng').value;
+        updateSamplingControls();
+      }
+      const download = document.getElementById('sampling-download');
+      if (download) download.disabled = true;
+      const summary = document.getElementById('sampling-summary');
+      if (summary) summary.textContent = 'No sampling suggestions generated.';
+      if (currentResultLayer === 'sampling' && latestResultData.length) showResultLayer('sampling');
+    }
+
+    function renderSamplingSuggestions() {
+      document.getElementById('result-legend').classList.add('hidden');
+      const points = samplingResult?.records || [];
+      points.forEach(point => {
+        const text = document.createElement('div');
+        const formatValue = value => value !== null && value !== undefined && String(value).trim() !== '' && Number.isFinite(Number(value)) && Number(value) !== -999 ? Number(value).toFixed(2) : 'N/A';
+        text.style.whiteSpace = 'pre-line';
+        text.textContent = `Selection #${point.Sampling_Order}\nLatitude: ${point.Latitude}\nLongitude: ${point.Longitude}\nPredicted_Value in dBm: ${formatValue(point.Predicted_Value)}\nUncertainty in dB: ${formatValue(point.Uncertainty)}`;
+        L.circleMarker([point.Latitude, point.Longitude], {radius:6,color:'#ffffff',weight:1.5,fillColor:'#f29d38',fillOpacity:0.95}).bindPopup(text).addTo(resultMap);
+      });
+      document.getElementById('result-status').textContent = points.length ? `${points.length} recommended locations` : 'No suggestions generated';
+    }
+
+    async function generateSamplingSuggestions() {
+      if (samplingBusy || !latestResultData.length) return;
+      ensurePywebviewApi();
+      resetSamplingSuggestions();
+      const revision = samplingRevision;
+      const value = id => document.getElementById(id).value;
+      const options = {method:value('sampling-method'),budget_mode:value('sampling-budget-mode'),budget:value('sampling-budget'),
+        initial_spacing:value('sampling-spacing'),eps:value('sampling-eps'),min_samples:value('sampling-min'),
+        seed:value('sampling-seed'),gp_scale:value('sampling-scale'),start_lat:value('sampling-start-lat'),start_lon:value('sampling-start-lon')};
+      const controls = document.getElementById('sampling-controls');
+      const disabled = [...controls.querySelectorAll('input,select,button')].map(el => [el,el.disabled]);
+      disabled.forEach(([el]) => el.disabled = true);
+      samplingBusy = true;
+      document.getElementById('sampling-summary').textContent = 'Generating sampling suggestions...';
+      try {
+        const result = await window.pywebview.api.generate_sampling_suggestions(latestResultData,options);
+        if (revision !== samplingRevision) return;
+        if (result.status !== 'ok') throw new Error(result.message || 'Sampling failed.');
+        samplingResult = result;
+        const rounds = result.rounds.map(r => `${r.spacing_m === null ? 'Unrestricted' : r.spacing_m+' m'}: +${r.added}`).join(' → ');
+        const methodLabel = document.getElementById('sampling-method').selectedOptions[0].textContent;
+        document.getElementById('sampling-summary').textContent = `${methodLabel}: ${result.selected_count} / ${result.candidate_count} unique locations. ${result.removed_duplicates} duplicate records removed (first record retained). ${rounds}`;
+        if (currentResultLayer === 'sampling') showResultLayer('sampling');
+      } catch (error) {
+        if (revision === samplingRevision) document.getElementById('sampling-summary').textContent = error.message;
+      } finally {
+        samplingBusy = false;
+        disabled.forEach(([el,wasDisabled]) => el.disabled = wasDisabled);
+        document.getElementById('sampling-download').disabled = !samplingResult;
+      }
+    }
+
+    async function downloadSamplingSuggestions() {
+      if (!samplingResult) return;
+      try {
+        const result = await window.pywebview.api.download_sampling_suggestions(samplingResult.records);
+        if (result.status === 'ok') showToast('Sampling CSV saved.');
+        else if (result.status === 'error') showToast(result.message);
+      } catch (error) { showToast(`Sampling export failed: ${error.message}`); }
+    }
+
     function initResultMap() {
       if (resultMap) {
         resultMap.invalidateSize();
@@ -3077,7 +3229,11 @@ dask worker tcp://192.168.199.1:8786 --nworkers 6 --nthreads 1 --name MacPro_sha
         showToast("Prediction result values are not valid.");
         return;
       }
+      resetSamplingSuggestions();
       latestResultData = rawData;
+      initSamplingControls();
+      document.getElementById('sampling-start-lat').value = document.getElementById('p-fixAntenna_lat').value;
+      document.getElementById('sampling-start-lon').value = document.getElementById('p-fixAntenna_lng').value;
       const mapPoints = rawData
         .map((p) => [Number(p.Latitude), Number(p.Longitude)])
         .filter((point) => point.every((value) => Number.isFinite(value)));
@@ -3091,13 +3247,20 @@ dask worker tcp://192.168.199.1:8786 --nworkers 6 --nthreads 1 --name MacPro_sha
     }
 
     function showResultLayer(layerName) {
-      currentResultLayer = layerName === "uncertainty" ? "uncertainty" : "prediction";
+      currentResultLayer = ['uncertainty', 'sampling'].includes(layerName) ? layerName : 'prediction';
+      initSamplingControls();
+      document.getElementById('sampling-controls').classList.toggle('hidden', currentResultLayer !== 'sampling');
+      document.querySelector('#result-map-panel .result-layer-controls').classList.toggle('hidden', currentResultLayer !== 'uncertainty');
       document.querySelectorAll("[data-result-layer]").forEach((button) => {
         button.classList.toggle("active", button.dataset.resultLayer === currentResultLayer);
       });
       if (!latestResultData.length) return;
       initResultMap();
       clearResultMapLayers();
+      if (currentResultLayer === 'sampling') {
+        renderSamplingSuggestions();
+        return;
+      }
       if (currentResultLayer === "uncertainty") {
         renderUncertaintyLayer(latestResultData);
         return;
@@ -3381,6 +3544,7 @@ dask worker tcp://192.168.199.1:8786 --nworkers 6 --nthreads 1 --name MacPro_sha
 
     function clearPredictionResults() {
       latestResultData = [];
+      resetSamplingSuggestions();
       currentResultLayer = "prediction";
       clearResultMapLayers();
       document.querySelectorAll("[data-result-layer]").forEach((button) => {

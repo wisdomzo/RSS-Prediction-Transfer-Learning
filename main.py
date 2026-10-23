@@ -278,6 +278,25 @@ def terminate_current_model_training():
     return True
 
 class Api:
+    def generate_sampling_suggestions(self, records, options):
+        from sampling_suggestions import generate_suggestions
+        try:
+            return {"status": "ok", **generate_suggestions(records, options)}
+        except Exception as exc:
+            return {"status": "error", "message": str(exc)}
+
+    def download_sampling_suggestions(self, records):
+        try:
+            path = window.create_file_dialog(webview.FileDialog.SAVE,
+                save_filename="sampling_suggestions.csv", file_types=('CSV Files (*.csv)',))
+            if not path:
+                return {"status": "cancelled"}
+            path = path[0] if isinstance(path, (list, tuple)) else path
+            pd.DataFrame(records).to_csv(path, index=False, encoding="utf-8-sig")
+            return {"status": "ok"}
+        except Exception as exc:
+            return {"status": "error", "message": str(exc)}
+
     def __init__(self):
         # The window may not exist during initialization.
         pass
