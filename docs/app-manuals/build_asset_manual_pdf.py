@@ -27,6 +27,9 @@ CHROME = Path("/Applications/Google Chrome.app/Contents/MacOS/Google Chrome")
 CSS = r"""
 @page cover { size: A4; margin: 0; }
 @page manual { size: A4; margin: 18mm 18mm 20mm; }
+@page manual {
+  @bottom-center { content: "リアルコネクト株式会社"; font-family: "Asset Hiragino W3", sans-serif; font-size: 8pt; color: #526777; vertical-align: top; padding-top: 5mm; }
+}
 @font-face { font-family: "Asset Hiragino W3"; src: local("HiraKakuProN-W3"), local("Hiragino Kaku Gothic ProN W3"); font-weight: 300; }
 @font-face { font-family: "Asset Hiragino W6"; src: local("HiraKakuProN-W6"), local("Hiragino Kaku Gothic ProN W6"); font-weight: 600; }
 * { box-sizing: border-box; }
@@ -39,11 +42,13 @@ body { font-family: "Asset Hiragino W3", sans-serif; font-weight: 300; color: #1
 .signal::before, .signal::after { content: ""; position: absolute; border: 1.2px solid currentColor; border-radius: 50%; inset: 10mm; }
 .signal::after { inset: 22mm; background: currentColor; }
 .signal.one { left: 4mm; top: 28mm; color: #22d3ee; } .signal.two { left: 24mm; top: 137mm; color: #a3e635; } .signal.three { left: -8mm; top: 220mm; color: #22d3ee; }
-.cover-copy { position: absolute; left: 90mm; right: 14mm; top: 37mm; }
+.cover-copy { position: absolute; left: 90mm; right: 14mm; top: 27mm; }
 .kicker { color: #0891b2; font-size: 10pt; font-family: "Asset Hiragino W6", sans-serif; font-weight: 600; }
-.cover h1 { margin: 16mm 0 0; font-family: "Asset Hiragino W6", sans-serif; font-size: 27pt; line-height: 1.32; font-weight: 600; color: #102a43; }
-.cover h1 span { display: block; color: #0891b2; font-size: 25pt; }
-.cover-lead { margin: 10mm 0 17mm; color: #526777; font-size: 11pt; }
+.cover h1 { margin: 10mm 0 0; font-family: "Asset Hiragino W6", sans-serif; font-size: 22pt; line-height: 1.45; font-weight: 600; color: #102a43; }
+.cover-subtitle { margin: 4mm 0 0; color: #526777; font-size: 14pt; }
+.cover-document-title { margin: 6mm 0 3mm; color: #0891b2; font-family: "Asset Hiragino W6", sans-serif; font-size: 25pt; }
+.cover-publisher { font-size: 10pt; color: #526777; line-height: 1.8; }
+.cover-lead { margin: 7mm 0 10mm; color: #526777; font-size: 11pt; }
 .benefit { border-left: 2.5mm solid #a3e635; padding-left: 5mm; margin: 0 0 9mm; }
 .benefit strong { display: block; font-family: "Asset Hiragino W6", sans-serif; font-weight: 600; font-size: 11pt; } .benefit small { color: #526777; font-size: 9.5pt; }
 .cover-meta { position: absolute; left: 90mm; bottom: 20mm; color: #526777; font-size: 9.5pt; }
@@ -147,15 +152,15 @@ def markdown_body(lines, headings, toc_pages=None) -> str:
 
 def render_html(lines, pages=None) -> str:
     headings = collect_headings(lines); body = markdown_body(lines, headings, pages)
-    cover = """<section class="cover"><div class="cover-rail"><i class="signal one"></i><i class="signal two"></i><i class="signal three"></i></div><div class="cover-bottom"></div><div class="cover-copy"><div class="kicker">VISUAL QUICKSTART</div><h1>ASSET Framework App<span>使用説明書</span></h1><p class="cover-lead">はじめての RSS 予測を、かんたんに。</p><div class="benefit"><strong>かんたん予測</strong><small>地図上でエリアを選ぶだけ</small></div><div class="benefit"><strong>結果をすぐ確認</strong><small>CSV に保存して再利用</small></div><div class="benefit"><strong>やさしい手順</strong><small>初めてでも迷わない</small></div></div><div class="cover-meta">対象アプリ版&nbsp;&nbsp;v2.9.0<br>文書版&nbsp;&nbsp;v1.5<br>更新日&nbsp;&nbsp;2026年10月23日</div></section>"""
-    return f'<!doctype html><html lang="ja"><head><meta charset="utf-8"><title>ASSET Framework App 使用説明書 v1.5</title><style>{CSS}</style></head><body>{cover}<main class="manual">{body}</main></body></html>'
+    cover = """<section class="cover"><div class="cover-rail"><i class="signal one"></i><i class="signal two"></i><i class="signal three"></i></div><div class="cover-bottom"></div><div class="cover-copy"><div class="kicker">VISUAL QUICKSTART</div><h1>電波強度分布マップ<br>生成・可視化<br>ソフトウェア</h1><p class="cover-subtitle">ASSET Framework App</p><p class="cover-document-title">使用説明書</p><p class="cover-publisher">リアルコネクト株式会社<br>2026年10月27日</p><p class="cover-lead">はじめての RSS 予測を、かんたんに。</p><div class="benefit"><strong>かんたん予測</strong><small>地図上でエリアを選ぶだけ</small></div><div class="benefit"><strong>結果をすぐ確認</strong><small>CSV に保存して再利用</small></div><div class="benefit"><strong>やさしい手順</strong><small>初めてでも迷わない</small></div></div><div class="cover-meta">対象アプリ版&nbsp;&nbsp;v2.9.0<br>文書版&nbsp;&nbsp;v1.6</div></section>"""
+    return f'<!doctype html><html lang="ja"><head><meta charset="utf-8"><title>電波強度分布マップ生成・可視化ソフトウェア - ASSET Framework App 使用説明書 v1.6</title><style>{CSS}</style></head><body>{cover}<main class="manual">{body}</main></body></html>'
 
 def chrome_print():
     if not CHROME.exists(): raise FileNotFoundError(f"Google Chrome was not found: {CHROME}")
     subprocess.run([str(CHROME), "--headless=new", "--disable-gpu", "--no-sandbox", "--no-pdf-header-footer", f"--print-to-pdf={RAW_PDF}", HTML_FILE.as_uri()], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
 def heading_pages(pdf_path, headings):
-    texts = [re.sub(r"\s+", "", unicodedata.normalize("NFKC", page.extract_text() or "")) for page in PdfReader(str(pdf_path)).pages]
+    texts = [re.sub(r"[\s\x00-\x1f]+", "", unicodedata.normalize("NFKC", page.extract_text() or "")) for page in PdfReader(str(pdf_path)).pages]
     result = {}
     for _, title, key in headings:
         needle = re.sub(r"\s+", "", unicodedata.normalize("NFKC", title.replace("`", "").replace("**", "")))
@@ -193,7 +198,7 @@ def finish_pdf(raw_pdf, output, headings, pages):
         if key not in pages: continue
         item = writer.add_outline_item(title, pages[key]-1, parent=parent if level == 3 else None)
         if level == 2: parent = item
-    writer.add_metadata({"/Title":"ASSET Framework App 使用説明書 v1.5","/Author":"ASSET Framework"}); output.parent.mkdir(parents=True, exist_ok=True)
+    writer.add_metadata({"/Title":"電波強度分布マップ生成・可視化ソフトウェア - ASSET Framework App 使用説明書 v1.6","/Author":"リアルコネクト株式会社"}); output.parent.mkdir(parents=True, exist_ok=True)
     with output.open("wb") as handle: writer.write(handle)
 
 def main() -> int:

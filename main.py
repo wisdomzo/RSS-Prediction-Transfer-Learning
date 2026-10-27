@@ -558,7 +558,8 @@ def worker_thread(coords):
             "DB_nagano_urugimura": "database/nagano_urugimura",
             "DB_okinawa_naha": "database/okinawa_naha",
             "DB_okinawa_nago": "database/okinawa_nago",
-            "DB_nagano_ina": "database/nagano_ina"
+            "DB_nagano_ina": "database/nagano_ina",
+            "DB_fukujima_date": "database/fukujima_date"
         }
         db_key = coords.get('database')
         relative_path = DATABASE_MAP.get(db_key)

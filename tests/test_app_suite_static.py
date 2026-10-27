@@ -16,6 +16,12 @@ class AppSuiteStaticTests(unittest.TestCase):
     def test_app_suite_file_exists(self):
         self.assertTrue(APP.exists())
 
+    def test_fukujima_date_database_is_wired(self):
+        html = self.read_app()
+        self.assertIn('<option value="DB_fukujima_date">Fukujima Date</option>', html)
+        self.assertIn('DB_fukujima_date: [37.791666667, 140.5625]', html)
+        self.assertIn('"DB_fukujima_date": "database/fukujima_date"', (ROOT / 'main.py').read_text())
+
     def test_base_maps_overlap_raster_edges_without_changing_grid_size(self):
         html = self.read_app()
         helper = html.split("function createBaseMapLayer()", 1)[1].split("function initAreaMap()", 1)[0]

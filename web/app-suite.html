@@ -981,6 +981,16 @@
       position: relative;
     }
 
+    .fixed-antenna-star {
+      background: transparent;
+      border: 0;
+      color: #ffd34f;
+      font-size: 30px;
+      line-height: 32px;
+      text-align: center;
+      text-shadow: -1px -1px 0 #453000, 1px -1px 0 #453000, -1px 1px 0 #453000, 1px 1px 0 #453000;
+    }
+
     .result-layer-toolbar {
       display: flex;
       align-items: center;
@@ -1827,6 +1837,7 @@ dask worker tcp://192.168.199.1:8786 --nworkers 6 --nthreads 1 --name MacPro_sha
                   <option value="DB_okinawa_naha">Okinawa Naha</option>
                   <option value="DB_okinawa_nago">Okinawa Nago</option>
                   <option value="DB_nagano_ina">Nagano Ina</option>
+                  <option value="DB_fukujima_date">Fukujima Date</option>
                 </select>
               </div>
               <div class="field">
@@ -2169,7 +2180,8 @@ dask worker tcp://192.168.199.1:8786 --nworkers 6 --nthreads 1 --name MacPro_sha
       DB_nagano_urugimura: [35.27004166, 137.7153306],
       DB_okinawa_naha: [26.2532089, 127.7658981],
       DB_okinawa_nago: [26.61895, 127.984681],
-      DB_nagano_ina: [35.839181382623885, 137.95932802135886]
+      DB_nagano_ina: [35.839181382623885, 137.95932802135886],
+      DB_fukujima_date: [37.791666667, 140.5625]
     };
 
     const selectedPaths = { csv: [], altitude: [], building: [], landuse: [], fv: [] };
@@ -2217,6 +2229,7 @@ dask worker tcp://192.168.199.1:8786 --nworkers 6 --nthreads 1 --name MacPro_sha
     let latestPredictionAnalysisOutputs = { svg: "", png: "" };
     const analysisPalette = ["#1f77b4", "#d62728", "#2ca02c", "#9467bd", "#ff7f0e", "#17becf", "#8c564b", "#e377c2", "#7f7f7f", "#bcbd22", "#003f5c", "#bc5090", "#ffa600", "#58508d", "#00876c"];
     let areaMap;
+    let fixedAntennaMarker;
     let resultMap;
     let latestResultData = [];
     let currentResultLayer = "prediction";
@@ -2639,9 +2652,40 @@ dask worker tcp://192.168.199.1:8786 --nworkers 6 --nthreads 1 --name MacPro_sha
       return layer;
     }
 
+    function updateFixedAntennaMarker() {
+      if (!areaMap) return;
+      const longitudeInput = document.getElementById('p-fixAntenna_lng');
+      const latitudeInput = document.getElementById('p-fixAntenna_lat');
+      const lng = longitudeInput.valueAsNumber;
+      const lat = latitudeInput.valueAsNumber;
+      if (!Number.isFinite(lng) || !Number.isFinite(lat) || Math.abs(lng) > 180 || Math.abs(lat) > 90) {
+        if (fixedAntennaMarker) areaMap.removeLayer(fixedAntennaMarker);
+        fixedAntennaMarker = null;
+        return;
+      }
+      if (!fixedAntennaMarker) {
+        fixedAntennaMarker = L.marker([lat, lng], {
+          icon: L.divIcon({className: 'fixed-antenna-star', html: '&#9733;', iconSize: [32, 32], iconAnchor: [16, 16]}),
+          title: 'Fixed antenna (Tx)', alt: 'Fixed antenna (Tx)', zIndexOffset: 1000
+        }).addTo(areaMap).bindTooltip('Fixed antenna (Tx)');
+      } else {
+        fixedAntennaMarker.setLatLng([lat, lng]);
+      }
+      const content = document.createElement('div');
+      content.style.whiteSpace = 'pre-line';
+      content.textContent = `Fixed antenna (Tx)\nLatitude: ${lat}\nLongitude: ${lng}`;
+      fixedAntennaMarker.bindPopup(content, {minWidth: 190});
+    }
+
+    ['p-fixAntenna_lng', 'p-fixAntenna_lat'].forEach(id => {
+      document.getElementById(id).addEventListener('input', updateFixedAntennaMarker);
+      document.getElementById(id).addEventListener('change', updateFixedAntennaMarker);
+    });
+
     function initAreaMap() {
       if (areaMap) {
         areaMap.invalidateSize();
+        updateFixedAntennaMarker();
         return;
       }
       areaMap = L.map("area-map").setView(dbCenters.DB_matumotoCity, 12);
@@ -2670,6 +2714,7 @@ dask worker tcp://192.168.199.1:8786 --nworkers 6 --nthreads 1 --name MacPro_sha
         ["min-lng", "min-lat", "max-lng", "max-lat"].forEach(id => document.getElementById(id).value = "");
         document.getElementById("area-status").textContent = "No area selected";
       });
+      updateFixedAntennaMarker();
     }
 
     function getAreaCircle() {
@@ -2780,6 +2825,7 @@ dask worker tcp://192.168.199.1:8786 --nworkers 6 --nthreads 1 --name MacPro_sha
       document.getElementById("area-status").textContent = hasBounds ? "Area restored" : "No area selected";
       togglePredictionArea();
       setDatabaseCenter();
+      updateFixedAntennaMarker();
       if (hasBounds && document.getElementById('p-predictDataSelect').value === 'predictData_map') {
         initAreaMap();drawnItems.clearLayers();
         const circle=params.area_circle;
@@ -2847,6 +2893,7 @@ dask worker tcp://192.168.199.1:8786 --nworkers 6 --nthreads 1 --name MacPro_sha
       document.getElementById("p-fixAntenna_lat").value = "";
       document.getElementById("p-fixAntenna_height").value = "";
       document.getElementById("p-moveAntenna_height").value = "";
+      updateFixedAntennaMarker();
       togglePredictionArea();
     }
 

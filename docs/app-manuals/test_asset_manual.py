@@ -17,14 +17,16 @@ class ManualContentTests(unittest.TestCase):
     def test_required_product_explanations_are_present(self):
         required = [
             "対象アプリ版: v2.9.0",
-            "文書版: v1.5",
-            "更新日: 2026年10月23日",
+            "文書版: v1.6",
+            "更新日: 2026年10月27日",
             "General Model M0 (Shinshu Univ. & NICT 202605)",
             "Incremental Training",
             "First-Person View",
             "Train Window View",
             "Aircraft Window View",
             "Boat View",
+            "電波強度分布マップ生成・可視化ソフトウェア",
+            "リアルコネクト株式会社",
             "Sampling Suggestions",
             "URAS-Spatial-noU",
             "Other Methods",

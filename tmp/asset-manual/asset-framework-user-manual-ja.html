@@ -1,6 +1,9 @@
-<!doctype html><html lang="ja"><head><meta charset="utf-8"><title>ASSET Framework App 使用説明書 v1.5</title><style>
+<!doctype html><html lang="ja"><head><meta charset="utf-8"><title>電波強度分布マップ生成・可視化ソフトウェア - ASSET Framework App 使用説明書 v1.6</title><style>
 @page cover { size: A4; margin: 0; }
 @page manual { size: A4; margin: 18mm 18mm 20mm; }
+@page manual {
+  @bottom-center { content: "リアルコネクト株式会社"; font-family: "Asset Hiragino W3", sans-serif; font-size: 8pt; color: #526777; vertical-align: top; padding-top: 5mm; }
+}
 @font-face { font-family: "Asset Hiragino W3"; src: local("HiraKakuProN-W3"), local("Hiragino Kaku Gothic ProN W3"); font-weight: 300; }
 @font-face { font-family: "Asset Hiragino W6"; src: local("HiraKakuProN-W6"), local("Hiragino Kaku Gothic ProN W6"); font-weight: 600; }
 * { box-sizing: border-box; }
@@ -13,11 +16,13 @@ body { font-family: "Asset Hiragino W3", sans-serif; font-weight: 300; color: #1
 .signal::before, .signal::after { content: ""; position: absolute; border: 1.2px solid currentColor; border-radius: 50%; inset: 10mm; }
 .signal::after { inset: 22mm; background: currentColor; }
 .signal.one { left: 4mm; top: 28mm; color: #22d3ee; } .signal.two { left: 24mm; top: 137mm; color: #a3e635; } .signal.three { left: -8mm; top: 220mm; color: #22d3ee; }
-.cover-copy { position: absolute; left: 90mm; right: 14mm; top: 37mm; }
+.cover-copy { position: absolute; left: 90mm; right: 14mm; top: 27mm; }
 .kicker { color: #0891b2; font-size: 10pt; font-family: "Asset Hiragino W6", sans-serif; font-weight: 600; }
-.cover h1 { margin: 16mm 0 0; font-family: "Asset Hiragino W6", sans-serif; font-size: 27pt; line-height: 1.32; font-weight: 600; color: #102a43; }
-.cover h1 span { display: block; color: #0891b2; font-size: 25pt; }
-.cover-lead { margin: 10mm 0 17mm; color: #526777; font-size: 11pt; }
+.cover h1 { margin: 10mm 0 0; font-family: "Asset Hiragino W6", sans-serif; font-size: 22pt; line-height: 1.45; font-weight: 600; color: #102a43; }
+.cover-subtitle { margin: 4mm 0 0; color: #526777; font-size: 14pt; }
+.cover-document-title { margin: 6mm 0 3mm; color: #0891b2; font-family: "Asset Hiragino W6", sans-serif; font-size: 25pt; }
+.cover-publisher { font-size: 10pt; color: #526777; line-height: 1.8; }
+.cover-lead { margin: 7mm 0 10mm; color: #526777; font-size: 11pt; }
 .benefit { border-left: 2.5mm solid #a3e635; padding-left: 5mm; margin: 0 0 9mm; }
 .benefit strong { display: block; font-family: "Asset Hiragino W6", sans-serif; font-weight: 600; font-size: 11pt; } .benefit small { color: #526777; font-size: 9.5pt; }
 .cover-meta { position: absolute; left: 90mm; bottom: 20mm; color: #526777; font-size: 9.5pt; }
@@ -44,7 +49,7 @@ figure { margin: 4mm auto 6mm; break-inside: avoid; } figure img { display: bloc
 figcaption { margin-top: 2mm; color: #526777; font-size: 8.5pt; text-align: center; }
 .toc { margin-top: 5mm; } .toc a { display: grid; grid-template-columns: auto 1fr auto; gap: 2mm; align-items: end; color: #102a43; text-decoration: none; margin: 0 0 2mm; }
 .toc a.sub { padding-left: 7mm; color: #526777; font-size: 9.3pt; } .toc .dots { border-bottom: .25mm dotted #9aacb7; transform: translateY(-1.4mm); } .toc .page { color: #52820e; font-weight: 600; }
-</style></head><body><section class="cover"><div class="cover-rail"><i class="signal one"></i><i class="signal two"></i><i class="signal three"></i></div><div class="cover-bottom"></div><div class="cover-copy"><div class="kicker">VISUAL QUICKSTART</div><h1>ASSET Framework App<span>使用説明書</span></h1><p class="cover-lead">はじめての RSS 予測を、かんたんに。</p><div class="benefit"><strong>かんたん予測</strong><small>地図上でエリアを選ぶだけ</small></div><div class="benefit"><strong>結果をすぐ確認</strong><small>CSV に保存して再利用</small></div><div class="benefit"><strong>やさしい手順</strong><small>初めてでも迷わない</small></div></div><div class="cover-meta">対象アプリ版&nbsp;&nbsp;v2.9.0<br>文書版&nbsp;&nbsp;v1.5<br>更新日&nbsp;&nbsp;2026年10月23日</div></section><main class="manual"><h2 id="toc">目次</h2>
+</style></head><body><section class="cover"><div class="cover-rail"><i class="signal one"></i><i class="signal two"></i><i class="signal three"></i></div><div class="cover-bottom"></div><div class="cover-copy"><div class="kicker">VISUAL QUICKSTART</div><h1>電波強度分布マップ<br>生成・可視化<br>ソフトウェア</h1><p class="cover-subtitle">ASSET Framework App</p><p class="cover-document-title">使用説明書</p><p class="cover-publisher">リアルコネクト株式会社<br>2026年10月27日</p><p class="cover-lead">はじめての RSS 予測を、かんたんに。</p><div class="benefit"><strong>かんたん予測</strong><small>地図上でエリアを選ぶだけ</small></div><div class="benefit"><strong>結果をすぐ確認</strong><small>CSV に保存して再利用</small></div><div class="benefit"><strong>やさしい手順</strong><small>初めてでも迷わない</small></div></div><div class="cover-meta">対象アプリ版&nbsp;&nbsp;v2.9.0<br>文書版&nbsp;&nbsp;v1.6</div></section><main class="manual"><h2 id="toc">目次</h2>
 <nav class="toc">
 <a class="sub" href="#このマニュアルの進み方"><span>このマニュアルの進み方</span><span class="dots"></span><span class="page">2</span></a>
 <a href="#1.-このアプリでできること"><span>1. このアプリでできること</span><span class="dots"></span><span class="page">4</span></a>
@@ -412,6 +417,7 @@ figcaption { margin-top: 2mm; color: #526777; font-size: 8.5pt; text-align: cent
 <div class="pagebreak"></div>
 <h2 id="13.-更新履歴">13. 更新履歴</h2>
 <table><thead><tr><th>日付</th><th>文書版</th><th>内容</th></tr></thead><tbody>
+<tr><td>2026年10月27日</td><td>v1.6</td><td>表紙の主題・副題を変更し、会社名と日付を追加。本文ページのフッターに会社名を追加。</td></tr>
 <tr><td>2026年10月23日</td><td>v1.5</td><td>対象アプリを v2.9.0 に更新。Sampling Suggestions の 11 方式、重複地点除去、予算、間隔緩和、説明 tip、推薦点の予測値・不確実さ表示、CSV 保存を追加。</td></tr>
 <tr><td>2026年9月30日</td><td>v1.4</td><td>Prediction Area の円形選択、幅・高さ・半径の表示、円内の格子点による予測、選択範囲の保存・復元を追加。</td></tr>
 <tr><td>2026年9月17日</td><td>v1.3</td><td>対象アプリを v2.8.4 に更新。一般モデルの表示名、Incremental Training の利用方法、Model Training の First-Person View と列車・航空機・船舶視点を追加。</td></tr>
@@ -422,4 +428,4 @@ figcaption { margin-top: 2mm; color: #526777; font-size: 8.5pt; text-align: cent
 <h2 id="14.-サポート時に伝える情報">14. サポート時に伝える情報</h2>
 <p>問い合わせや不具合報告をする場合は、次の情報を伝えると確認が早くなります。</p>
 <ul><li>使用している OS</li><li>アプリ画面に表示されているバージョンまたは <code>Development Build</code> 表示</li><li>実行した画面名</li><li>入力した Database、Frequency、Prediction Data の種類</li><li>エラーが出た場合は <code>Export Log</code> で保存したログ</li><li>使用した CSV の列名</li></ul>
-<p>この説明書の更新日: 2026年10月23日</p></main></body></html>
+<p>この説明書の更新日: 2026年10月27日</p></main></body></html>
