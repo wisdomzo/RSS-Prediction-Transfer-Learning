@@ -152,8 +152,8 @@ def markdown_body(lines, headings, toc_pages=None) -> str:
 
 def render_html(lines, pages=None) -> str:
     headings = collect_headings(lines); body = markdown_body(lines, headings, pages)
-    cover = """<section class="cover"><div class="cover-rail"><i class="signal one"></i><i class="signal two"></i><i class="signal three"></i></div><div class="cover-bottom"></div><div class="cover-copy"><div class="kicker">VISUAL QUICKSTART</div><h1>電波強度分布マップ<br>生成・可視化<br>ソフトウェア</h1><p class="cover-subtitle">ASSET Framework App</p><p class="cover-document-title">使用説明書</p><p class="cover-publisher">リアルコネクト株式会社<br>2026年10月27日</p><p class="cover-lead">はじめての RSS 予測を、かんたんに。</p><div class="benefit"><strong>かんたん予測</strong><small>地図上でエリアを選ぶだけ</small></div><div class="benefit"><strong>結果をすぐ確認</strong><small>CSV に保存して再利用</small></div><div class="benefit"><strong>やさしい手順</strong><small>初めてでも迷わない</small></div></div><div class="cover-meta">対象アプリ版&nbsp;&nbsp;v2.9.0<br>文書版&nbsp;&nbsp;v1.6</div></section>"""
-    return f'<!doctype html><html lang="ja"><head><meta charset="utf-8"><title>電波強度分布マップ生成・可視化ソフトウェア - ASSET Framework App 使用説明書 v1.6</title><style>{CSS}</style></head><body>{cover}<main class="manual">{body}</main></body></html>'
+    cover = """<section class="cover"><div class="cover-rail"><i class="signal one"></i><i class="signal two"></i><i class="signal three"></i></div><div class="cover-bottom"></div><div class="cover-copy"><div class="kicker">VISUAL QUICKSTART</div><h1>電波強度分布マップ<br>生成・可視化<br>ソフトウェア</h1><p class="cover-subtitle">ASSET Framework App</p><p class="cover-document-title">使用説明書</p><p class="cover-publisher">リアルコネクト株式会社<br>2026年11月19日</p><p class="cover-lead">はじめての RSS 予測を、かんたんに。</p><div class="benefit"><strong>かんたん予測</strong><small>地図上でエリアを選ぶだけ</small></div><div class="benefit"><strong>結果をすぐ確認</strong><small>CSV に保存して再利用</small></div><div class="benefit"><strong>やさしい手順</strong><small>初めてでも迷わない</small></div></div><div class="cover-meta">対象アプリ版&nbsp;&nbsp;v2.9.2<br>文書版&nbsp;&nbsp;v1.7</div></section>"""
+    return f'<!doctype html><html lang="ja"><head><meta charset="utf-8"><title>電波強度分布マップ生成・可視化ソフトウェア - ASSET Framework App 使用説明書 v1.7</title><style>{CSS}</style></head><body>{cover}<main class="manual">{body}</main></body></html>'
 
 def chrome_print():
     if not CHROME.exists(): raise FileNotFoundError(f"Google Chrome was not found: {CHROME}")
@@ -198,7 +198,7 @@ def finish_pdf(raw_pdf, output, headings, pages):
         if key not in pages: continue
         item = writer.add_outline_item(title, pages[key]-1, parent=parent if level == 3 else None)
         if level == 2: parent = item
-    writer.add_metadata({"/Title":"電波強度分布マップ生成・可視化ソフトウェア - ASSET Framework App 使用説明書 v1.6","/Author":"リアルコネクト株式会社"}); output.parent.mkdir(parents=True, exist_ok=True)
+    writer.add_metadata({"/Title":"電波強度分布マップ生成・可視化ソフトウェア - ASSET Framework App 使用説明書 v1.7","/Author":"リアルコネクト株式会社"}); output.parent.mkdir(parents=True, exist_ok=True)
     with output.open("wb") as handle: writer.write(handle)
 
 def main() -> int:

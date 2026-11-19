@@ -1,4 +1,4 @@
-<!doctype html><html lang="ja"><head><meta charset="utf-8"><title>電波強度分布マップ生成・可視化ソフトウェア - ASSET Framework App 使用説明書 v1.6</title><style>
+<!doctype html><html lang="ja"><head><meta charset="utf-8"><title>電波強度分布マップ生成・可視化ソフトウェア - ASSET Framework App 使用説明書 v1.7</title><style>
 @page cover { size: A4; margin: 0; }
 @page manual { size: A4; margin: 18mm 18mm 20mm; }
 @page manual {
@@ -49,7 +49,7 @@ figure { margin: 4mm auto 6mm; break-inside: avoid; } figure img { display: bloc
 figcaption { margin-top: 2mm; color: #526777; font-size: 8.5pt; text-align: center; }
 .toc { margin-top: 5mm; } .toc a { display: grid; grid-template-columns: auto 1fr auto; gap: 2mm; align-items: end; color: #102a43; text-decoration: none; margin: 0 0 2mm; }
 .toc a.sub { padding-left: 7mm; color: #526777; font-size: 9.3pt; } .toc .dots { border-bottom: .25mm dotted #9aacb7; transform: translateY(-1.4mm); } .toc .page { color: #52820e; font-weight: 600; }
-</style></head><body><section class="cover"><div class="cover-rail"><i class="signal one"></i><i class="signal two"></i><i class="signal three"></i></div><div class="cover-bottom"></div><div class="cover-copy"><div class="kicker">VISUAL QUICKSTART</div><h1>電波強度分布マップ<br>生成・可視化<br>ソフトウェア</h1><p class="cover-subtitle">ASSET Framework App</p><p class="cover-document-title">使用説明書</p><p class="cover-publisher">リアルコネクト株式会社<br>2026年10月27日</p><p class="cover-lead">はじめての RSS 予測を、かんたんに。</p><div class="benefit"><strong>かんたん予測</strong><small>地図上でエリアを選ぶだけ</small></div><div class="benefit"><strong>結果をすぐ確認</strong><small>CSV に保存して再利用</small></div><div class="benefit"><strong>やさしい手順</strong><small>初めてでも迷わない</small></div></div><div class="cover-meta">対象アプリ版&nbsp;&nbsp;v2.9.0<br>文書版&nbsp;&nbsp;v1.6</div></section><main class="manual"><h2 id="toc">目次</h2>
+</style></head><body><section class="cover"><div class="cover-rail"><i class="signal one"></i><i class="signal two"></i><i class="signal three"></i></div><div class="cover-bottom"></div><div class="cover-copy"><div class="kicker">VISUAL QUICKSTART</div><h1>電波強度分布マップ<br>生成・可視化<br>ソフトウェア</h1><p class="cover-subtitle">ASSET Framework App</p><p class="cover-document-title">使用説明書</p><p class="cover-publisher">リアルコネクト株式会社<br>2026年11月19日</p><p class="cover-lead">はじめての RSS 予測を、かんたんに。</p><div class="benefit"><strong>かんたん予測</strong><small>地図上でエリアを選ぶだけ</small></div><div class="benefit"><strong>結果をすぐ確認</strong><small>CSV に保存して再利用</small></div><div class="benefit"><strong>やさしい手順</strong><small>初めてでも迷わない</small></div></div><div class="cover-meta">対象アプリ版&nbsp;&nbsp;v2.9.2<br>文書版&nbsp;&nbsp;v1.7</div></section><main class="manual"><h2 id="toc">目次</h2>
 <nav class="toc">
 <a class="sub" href="#このマニュアルの進み方"><span>このマニュアルの進み方</span><span class="dots"></span><span class="page">2</span></a>
 <a href="#1.-このアプリでできること"><span>1. このアプリでできること</span><span class="dots"></span><span class="page">4</span></a>
@@ -57,7 +57,7 @@ figcaption { margin-top: 2mm; color: #526777; font-size: 8.5pt; text-align: cent
 <a href="#2.-利用前に準備するもの"><span>2. 利用前に準備するもの</span><span class="dots"></span><span class="page">6</span></a>
 <a class="sub" href="#rss-予測に必要なもの"><span>RSS 予測に必要なもの</span><span class="dots"></span><span class="page">6</span></a>
 <a class="sub" href="#csv-ファイルを使う場合"><span>CSV ファイルを使う場合</span><span class="dots"></span><span class="page">6</span></a>
-<a class="sub" href="#アンテナ高さの見方"><span>アンテナ高さの見方</span><span class="dots"></span><span class="page">6</span></a>
+<a class="sub" href="#アンテナ高さの見方"><span>アンテナ高さの見方</span><span class="dots"></span><span class="page">7</span></a>
 <a href="#3.-アプリを起動して画面を確認する"><span>3. アプリを起動して画面を確認する</span><span class="dots"></span><span class="page">8</span></a>
 <a class="sub" href="#初回ガイド"><span>初回ガイド</span><span class="dots"></span><span class="page">5</span></a>
 <a class="sub" href="#右側の-runtime-monitor"><span>右側の Runtime Monitor</span><span class="dots"></span><span class="page">8</span></a>
@@ -96,6 +96,7 @@ figcaption { margin-top: 2mm; color: #526777; font-size: 8.5pt; text-align: cent
 <a class="sub" href="#予測結果が表示されません"><span>予測結果が表示されません</span><span class="dots"></span><span class="page">24</span></a>
 <a class="sub" href="#download-csv-を押しても保存できません"><span><code>Download CSV</code> を押しても保存できません</span><span class="dots"></span><span class="page">24</span></a>
 <a class="sub" href="#csv-が選べるのに処理で失敗します"><span>CSV が選べるのに処理で失敗します</span><span class="dots"></span><span class="page">24</span></a>
+<a class="sub" href="#モデル学習で-object-of-type-nonetype-has-no-len-と表示されます"><span>モデル学習で <code>object of type &#x27;NoneType&#x27; has no len()</code> と表示されます</span><span class="dots"></span><span class="page">24</span></a>
 <a class="sub" href="#処理中に別画面へ移動できません"><span>処理中に別画面へ移動できません</span><span class="dots"></span><span class="page">24</span></a>
 <a class="sub" href="#処理を止めたいです"><span>処理を止めたいです</span><span class="dots"></span><span class="page">24</span></a>
 <a class="sub" href="#custom-model-を選んだらファイル選択が出ます"><span><code>Custom Model</code> を選んだらファイル選択が出ます</span><span class="dots"></span><span class="page">24</span></a>
@@ -145,6 +146,7 @@ figcaption { margin-top: 2mm; color: #526777; font-size: 8.5pt; text-align: cent
 <tr><td>Fixed Longitude / Latitude</td><td>固定アンテナの経度と緯度です。</td></tr>
 <tr><td>Fixed Elevation / Fixed Height / Mobile Height</td><td>アンテナの高さ条件です。</td></tr>
 </tbody></table>
+<p>v2.9.1 で福島県伊達市の標高データが追加されています。伊達市で予測する場合は、<code>Database</code> で <code>Fukujima Date</code> を選択します。</p>
 <h3 id="csv-ファイルを使う場合">CSV ファイルを使う場合</h3>
 <p>予測地点を CSV で指定する場合、CSV には経度と緯度の列が必要です。</p>
 <table><thead><tr><th>種類</th><th>使用できる列名の例</th></tr></thead><tbody>
@@ -315,6 +317,7 @@ figcaption { margin-top: 2mm; color: #526777; font-size: 8.5pt; text-align: cent
 <h3 id="7.1-まず-feature-vector-を用意する">7.1 まず Feature Vector を用意する</h3>
 <p>モデル学習には特徴量ファイルが必要です。まだ用意していない場合は、<code>Open Feature Generation</code> を押して先に特徴量を作成します。</p>
 <p>既に <code>.xz</code> 形式の特徴量ファイルがある場合は、<code>Feature Vector Mode</code> を <code>Use existing feature vectors</code> にして、<code>Select *.xz Feature Vectors</code> から選択します。</p>
+<aside class="callout tip"><strong>使い方のヒント</strong>v2.9.2 では、今回選択した特徴量ファイルを学習に使用します。ファイル名を <code>ML_myTempExp_</code> で始める必要はありません。例えば <code>FV_SF10_920_0427.pkl.xz</code> のような名前でも選択できます。内容は本ソフトウェアに対応した特徴量データである必要があり、モデルファイルや CSV を改名するだけでは使用できません。</aside>
 <h3 id="7.2-モデル設定の意味">7.2 モデル設定の意味</h3>
 <table><thead><tr><th>項目</th><th>説明</th></tr></thead><tbody>
 <tr><td>Feature Vector Mode</td><td>特徴量を新しく作るか、既存の <code>.xz</code> ファイルを使うかを選びます。</td></tr>
@@ -328,6 +331,7 @@ figcaption { margin-top: 2mm; color: #526777; font-size: 8.5pt; text-align: cent
 </tbody></table>
 <h3 id="7.3-学習を実行する">7.3 学習を実行する</h3>
 <ol class="steps"><li><code>Model Training</code> を開きます。</li><li>特徴量ファイルを用意します。</li><li><code>Base Model</code> と <code>Learning Type</code> を選びます。</li><li>分散実行しない場合は <code>Scheduler</code> を空欄にします。</li><li><code>Generate Model</code> を押します。</li><li><code>Runtime Monitor</code> が <code>Completed</code> になるまで待ちます。</li><li>保存ダイアログが表示されたら、生成モデルを保存します。</li></ol>
+<p>学習に失敗した場合は、<code>Runtime Monitor</code> と <code>Log Console</code> にエラーが表示され、操作のロックが解除されます。ファイルの選択や設定を確認し、修正してから再実行してください。ファイルが見つからない、またはコピーできない場合は、その時点で処理を停止します。</p>
 <h3 id="7.4-分散実行を使う場合">7.4 分散実行を使う場合</h3>
 <p>複数台の PC やサーバで Dask を使う場合は、<code>Open Guide</code> を押して手順を確認します。</p>
 <p><code>Scheduler</code> には、例として <code>tcp://host:8786</code> または <code>host_ip:8786</code> の形式で入力します。接続できない場合、アプリはローカル実行に戻ることがあります。</p>
@@ -385,6 +389,9 @@ figcaption { margin-top: 2mm; color: #526777; font-size: 8.5pt; text-align: cent
 <p>最新の予測結果がアプリ内部にない可能性があります。もう一度 <code>Run RSS Prediction</code> を実行し、完了後に保存してください。</p>
 <h3 id="csv-が選べるのに処理で失敗します">CSV が選べるのに処理で失敗します</h3>
 <p>ファイル拡張子が <code>.csv</code> でも、必要な列がないと処理できません。経度、緯度、必要に応じて RSSI の列名を確認してください。</p>
+<h3 id="モデル学習で-object-of-type-nonetype-has-no-len-と表示されます">モデル学習で <code>object of type &#x27;NoneType&#x27; has no len()</code> と表示されます</h3>
+<p>v2.9.1 以前では、特徴量ファイルの名前が <code>ML_myTempExp_</code> で始まらないと、コピー成功後にこのエラーで停止することがありました。v2.9.2 ではこのファイル名制限を修正しています。古い版を使用している場合は v2.9.2 以降へ更新し、特徴量ファイルを選び直してください。</p>
+<p>更新後も失敗する場合は、選択したファイルが対応する特徴量データであること、元ファイルが移動・削除されていないこと、読み取り可能であることを確認してください。<code>Export Log</code> でログを保存し、アプリのバージョンと一緒にサポートへ伝えてください。</p>
 <h3 id="処理中に別画面へ移動できません">処理中に別画面へ移動できません</h3>
 <p>予測、特徴量生成、モデル学習の実行中は、条件変更を防ぐため一部の画面移動が制限されます。ログ画面は確認できます。</p>
 <h3 id="処理を止めたいです">処理を止めたいです</h3>
@@ -417,6 +424,7 @@ figcaption { margin-top: 2mm; color: #526777; font-size: 8.5pt; text-align: cent
 <div class="pagebreak"></div>
 <h2 id="13.-更新履歴">13. 更新履歴</h2>
 <table><thead><tr><th>日付</th><th>文書版</th><th>内容</th></tr></thead><tbody>
+<tr><td>2026年11月19日</td><td>v1.7</td><td>対象アプリを v2.9.2 に更新。特徴量ファイル名の制限修正、学習失敗時のエラー表示・操作ロック解除、再実行手順と FAQ を追加。v2.9.1 の福島県伊達市の標高データ追加も反映。</td></tr>
 <tr><td>2026年10月27日</td><td>v1.6</td><td>表紙の主題・副題を変更し、会社名と日付を追加。本文ページのフッターに会社名を追加。</td></tr>
 <tr><td>2026年10月23日</td><td>v1.5</td><td>対象アプリを v2.9.0 に更新。Sampling Suggestions の 11 方式、重複地点除去、予算、間隔緩和、説明 tip、推薦点の予測値・不確実さ表示、CSV 保存を追加。</td></tr>
 <tr><td>2026年9月30日</td><td>v1.4</td><td>Prediction Area の円形選択、幅・高さ・半径の表示、円内の格子点による予測、選択範囲の保存・復元を追加。</td></tr>
@@ -428,4 +436,4 @@ figcaption { margin-top: 2mm; color: #526777; font-size: 8.5pt; text-align: cent
 <h2 id="14.-サポート時に伝える情報">14. サポート時に伝える情報</h2>
 <p>問い合わせや不具合報告をする場合は、次の情報を伝えると確認が早くなります。</p>
 <ul><li>使用している OS</li><li>アプリ画面に表示されているバージョンまたは <code>Development Build</code> 表示</li><li>実行した画面名</li><li>入力した Database、Frequency、Prediction Data の種類</li><li>エラーが出た場合は <code>Export Log</code> で保存したログ</li><li>使用した CSV の列名</li></ul>
-<p>この説明書の更新日: 2026年10月27日</p></main></body></html>
+<p>この説明書の更新日: 2026年11月19日</p></main></body></html>

@@ -16,10 +16,13 @@ class ManualContentTests(unittest.TestCase):
 
     def test_required_product_explanations_are_present(self):
         required = [
-            "対象アプリ版: v2.9.0",
-            "文書版: v1.6",
-            "更新日: 2026年10月27日",
+            "対象アプリ版: v2.9.2",
+            "文書版: v1.7",
+            "更新日: 2026年11月19日",
             "General Model M0 (Shinshu Univ. & NICT 202605)",
+            "Fukujima Date",
+            "FV_SF10_920_0427.pkl.xz",
+            "操作のロックが解除されます",
             "Incremental Training",
             "First-Person View",
             "Train Window View",
