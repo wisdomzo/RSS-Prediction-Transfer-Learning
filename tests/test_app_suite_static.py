@@ -808,7 +808,7 @@ class AppSuiteStaticTests(unittest.TestCase):
         self.assertIn('document.querySelectorAll("#view-training input, #view-training select, #view-training button:not([data-training-observer])")', html)
         self.assertNotIn('button:not([data-training-reset])', html)
         self.assertIn("control.disabled = modelTrainingLocked", html)
-        self.assertIn('if (modelTrainingLocked && Number(percent) >= 100) setModelTrainingLocked(false)', html)
+        self.assertIn('if (modelTrainingLocked && (Number(percent) >= 100 || Number(percent) < 0)) setModelTrainingLocked(false)', html)
         self.assertIn("if (selectedPaths.fv.length === 0)", html)
         self.assertIn("Select feature vector files before generating a model.", html)
         self.assertIn("if (modelTrainingLocked) return", html)

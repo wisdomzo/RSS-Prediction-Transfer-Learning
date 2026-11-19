@@ -184,10 +184,15 @@ def _model_training_process_entry(coords, progress_queue):
     if client:
         start_dask_log_proxy()
         print(">>> Remote log forwarding is active...")
-    model_prefix = worker_thread_modelGen(window, coords, auto_download=False)
-    if model_prefix:
-        progress_queue.put({"type": "download_model", "payload": model_prefix})
-    progress_queue.put({"type": "done", "payload": True})
+    try:
+        model_prefix = worker_thread_modelGen(window, coords, auto_download=False)
+        if model_prefix:
+            progress_queue.put({"type": "download_model", "payload": model_prefix})
+    except Exception as e:
+        print(f"Model training failed: {e}")
+        window.evaluate_js(f"updateProgress(-1, {json.dumps('Error: ' + str(e))})")
+    finally:
+        progress_queue.put({"type": "done", "payload": True})
 
 
 def _monitor_prediction_process(process, progress_queue):
@@ -634,14 +639,15 @@ def worker_thread(coords):
 
 def worker_thread_modelGen(api_instance, coords, auto_download=True):
     selected_folder_csv = get_writable_temp_path()
-    copy_selected_files(coords, selected_folder_csv)
+    contentReadDataIndex = copy_selected_files(coords, selected_folder_csv)
+    if not contentReadDataIndex:
+        raise ValueError("Select at least one feature-vector file before training.")
     if coords['model'] != "noModel":
         # Transfer-learning workflow.
         if coords['model'] == "NICT_latest_model":
             selected_predict_model = subFun.get_gpkg_files(os.path.join(APP_ROOT, "models"), "*NICT*")
         if coords['model'] == "customized_model":
             selected_predict_model = coords.get("custom_model_path")
-        contentReadDataIndex = subFun.get_ML_files(selected_folder_csv, "ML_myTempExp_*")
         train_judge_model = bool(coords.get('trainJudgeModel', False))
         window.evaluate_js("updateProgress(10, 'Generating model with transfer learning. This may take some time...')")
         try:
@@ -669,7 +675,6 @@ def worker_thread_modelGen(api_instance, coords, auto_download=True):
             raise e
     else:
         # Generate the model directly without transfer learning.
-        contentReadDataIndex = subFun.get_ML_files(selected_folder_csv, "ML_myTempExp_*")
         window.evaluate_js("updateProgress(10, 'Generating model with machine learning. This may take some time...')")
         try:
             print("\nStarting historical model training...")
@@ -703,6 +708,9 @@ def copy_selected_files(coords, target_folder='selected_folder_csv'):
     Args:
         coords (dict): Dictionary whose 'selectedPaths' value is a list of paths.
         target_folder (str): Destination directory name. Defaults to 'selected_folder_csv'.
+
+    Returns:
+        list[str]: Copied destination paths in selection order.
     """
 
     # 1. Create the destination directory if it does not exist.
@@ -713,7 +721,7 @@ def copy_selected_files(coords, target_folder='selected_folder_csv'):
     # 2. Retrieve the path list.
     selected_paths = coords.get('selectedPaths', [])
 
-    copy_count = 0
+    copied_paths = []
 
     # 3. Iterate over the paths and copy each file.
     for source_path in selected_paths:
@@ -727,13 +735,15 @@ def copy_selected_files(coords, target_folder='selected_folder_csv'):
                 # Copy the file. shutil.copy preserves permissions; shutil.copy2 also attempts to preserve metadata such as modification time.
                 shutil.copy2(source_path, dest_path)
                 print(f"Copied successfully: {file_name}")
-                copy_count += 1
+                copied_paths.append(dest_path)
             except Exception as e:
                 print(f"Error while copying file {file_name}: {e}")
+                raise
         else:
-            print(f"Warning: file does not exist, skipped: {source_path}")
+            raise FileNotFoundError(f"Selected feature-vector file does not exist: {source_path}")
 
-    print(f"\nTask completed. Copied {copy_count} file(s) to {target_folder}.")
+    print(f"\nTask completed. Copied {len(copied_paths)} file(s) to {target_folder}.")
+    return copied_paths
 
 
 
